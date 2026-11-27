@@ -19,7 +19,7 @@ blue:
   tower_strengthen_levels: [2, 1]
   units:
   - {name: marksman, index: 0, position: {x: -30, y: -60}, level: 3, source: delivered}
-  - {name: vortex, index: 1, position: {x: 340, y: 250}, exp: 0/400/750, equipment: [absorption_module], travelling: true, source: joined}
+  - {name: vortex, index: 1, position: {x: 340, y: 250}, exp: 0/400/750, equipments: [absorption_module], travelling: true, source: joined}
   - {name: mustang, index: 2, position: {x: 185, y: -110}, level: 3, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
@@ -37,7 +37,7 @@ red:
   tower_strengthen_levels: [4, 1]
   units:
   - {name: marksman, index: 0, position: {x: 20, y: -80}, level: 3, exp: 0/1000/2315, source: delivered}
-  - {name: rhino, index: 1, position: {x: -315, y: 185}, level: 5, exp: 0/2725/5992, rotated: true, equipment: [secondary_fire_control_system], travelling: true, source: joined}
+  - {name: rhino, index: 1, position: {x: -315, y: 185}, level: 5, exp: 0/2725/5992, rotated: true, equipments: [secondary_fire_control_system], travelling: true, source: joined}
   - {name: overlord, index: 2, position: {x: 195, y: -35}, level: 4, exp: 0/583/7858, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}

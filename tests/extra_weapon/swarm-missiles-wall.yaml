@@ -16,7 +16,7 @@ blue:
   blueprints: [attack_enhancement_ii]
   energy_tower_skills: [high_mobility]
   units:
-  - {name: typhoon, index: 0, position: {x: -260, y: -120}, level: 2, exp: 0/665/4394, rotated: true, equipment: [deployment_module]}
+  - {name: typhoon, index: 0, position: {x: -260, y: -120}, level: 2, exp: 0/665/4394, rotated: true, equipments: [deployment_module]}
   - {name: rhino, index: 1, position: {x: 35, y: -135}, level: 2, source: delivered}
   - {name: steel_ball, index: 2, position: {x: -215, y: -80}, exp: 0/42/1000, source: joined}
   constructions:

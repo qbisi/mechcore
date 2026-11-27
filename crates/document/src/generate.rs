@@ -1050,7 +1050,7 @@ fn side(
         level: Some(lead_level),
         exp,
         rotated: Some(rotated),
-        equipment: match at(Role::LeadEquipment) {
+        equipments: match at(Role::LeadEquipment) {
             0 => Vec::new(),
             value => vec![space.equipment[value - 1]],
         },
@@ -1097,7 +1097,7 @@ fn side(
                 level: Some(squad.level),
                 exp: None,
                 rotated: None,
-                equipment: Vec::new(),
+                equipments: Vec::new(),
                 travelling: None,
                 source: UnitSource::Delivered,
             });
@@ -1117,7 +1117,7 @@ fn side(
                 level: Some(level(at(Role::SecondLevel))),
                 exp: None,
                 rotated: None,
-                equipment: Vec::new(),
+                equipments: Vec::new(),
                 travelling: None,
                 source: UnitSource::Joined,
             })

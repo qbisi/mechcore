@@ -17,7 +17,7 @@ blue:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [3, 4]
   units:
-  - {name: wraith, index: 0, position: {x: -235, y: -135}, level: 5, exp: 0/800/11724, rotated: true, equipment: [dominion_core], source: joined}
+  - {name: wraith, index: 0, position: {x: -235, y: -135}, level: 5, exp: 0/800/11724, rotated: true, equipments: [dominion_core], source: joined}
   - {name: void_eye, index: 1, position: {x: -70, y: -140}, level: 3, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: -60, y: -100}, retained: false}
@@ -31,7 +31,7 @@ red:
   blueprints: [attack_enhancement]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: overlord, index: 0, position: {x: -195, y: -115}, level: 5, exp: 0/5700/9118, equipment: [steel_ball_production_line], source: joined}
+  - {name: overlord, index: 0, position: {x: -195, y: -115}, level: 5, exp: 0/5700/9118, equipments: [steel_ball_production_line], source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: 210, y: -55}, retained: false}
   battle_skills:

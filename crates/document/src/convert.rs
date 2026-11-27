@@ -5,15 +5,16 @@
 //! (server snapshots already include it),
 //! the two shop counters are restored to the round's allowance, the energy
 //! tower list is the set activated during the round and so empty at its
-//! start, and the equipment table reconciles stock with ordered fittings.
+//! start, and `equipments` keeps only unfitted stock (fitted items live on
+//! each formation).
 //! `docs/spec/document/match.md` says what the conversion refuses.
 
 use crate::catalog::{construction_type_from_id, contraption_type_from_id, unit_type_from_id};
 use crate::economy::{Economy, OpeningKind, RoundSupply};
 use crate::layout::{ContraptionPlacement, Experience, Position, StaticPlacement};
 use crate::r#match::{
-    Action, EquipmentFitting, Match, MatchSide, NextIndex, Offers, Opening, OpeningOffer,
-    PanelSkill, SideState, SkillTarget, State, StateEquipment, StateUnit, Turn, TurnActions,
+    Action, Match, MatchSide, NextIndex, Offers, Opening, OpeningOffer, PanelSkill, SideState,
+    SkillTarget, State, StateUnit, Turn, TurnActions,
 };
 use crate::opening::{self, Stream};
 use crate::record::{self, ActionRecord, PlayerData, PlayerRoundRecord};
@@ -660,7 +661,7 @@ fn side_state(
             Vec::new()
         },
         tower_strengthen_levels: data.tower_strengthen_levels.values.clone(),
-        equipment: snapshot_equipment(data)?,
+        equipments: unfitted_equipment(data)?,
         battle_skills,
         next_index: NextIndex {
             unit: data.unit_index,
@@ -958,6 +959,7 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateUnit>, String> {
                 })?,
             ),
             rotated: Some(unit.rotated).filter(|rotated| *rotated),
+            equipments: unit.equipments.entries.iter().map(|item| item.id).collect(),
             // No recorded field states it; see docs/spec/document/match.md.
             travelling: None,
             source: crate::layout::UnitSource::Legacy,
@@ -972,11 +974,6 @@ fn formations(data: &PlayerData, seat: Seat) -> Result<Vec<StateUnit>, String> {
 /// are read separately; this shares the native-to-document mapping with matches.
 pub(crate) fn layout_snapshot(data: &PlayerData, red: bool) -> Result<crate::Side, String> {
     let seat = if red { Seat::Red } else { Seat::Blue };
-    let board = SideState {
-        units: formations(data, seat)?,
-        equipment: fitted_equipment(data),
-        ..SideState::default()
-    };
     Ok(crate::Side {
         officers: data
             .officers
@@ -994,9 +991,10 @@ pub(crate) fn layout_snapshot(data: &PlayerData, red: bool) -> Result<crate::Sid
         blueprints: data.blueprints.values.clone(),
         energy_tower_skills: Vec::new(),
         tower_strengthen_levels: data.tower_strengthen_levels.values.clone(),
-        units: board
-            .active_units()
-            .map(|entry| entry.placement(&board))
+        units: formations(data, seat)?
+            .iter()
+            .filter(|entry| !entry.recovered)
+            .map(StateUnit::placement)
             .collect::<Result<_, _>>()?,
         recovered: Vec::new(),
         constructions: constructions(data, seat)?,
@@ -1045,33 +1043,15 @@ fn contraptions(data: &PlayerData, seat: Seat) -> Result<Vec<ContraptionPlacemen
     Ok(contraptions)
 }
 
-fn fitted_equipment(data: &PlayerData) -> Vec<StateEquipment> {
-    data.units
-        .entries
-        .iter()
-        .flat_map(|unit| {
-            unit.equipments
-                .entries
-                .iter()
-                .enumerate()
-                .map(|(slot, item)| StateEquipment {
-                    id: item.id,
-                    fitted: Some(EquipmentFitting {
-                        unit: unit.index,
-                        slot,
-                    }),
-                })
-        })
-        .collect()
-}
-
 /// Resolves stock by subtracting the fitted copies from the native inventory.
-fn snapshot_equipment(data: &PlayerData) -> Result<Vec<StateEquipment>, String> {
-    let mut equipment = fitted_equipment(data);
+fn unfitted_equipment(data: &PlayerData) -> Result<Vec<i32>, String> {
     let mut fitted = BTreeMap::<i32, usize>::new();
-    for item in &equipment {
-        *fitted.entry(item.id).or_default() += 1;
+    for unit in &data.units.entries {
+        for item in &unit.equipments.entries {
+            *fitted.entry(item.id).or_default() += 1;
+        }
     }
+    let mut unfitted = Vec::new();
     for item in &data.equipment.entries {
         if item.durability != -1 {
             return Err(format!(
@@ -1083,15 +1063,11 @@ fn snapshot_equipment(data: &PlayerData) -> Result<Vec<StateEquipment>, String> 
         if *pending > 0 {
             *pending -= 1;
         } else {
-            equipment.push(StateEquipment {
-                id: item.id,
-                fitted: None,
-            });
+            unfitted.push(item.id);
         }
     }
-    // The unit records supply the fitted copies.
-    equipment.sort_unstable();
-    Ok(equipment)
+    unfitted.sort_unstable();
+    Ok(unfitted)
 }
 
 /// Whether last round's Rapid Supply is deducted from this round's income.
@@ -1908,26 +1884,21 @@ mod tests {
         );
         let round: crate::record::PlayerRoundRecord =
             quick_xml::de::from_str(&with_equipment).unwrap();
-        let equipment = super::snapshot_equipment(&round.data).unwrap();
+        let equipments = super::unfitted_equipment(&round.data).unwrap();
+        let units = super::formations(&round.data, super::Seat::Blue).unwrap();
+        assert_eq!(equipments, [13_030_001]);
+        assert_eq!(units[0].equipments, [13_030_002, 13_030_001]);
         assert_eq!(
-            equipment
-                .iter()
-                .filter(|item| item.fitted.is_none())
-                .map(|item| item.id)
-                .collect::<Vec<_>>(),
-            [13_030_001]
-        );
-        assert_eq!(
-            super::layout_snapshot(&round.data, false).unwrap().units[0].equipment,
+            super::layout_snapshot(&round.data, false).unwrap().units[0].equipments,
             [13_030_002, 13_030_001]
         );
         let state = crate::r#match::SideState {
-            equipment,
-            units: super::formations(&round.data, super::Seat::Blue).unwrap(),
+            equipments,
+            units,
             ..Default::default()
         };
         assert_eq!(
-            crate::project::project_side(&state, "blue").unwrap().units[0].equipment,
+            crate::project::project_side(&state, "blue").unwrap().units[0].equipments,
             [13_030_002, 13_030_001]
         );
     }

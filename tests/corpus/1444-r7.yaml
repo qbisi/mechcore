@@ -21,7 +21,7 @@ blue:
   - {name: void_eye, index: 0, position: {x: 0, y: -180}, level: 2, exp: 1039/1344/1465}
   - {name: void_eye, index: 1, position: {x: -90, y: -180}, level: 2, exp: 564/596/1465}
   - {name: void_eye, index: 2, position: {x: 90, y: -180}, level: 2, exp: 0/95/1465}
-  - {name: sledgehammer, index: 3, position: {x: -45, y: -130}, level: 2, exp: 1936/2855/2929, equipment: [heavy_armor]}
+  - {name: sledgehammer, index: 3, position: {x: -45, y: -130}, level: 2, exp: 1936/2855/2929, equipments: [heavy_armor]}
   - {name: sledgehammer, index: 4, position: {x: 45, y: -130}, level: 2, exp: 0/764/2929}
   - {name: crawler, index: 5, position: {x: -90, y: -215}, exp: 450/450/450, rotated: true}
   - {name: crawler, index: 6, position: {x: 90, y: -215}, exp: 159/180/450, rotated: true}
@@ -69,7 +69,7 @@ red:
   - {name: void_eye, index: 2, position: {x: -230, y: -110}, exp: 650/650/650}
   - {name: crawler, index: 5, position: {x: -140, y: -235}, exp: 306/450/450, rotated: true}
   - {name: crawler, index: 6, position: {x: -240, y: -145}, exp: 450/450/450, rotated: true}
-  - {name: wraith, index: 7, position: {x: -235, y: -85}, level: 2, exp: 2944/5070/5070, equipment: [portable_shield]}
+  - {name: wraith, index: 7, position: {x: -235, y: -85}, level: 2, exp: 2944/5070/5070, equipments: [portable_shield]}
   - {name: crawler, index: 8, position: {x: 310, y: 35}, exp: 450/450/450}
   - {name: crawler, index: 9, position: {x: -30, y: -165}, exp: 44/72/450, rotated: true}
   - {name: rhino, index: 11, position: {x: 255, y: -275}, recordPosition: {x: 345, y: 195}, exp: 852/892/1150}

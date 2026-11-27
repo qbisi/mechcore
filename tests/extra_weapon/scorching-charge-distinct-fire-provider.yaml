@@ -16,7 +16,7 @@ blue:
     fire_badger: [napalm, field_maintenance, range_enhancement, scorching_fire, scorching_charge, ignite, counter_fire]
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: fire_badger, index: 0, position: {x: 105, y: -120}, level: 7, exp: 8815/8815/8815, equipment: [secondary_fire_control_system]}
+  - {name: fire_badger, index: 0, position: {x: 105, y: -120}, level: 7, exp: 8815/8815/8815, equipments: [secondary_fire_control_system]}
   - {name: fire_badger, index: 1, position: {x: -5, y: -40}, exp: 0/300/1400, source: delivered}
   - {name: steel_ball, index: 2, position: {x: -105, y: -140}, level: 5, exp: 0/1100/5210, source: joined}
   constructions:
@@ -31,7 +31,7 @@ red:
   blueprints: [attack_enhancement_ii]
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: centurion, index: 0, position: {x: -275, y: -55}, level: 8, exp: 15137/15137/15137, equipment: [portable_shield]}
+  - {name: centurion, index: 0, position: {x: -275, y: -55}, level: 8, exp: 15137/15137/15137, equipments: [portable_shield]}
   - {name: sabertooth, index: 1, position: {x: 235, y: -45}, source: delivered}
   - {name: wasp, index: 2, position: {x: -45, y: -110}, level: 5, exp: 0/3868/4689, source: joined}
   contraptions:

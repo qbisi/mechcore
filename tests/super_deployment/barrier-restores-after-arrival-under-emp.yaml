@@ -18,7 +18,7 @@ blue:
   blueprints: [defense_enhancement]
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: farseer, index: 0, position: {x: -285, y: -275}, level: 9, exp: 6054/6054/12109, equipment: [haste_module]}
+  - {name: farseer, index: 0, position: {x: -285, y: -275}, level: 9, exp: 6054/6054/12109, equipments: [haste_module]}
   - {name: sabertooth, index: 1, position: {x: 165, y: -55}, exp: 0/209/1300, source: delivered}
   - {name: crawler, index: 2, position: {x: 115, y: -270}, level: 8, exp: 0/15/3027, source: joined}
   contraptions:
@@ -32,7 +32,7 @@ red:
     fortress: [doubleshot, barrier, anti_air_barrage, fang_production, armor_enhancement, range_enhancement, launcher_overload, solid_shot, elite_marksman, rocket_punch]
   blueprints: [attack_enhancement]
   units:
-  - {name: fortress, index: 0, position: {x: 320, y: 70}, level: 7, exp: 0/10074/10074, equipment: [photon_coating], travelling: true, source: joined}
+  - {name: fortress, index: 0, position: {x: 320, y: 70}, level: 7, exp: 0/10074/10074, equipments: [photon_coating], travelling: true, source: joined}
   - {name: fortress, index: 1, position: {x: 180, y: -120}, level: 6, exp: 0/2680/9278, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: 155, y: -130}}

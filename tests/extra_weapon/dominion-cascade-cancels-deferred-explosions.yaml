@@ -18,7 +18,7 @@ blue:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: fire_badger, index: 0, position: {x: 200, y: -175}, level: 6, exp: 4059/4459/8118, rotated: true, equipment: [dominion_core]}
+  - {name: fire_badger, index: 0, position: {x: 200, y: -175}, level: 6, exp: 4059/4459/8118, rotated: true, equipments: [dominion_core]}
   - {name: fire_badger, index: 1, position: {x: 205, y: -230}, source: delivered}
   - {name: vulcan, index: 2, position: {x: -100, y: -200}, level: 5, source: joined}
   constructions:
@@ -37,7 +37,7 @@ red:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: fortress, index: 0, position: {x: -10, y: -220}, level: 6, exp: 4639/9061/9278, rotated: true, equipment: [laser_sights]}
+  - {name: fortress, index: 0, position: {x: -10, y: -220}, level: 6, exp: 4639/9061/9278, rotated: true, equipments: [laser_sights]}
   - {name: sabertooth, index: 1, position: {x: -155, y: -75}, exp: 0/120/1300, source: delivered}
   - {name: sandworm, index: 2, position: {x: 120, y: -230}, level: 7, source: joined}
   contraptions:

@@ -17,7 +17,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: melting_point, index: 0, position: {x: -20, y: -60}, level: 3, exp: 4987/4987/4987, rotated: true, equipment: [steel_ball_production_line]}
+  - {name: melting_point, index: 0, position: {x: -20, y: -60}, level: 3, exp: 4987/4987/4987, rotated: true, equipments: [steel_ball_production_line]}
   - {name: fire_badger, index: 1, position: {x: 105, y: -300}, source: delivered}
   - {name: raiden, index: 2, position: {x: -180, y: -220}, level: 3, source: joined}
   constructions:
@@ -34,7 +34,7 @@ red:
   tower_strengthen_levels: [4, 4]
   units:
   - {name: fire_badger, index: 0, position: {x: 15, y: -210}, exp: 0/60/1400, source: delivered}
-  - {name: arclight, index: 1, position: {x: -60, y: -300}, level: 7, exp: 0/799/4722, equipment: [absorption_module], source: joined}
+  - {name: arclight, index: 1, position: {x: -60, y: -300}, level: 7, exp: 0/799/4722, equipments: [absorption_module], source: joined}
   - {name: hound, index: 2, position: {x: -30, y: -90}, level: 6, exp: 0/156/4349, source: joined}
   constructions:
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}

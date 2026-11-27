@@ -15,7 +15,7 @@ blue:
   techs:
     sabertooth: [secondary_armament, anti_air_missile]
   units:
-  - {name: sabertooth, index: 0, position: {x: 5, y: -45}, exp: 0/502/1300, equipment: [amplifying_core], source: joined}
+  - {name: sabertooth, index: 0, position: {x: 5, y: -45}, exp: 0/502/1300, equipments: [amplifying_core], source: joined}
 red:
   core_damage: 0
   units:

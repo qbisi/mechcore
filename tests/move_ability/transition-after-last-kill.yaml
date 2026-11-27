@@ -17,7 +17,7 @@ blue:
     sandworm: [burrow_maintenance, armor_enhancement, anti_aerial, replicate, sandstorm, strike, mechanical_rage, mechanical_division]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: sandworm, index: 0, position: {x: 30, y: -180}, exp: 1000/2000/2000, equipment: [barrier]}
+  - {name: sandworm, index: 0, position: {x: 30, y: -180}, exp: 1000/2000/2000, equipments: [barrier]}
   - {name: marksman, index: 1, position: {x: 240, y: -150}, level: 3, exp: 0/1457/2315, source: delivered}
   - {name: sandworm, index: 2, position: {x: -140, y: -140}, level: 5, exp: 0/3000/10421, source: joined}
   constructions:
@@ -34,7 +34,7 @@ red:
   blueprints: [defense_enhancement_ii]
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: hacker, index: 0, position: {x: 45, y: -175}, level: 4, exp: 2515/2515/2515, rotated: true, equipment: [small_amplifying_core]}
+  - {name: hacker, index: 0, position: {x: 45, y: -175}, level: 4, exp: 2515/2515/2515, rotated: true, equipments: [small_amplifying_core]}
   - {name: marksman, index: 1, position: {x: -100, y: -270}, level: 3, source: delivered}
   - {name: wasp, index: 2, position: {x: -85, y: -70}, level: 9, source: joined}
   constructions:

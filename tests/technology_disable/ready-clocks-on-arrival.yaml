@@ -35,7 +35,7 @@ red:
   tower_strengthen_levels: [3, 3]
   units:
   - {name: marksman, index: 0, position: {x: -20, y: -200}, level: 3, source: delivered}
-  - {name: arclight, index: 1, position: {x: 270, y: -70}, level: 2, exp: 0/1690/1690, equipment: [amplifying_core], source: joined}
+  - {name: arclight, index: 1, position: {x: 270, y: -70}, level: 2, exp: 0/1690/1690, equipments: [amplifying_core], source: joined}
   - {name: hacker, index: 2, position: {x: 125, y: -255}, level: 4, exp: 0/1000/2515, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: 125, y: -275}}

@@ -17,7 +17,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [2, 4]
   units:
-  - {name: steel_ball, index: 0, position: {x: 190, y: -205}, exp: 1000/1000/1000, rotated: true, equipment: [haste_module]}
+  - {name: steel_ball, index: 0, position: {x: 190, y: -205}, exp: 1000/1000/1000, rotated: true, equipments: [haste_module]}
   - {name: wraith, index: 1, position: {x: -285, y: -185}, level: 6, exp: 0/2404/13047, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
@@ -34,7 +34,7 @@ red:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: vulcan, index: 0, position: {x: -10, y: -60}, level: 2, exp: 2726/2726/5453, rotated: true, equipment: [mustang_production_line]}
+  - {name: vulcan, index: 0, position: {x: -10, y: -60}, level: 2, exp: 2726/2726/5453, rotated: true, equipments: [mustang_production_line]}
   - {name: steel_ball, index: 1, position: {x: -35, y: -290}, level: 6, exp: 0/440/5799, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: -245, y: -220}}

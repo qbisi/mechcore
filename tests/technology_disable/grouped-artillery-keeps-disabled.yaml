@@ -13,7 +13,7 @@ blue:
   techs:
     wraith: [high_explosive_ammo, field_maintenance, armor_enhancement, land_cruiser, range_enhancement, floating_artillery_array, degeneration_beam]
   units:
-  - {name: wraith, index: 0, position: {x: 5, y: -75}, level: 2, exp: 2535/2535/5070, equipment: [secondary_fire_control_system]}
+  - {name: wraith, index: 0, position: {x: 5, y: -75}, level: 2, exp: 2535/2535/5070, equipments: [secondary_fire_control_system]}
 red:
   core_damage: 0
   units:

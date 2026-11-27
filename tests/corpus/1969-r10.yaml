@@ -29,17 +29,17 @@ blue:
   - {name: fang, index: 9, position: {x: -230, y: -185}, exp: 194/198/600, rotated: true}
   - {name: wasp, index: 11, position: {x: -195, y: -160}, level: 2, exp: 771/826/2028}
   - {name: wasp, index: 12, position: {x: -55, y: -160}, level: 2, exp: 1332/1579/2028}
-  - {name: vulcan, index: 13, position: {x: 10, y: -110}, level: 3, exp: 3539/5390/8620, equipment: [amplifying_core]}
+  - {name: vulcan, index: 13, position: {x: 10, y: -110}, level: 3, exp: 3539/5390/8620, equipments: [amplifying_core]}
   - {name: crawler, index: 14, position: {x: -20, y: -145}, exp: 183/274/450, rotated: true}
   - {name: sabertooth, index: 15, position: {x: 55, y: -75}, level: 4, exp: 4406/4410/5837}
   - {name: wasp, index: 16, position: {x: 245, y: -20}, exp: 900/900/900}
   - {name: wasp, index: 17, position: {x: 70, y: -155}, exp: 900/900/900, rotated: true}
   - {name: wasp, index: 18, position: {x: 120, y: -135}, level: 2, exp: 1228/1232/2028, rotated: true}
-  - {name: vulcan, index: 19, position: {x: -200, y: -130}, level: 2, exp: 1421/2541/5453, equipment: [secondary_fire_control_system]}
+  - {name: vulcan, index: 19, position: {x: -200, y: -130}, level: 2, exp: 1421/2541/5453, equipments: [secondary_fire_control_system]}
   - {name: crawler, index: 20, position: {x: 310, y: 35}, exp: 103/132/450}
   - {name: mustang, index: 21, position: {x: -85, y: -200}, level: 3, exp: 0/366/4274}
-  - {name: mustang, index: 22, position: {x: 255, y: -80}, level: 4, exp: 0/4906/5388, equipment: [secondary_fire_control_system]}
-  - {name: mustang, index: 23, position: {x: -175, y: -210}, level: 3, exp: 0/2434/4274, equipment: [secondary_fire_control_system]}
+  - {name: mustang, index: 22, position: {x: 255, y: -80}, level: 4, exp: 0/4906/5388, equipments: [secondary_fire_control_system]}
+  - {name: mustang, index: 23, position: {x: -175, y: -210}, level: 3, exp: 0/2434/4274, equipments: [secondary_fire_control_system]}
   - {name: hound, index: 25, position: {x: -220, y: -50}, level: 2, exp: 107/162/1690}
   - {name: hound, index: 26, position: {x: -50, y: -40}, level: 2, exp: 123/126/1690}
   - {name: crawler, index: 27, position: {x: -95, y: -20}, exp: 41/41/450}
@@ -73,7 +73,7 @@ red:
   - {name: crawler, index: 2, position: {x: 140, y: -135}, exp: 450/450/450, rotated: true}
   - {name: fire_badger, index: 3, position: {x: 85, y: -70}, level: 2, exp: 3154/3154/3154}
   - {name: fire_badger, index: 4, position: {x: 175, y: -70}, level: 2, exp: 3154/3154/3154}
-  - {name: void_eye, index: 5, position: {x: 130, y: -80}, level: 5, exp: 0/3387/3387, equipment: [secondary_fire_control_system]}
+  - {name: void_eye, index: 5, position: {x: 130, y: -80}, level: 5, exp: 0/3387/3387, equipments: [secondary_fire_control_system]}
   - {name: void_eye, index: 6, position: {x: 220, y: -80}, level: 4, exp: 1916/2919/2919}
   - {name: marksman, index: 7, position: {x: 190, y: -90}, level: 4, exp: 2919/2919/2919}
   - {name: void_eye, index: 8, position: {x: 20, y: -80}, level: 3, exp: 0/1872/2315}
@@ -88,9 +88,9 @@ red:
   - {name: phantom_ray, index: 17, position: {x: 15, y: -100}, exp: 868/949/1000}
   - {name: void_eye, index: 18, position: {x: 170, y: -100}, level: 4, exp: 0/2919/2919, rotated: true}
   - {name: void_eye, index: 19, position: {x: -20, y: -110}, level: 2, exp: 0/1465/1465, rotated: true}
-  - {name: wasp, index: 20, position: {x: -215, y: -130}, level: 2, exp: 2028/2028/2028, equipment: [secondary_fire_control_system]}
-  - {name: wasp, index: 21, position: {x: -265, y: -130}, level: 2, exp: 125/167/2028, equipment: [secondary_fire_control_system]}
-  - {name: wasp, index: 22, position: {x: -165, y: -130}, level: 3, exp: 2722/2777/3206, equipment: [explosive_ammo]}
+  - {name: wasp, index: 20, position: {x: -215, y: -130}, level: 2, exp: 2028/2028/2028, equipments: [secondary_fire_control_system]}
+  - {name: wasp, index: 21, position: {x: -265, y: -130}, level: 2, exp: 125/167/2028, equipments: [secondary_fire_control_system]}
+  - {name: wasp, index: 22, position: {x: -165, y: -130}, level: 3, exp: 2722/2777/3206, equipments: [explosive_ammo]}
   - {name: wasp, index: 23, position: {x: 235, y: -220}, level: 2, exp: 2028/2028/2028}
   - {name: wasp, index: 24, position: {x: -115, y: -130}, level: 2, exp: 646/2028/2028}
   - {name: crawler, index: 25, position: {x: -280, y: -95}, exp: 417/450/450, rotated: true}

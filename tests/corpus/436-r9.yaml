@@ -76,7 +76,7 @@ red:
   - {name: crawler, index: 5, position: {x: 180, y: -95}, exp: 417/450/450, rotated: true}
   - {name: crawler, index: 6, position: {x: 290, y: -65}, exp: 355/450/450, rotated: true}
   - {name: mustang, index: 7, position: {x: 195, y: -170}, exp: 851/1200/1200}
-  - {name: phoenix, index: 8, position: {x: 150, y: -100}, level: 4, exp: 0/1740/5837, equipment: [dominion_core]}
+  - {name: phoenix, index: 8, position: {x: 150, y: -100}, level: 4, exp: 0/1740/5837, equipments: [dominion_core]}
   - {name: arclight, index: 9, position: {x: -170, y: -200}, level: 3, exp: 148/917/2671}
   - {name: sabertooth, index: 10, position: {x: 285, y: -25}, level: 2, exp: 8/15/2929}
   - {name: arclight, index: 11, position: {x: 350, y: 20}, level: 2, exp: 1228/1690/1690}

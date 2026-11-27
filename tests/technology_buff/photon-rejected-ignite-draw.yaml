@@ -16,7 +16,7 @@ blue:
   blueprints: [defense_enhancement]
   tower_strengthen_levels: [4, 2]
   units:
-  - {name: fire_badger, index: 0, position: {x: -215, y: -250}, level: 9, exp: 9418/9418/9418, equipment: [improved_firepower_control_system]}
+  - {name: fire_badger, index: 0, position: {x: -215, y: -250}, level: 9, exp: 9418/9418/9418, equipments: [improved_firepower_control_system]}
   - {name: wasp, index: 1, position: {x: 225, y: -40}, level: 6, exp: 0/404/5219, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
@@ -33,7 +33,7 @@ red:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: overlord, index: 0, position: {x: 125, y: -55}, level: 4, exp: 3929/7858/7858, equipment: [mustang_production_line]}
+  - {name: overlord, index: 0, position: {x: 125, y: -55}, level: 4, exp: 3929/7858/7858, equipments: [mustang_production_line]}
   - {name: fire_badger, index: 1, position: {x: 245, y: -70}, source: delivered}
   - {name: tarantula, index: 2, position: {x: 25, y: -45}, level: 3, exp: 0/622/5343, source: joined}
   contraptions:

@@ -42,12 +42,7 @@ pub fn arsenal(state: &SideState) -> Arsenal {
                 released: slot.release.is_some(),
             })
             .collect(),
-        equipment: state
-            .equipment
-            .iter()
-            .filter(|item| item.fitted.is_none())
-            .map(|item| HeldItem { id: item.id })
-            .collect(),
+        equipment: state.equipments.iter().map(|&id| HeldItem { id }).collect(),
     }
 }
 

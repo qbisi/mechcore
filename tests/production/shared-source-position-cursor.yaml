@@ -19,7 +19,7 @@ blue:
   tower_strengthen_levels: [4, 4]
   units:
   - {name: marksman, index: 0, position: {x: -80, y: -40}, level: 3, source: delivered}
-  - {name: fortress, index: 1, position: {x: -320, y: 100}, level: 4, exp: 0/1440/7184, equipment: [absorption_module], travelling: true, source: joined}
+  - {name: fortress, index: 1, position: {x: -320, y: 100}, level: 4, exp: 0/1440/7184, equipments: [absorption_module], travelling: true, source: joined}
   - {name: tarantula, index: 2, position: {x: 115, y: -65}, level: 9, exp: 0/4068/10091, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: -95, y: -160}, retained: false}
@@ -32,7 +32,7 @@ red:
   tower_strengthen_levels: [1, 2]
   units:
   - {name: marksman, index: 0, position: {x: 60, y: -160}, level: 3, exp: 0/2315/2315, source: delivered}
-  - {name: marksman, index: 1, position: {x: -320, y: 110}, level: 7, exp: 0/4093/4093, rotated: true, equipment: [deployment_module], travelling: true, source: joined}
+  - {name: marksman, index: 1, position: {x: -320, y: 110}, level: 7, exp: 0/4093/4093, rotated: true, equipments: [deployment_module], travelling: true, source: joined}
   - {name: tarantula, index: 2, position: {x: -285, y: -65}, level: 5, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: -110, y: -45}, retained: false}

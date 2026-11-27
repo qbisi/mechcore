@@ -22,10 +22,10 @@ blue:
   - {name: crawler, index: 5, position: {x: 140, y: -205}, exp: 386/450/450, rotated: true}
   - {name: crawler, index: 6, position: {x: -140, y: -205}, exp: 450/450/450, rotated: true}
   - {name: wasp, index: 7, position: {x: -255, y: -300}, exp: 900/900/900}
-  - {name: sledgehammer, index: 8, position: {x: -105, y: -70}, exp: 677/679/1300, equipment: [secondary_heavy_armor]}
+  - {name: sledgehammer, index: 8, position: {x: -105, y: -70}, exp: 677/679/1300, equipments: [secondary_heavy_armor]}
   - {name: sledgehammer, index: 9, position: {x: -235, y: -70}, exp: 1022/1300/1300}
-  - {name: sledgehammer, index: 10, position: {x: 245, y: -70}, exp: 1084/1300/1300, equipment: [secondary_heavy_armor]}
-  - {name: sledgehammer, index: 11, position: {x: 105, y: -70}, exp: 495/866/1300, equipment: [secondary_heavy_armor]}
+  - {name: sledgehammer, index: 10, position: {x: 245, y: -70}, exp: 1084/1300/1300, equipments: [secondary_heavy_armor]}
+  - {name: sledgehammer, index: 11, position: {x: 105, y: -70}, exp: 495/866/1300, equipments: [secondary_heavy_armor]}
   - {name: abyss, index: 12, position: {x: 225, y: -115}, exp: 0/2329/4800, source: joined}
 red:
   core_damage: 500
@@ -37,8 +37,8 @@ red:
   - {name: crawler, index: 0, position: {x: -290, y: -285}, exp: 428/428/450, rotated: true}
   - {name: crawler, index: 1, position: {x: 0, y: -285}, exp: 87/327/450, rotated: true}
   - {name: crawler, index: 2, position: {x: 290, y: -285}, exp: 372/408/450, rotated: true}
-  - {name: mustang, index: 3, position: {x: 235, y: -300}, exp: 1147/1200/1200, equipment: [secondary_fire_control_system]}
-  - {name: mustang, index: 4, position: {x: -235, y: -300}, exp: 1135/1135/1200, equipment: [secondary_fire_control_system]}
+  - {name: mustang, index: 3, position: {x: 235, y: -300}, exp: 1147/1200/1200, equipments: [secondary_fire_control_system]}
+  - {name: mustang, index: 4, position: {x: -235, y: -300}, exp: 1135/1135/1200, equipments: [secondary_fire_control_system]}
   - {name: fang, index: 7, position: {x: -155, y: -90}, exp: 37/37/600}
   - {name: fire_badger, index: 8, position: {x: 235, y: -40}, exp: 15/26/1400}
   - {name: fire_badger, index: 9, position: {x: 105, y: -40}, exp: 84/770/1400}

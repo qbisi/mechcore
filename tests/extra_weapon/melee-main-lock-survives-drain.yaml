@@ -17,7 +17,7 @@ blue:
   blueprints: [attack_enhancement]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: tarantula, index: 0, position: {x: 135, y: -235}, level: 9, exp: 0/340/10091, equipment: [laser_sights], source: joined}
+  - {name: tarantula, index: 0, position: {x: 135, y: -235}, level: 9, exp: 0/340/10091, equipments: [laser_sights], source: joined}
   - {name: steel_ball, index: 1, position: {x: 205, y: -250}, level: 2, exp: 0/380/2253, source: joined}
   constructions:
   - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
@@ -34,7 +34,7 @@ red:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: centurion, index: 0, position: {x: 265, y: -45}, level: 3, exp: 0/2750/8014, equipment: [super_heavy_armor], source: joined}
+  - {name: centurion, index: 0, position: {x: 265, y: -45}, level: 3, exp: 0/2750/8014, equipments: [super_heavy_armor], source: joined}
   - {name: farseer, index: 1, position: {x: 175, y: -225}, level: 8, exp: 0/5570/12109, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}

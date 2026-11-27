@@ -10,7 +10,7 @@ round: 1
 blue:
   core_damage: 400
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [dominion_core], source: joined}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, equipments: [dominion_core], source: joined}
   - {name: fortress, index: 1, position: {x: 0, y: -250}, source: joined}
 red:
   core_damage: 0

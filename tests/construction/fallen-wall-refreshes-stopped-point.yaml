@@ -16,7 +16,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: phoenix, index: 0, position: {x: 320, y: 220}, level: 6, exp: 3769/7539/7539, rotated: true, equipment: [dominion_core]}
+  - {name: phoenix, index: 0, position: {x: 320, y: 220}, level: 6, exp: 3769/7539/7539, rotated: true, equipments: [dominion_core]}
   - {name: sabertooth, index: 1, position: {x: 75, y: -275}, source: delivered}
   - {name: farseer, index: 2, position: {x: -45, y: -225}, level: 2, source: joined}
   constructions:
@@ -31,7 +31,7 @@ red:
   blueprints: [defense_enhancement]
   tower_strengthen_levels: [1, 4]
   units:
-  - {name: wasp, index: 0, position: {x: 335, y: 90}, level: 6, exp: 5219/5219/5219, rotated: true, equipment: [dominion_core]}
+  - {name: wasp, index: 0, position: {x: 335, y: 90}, level: 6, exp: 5219/5219/5219, rotated: true, equipments: [dominion_core]}
   - {name: mountain, index: 1, position: {x: 85, y: -75}, level: 3, exp: 0/2400/11398, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}

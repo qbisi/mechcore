@@ -18,7 +18,7 @@ blue:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [1, 3]
   units:
-  - {name: phantom_ray, index: 0, position: {x: 40, y: -195}, level: 5, exp: 5210/5210/5210, rotated: true, equipment: [laser_sights]}
+  - {name: phantom_ray, index: 0, position: {x: 40, y: -195}, level: 5, exp: 5210/5210/5210, rotated: true, equipments: [laser_sights]}
   - {name: raiden, index: 1, position: {x: 270, y: -290}, level: 2, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
@@ -33,7 +33,7 @@ red:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: overlord, index: 0, position: {x: -185, y: -55}, level: 5, exp: 9118/9118/9118, equipment: [secondary_fire_control_system]}
+  - {name: overlord, index: 0, position: {x: -185, y: -55}, level: 5, exp: 9118/9118/9118, equipments: [secondary_fire_control_system]}
   - {name: wraith, index: 1, position: {x: -255, y: -95}, level: 4, exp: 0/2403/10103, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: 25, y: -135}}

@@ -16,15 +16,15 @@ blue:
   tower_strengthen_levels: [1, 0]
   units:
   - {name: void_eye, index: 0, position: {x: 50, y: -90}, level: 2, exp: 395/471/1465}
-  - {name: void_eye, index: 1, position: {x: 150, y: -70}, level: 2, exp: 0/276/1465, equipment: [secondary_laser_sight]}
+  - {name: void_eye, index: 1, position: {x: 150, y: -70}, level: 2, exp: 0/276/1465, equipments: [secondary_laser_sight]}
   - {name: void_eye, index: 2, position: {x: 240, y: -80}, level: 2, exp: 251/444/1465}
   - {name: fire_badger, index: 3, position: {x: 105, y: -70}, exp: 875/1007/1400}
   - {name: fire_badger, index: 4, position: {x: 195, y: -70}, exp: 895/1137/1400}
   - {name: crawler, index: 5, position: {x: 50, y: -125}, exp: 450/450/450, rotated: true}
   - {name: crawler, index: 6, position: {x: 240, y: -115}, exp: 450/450/450, rotated: true}
-  - {name: phoenix, index: 7, position: {x: 110, y: -150}, level: 2, equipment: [secondary_laser_sight]}
+  - {name: phoenix, index: 7, position: {x: 110, y: -150}, level: 2, equipments: [secondary_laser_sight]}
   - {name: crawler, index: 8, position: {x: -275, y: -20}, exp: 166/178/450}
-  - {name: wasp, index: 9, position: {x: -275, y: -40}, level: 2, exp: 0/207/2028, equipment: [secondary_laser_sight]}
+  - {name: wasp, index: 9, position: {x: -275, y: -40}, level: 2, exp: 0/207/2028, equipments: [secondary_laser_sight]}
   - {name: crawler, index: 10, position: {x: 335, y: 210}, exp: 49/89/450, rotated: true}
   - {name: crawler, index: 11, position: {x: 250, y: -285}, exp: 183/218/450, rotated: true}
   - {name: fire_badger, index: 12, position: {x: 5, y: -70}, exp: 0/39/1400, source: joined}

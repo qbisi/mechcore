@@ -20,7 +20,7 @@ blue:
   tower_strengthen_levels: [4, 3]
   units:
   - {name: rhino, index: 0, position: {x: 265, y: -155}, level: 2, source: delivered}
-  - {name: marksman, index: 1, position: {x: 320, y: 290}, level: 8, exp: 0/4373/4373, equipment: [secondary_laser_sight], travelling: true, source: joined}
+  - {name: marksman, index: 1, position: {x: 320, y: 290}, level: 8, exp: 0/4373/4373, equipments: [secondary_laser_sight], travelling: true, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   contraptions:

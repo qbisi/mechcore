@@ -30,7 +30,7 @@ red:
   blueprints: [defense_enhancement_ii]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: overlord, index: 0, position: {x: -235, y: -35}, level: 6, exp: 0/10148/10148, rotated: true, equipment: [mustang_production_line], source: joined}
+  - {name: overlord, index: 0, position: {x: -235, y: -35}, level: 6, exp: 0/10148/10148, rotated: true, equipments: [mustang_production_line], source: joined}
   - {name: centurion, index: 1, position: {x: 205, y: -205}, level: 4, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}

@@ -15,7 +15,7 @@ blue:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [4, 2]
   units:
-  - {name: arclight, index: 0, position: {x: -310, y: 120}, level: 4, rotated: true, equipment: [explosive_ammo], travelling: true, source: joined}
+  - {name: arclight, index: 0, position: {x: -310, y: 120}, level: 4, rotated: true, equipments: [explosive_ammo], travelling: true, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -29,7 +29,7 @@ red:
   blueprints: [attack_enhancement_ii]
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: scorpion, index: 0, position: {x: -65, y: -35}, level: 6, exp: 4349/4743/8698, equipment: [photon_coating]}
+  - {name: scorpion, index: 0, position: {x: -65, y: -35}, level: 6, exp: 4349/4743/8698, equipments: [photon_coating]}
   - {name: sandworm, index: 1, position: {x: 250, y: -70}, level: 7, exp: 0/1574/12593, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}

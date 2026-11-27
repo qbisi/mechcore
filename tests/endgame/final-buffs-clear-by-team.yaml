@@ -13,7 +13,7 @@ blue:
     typhoon: [field_entrenchment]
   energy_tower_skills: [enhanced_range]
   units:
-  - {name: typhoon, index: 0, position: {x: 330, y: 240}, level: 5, exp: 10160/10160/10160, equipment: [photon_coating]}
+  - {name: typhoon, index: 0, position: {x: 330, y: 240}, level: 5, exp: 10160/10160/10160, equipments: [photon_coating]}
   - {name: vortex, index: 1, position: {x: -10, y: -130}, level: 4, exp: 0/68/3368, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
@@ -30,7 +30,7 @@ red:
   blueprints: [attack_enhancement_ii]
   energy_tower_skills: [high_mobility]
   units:
-  - {name: overlord, index: 0, position: {x: -125, y: -45}, exp: 875/1750/1750, rotated: true, equipment: [mustang_production_line]}
+  - {name: overlord, index: 0, position: {x: -125, y: -45}, exp: 875/1750/1750, rotated: true, equipments: [mustang_production_line]}
   - {name: rhino, index: 1, position: {x: -265, y: -165}, level: 4, exp: 0/5164/5164, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: -220, y: -155}}

@@ -819,7 +819,7 @@ red:
             "round": 1,
             "blue": {"units": [{"index": 0,
                 "name": "marksman", "position": {"x": 0, "y": -50},
-                "equipment": ["laser_sights"]
+                "equipments": ["laser_sights"]
             }]},
             "red": {"units": [{"index": 0,
                 "name": "marksman", "position": {"x": 0, "y": -50}
@@ -841,7 +841,7 @@ red:
                 "round": 1,
                 "blue": {"officers": officers, "units": [{"index": 0,
                     "name": "marksman", "position": {"x": 0, "y": -50},
-                    "equipment": ["laser_sights", "heavy_armor"]
+                    "equipments": ["laser_sights", "heavy_armor"]
                 }]},
                 "red": {"units": [{"index": 0,
                     "name": "marksman", "position": {"x": 0, "y": -50}
@@ -862,7 +862,7 @@ red:
             "blue": {
                 "units": [{"index": 0, "name": "marksman", "position": {"x": 100, "y": -50}}],
                 "constructions": [{"index": 0, "name": "defensive_wall", "position": {"x": 0, "y": -55},
-                 "equipment": ["laser_sights"]}]
+                 "equipments": ["laser_sights"]}]
             },
             "red": {"units": [{"index": 0,
                 "name": "marksman", "position": {"x": 0, "y": -50}
@@ -870,7 +870,7 @@ red:
         }))
         .unwrap_err();
 
-        assert!(error.contains("unknown field `equipment`"));
+        assert!(error.contains("unknown field `equipments`"));
     }
 
     #[test]
@@ -879,7 +879,7 @@ red:
             "kind": "layout",
             "round": 1,
             "blue": {"units": [{"index": 0,
-                "name": "marksman", "position": {"x": 0, "y": -50}, "equipment": ["not_an_item"]
+                "name": "marksman", "position": {"x": 0, "y": -50}, "equipments": ["not_an_item"]
             }]},
             "red": {"units": [{"index": 0,
                 "name": "marksman", "position": {"x": 0, "y": -50}

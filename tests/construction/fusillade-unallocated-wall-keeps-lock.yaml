@@ -13,7 +13,7 @@ blue:
   core_damage: 410
   officers: [advanced_targeting_system]
   units:
-  - {name: raiden, index: 0, position: {x: -20, y: -100}, level: 2, exp: 5408/5408/5408, equipment: [tank_production_line]}
+  - {name: raiden, index: 0, position: {x: -20, y: -100}, level: 2, exp: 5408/5408/5408, equipments: [tank_production_line]}
   - {name: fire_badger, index: 1, position: {x: 175, y: -120}, level: 5, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
@@ -28,7 +28,7 @@ red:
   blueprints: [defense_enhancement]
   energy_tower_skills: [high_mobility]
   units:
-  - {name: sandworm, index: 0, position: {x: 340, y: 250}, level: 7, exp: 0/1000/12593, rotated: true, equipment: [steel_ball_production_line], travelling: true, source: joined}
+  - {name: sandworm, index: 0, position: {x: 340, y: 250}, level: 7, exp: 0/1000/12593, rotated: true, equipments: [steel_ball_production_line], travelling: true, source: joined}
   - {name: wasp, index: 1, position: {x: -75, y: -290}, level: 5, exp: 0/3722/4689, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}

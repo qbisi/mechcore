@@ -810,12 +810,12 @@ define:
 | `reinforce_offers`' `supply` entry | The record lists the cards alone. The decline is offered after them in every round that deals any as `{type: supply, name: refund_<amount>, cost: -<amount>}`, and its amount is the map's figure, or in a unit round the schedule's for that round, from the pool the seed selects; a match whose opening this build cannot deal is refused |
 | `battle_skills[].cooldown` | The recorded cooldowns are the previous round's. A slot the previous round spent restarts at its skill's cooldown, and every other drops by one to zero |
 | `energy_tower_skills` | The recorded list is a debt rather than an activation, so a round's start carries none |
-| `equipment` | Fitted copies and their slots come from each unit. The remaining native inventory is stock. |
+| `equipments` | Fitted items stay on each unit's `equipments`. The remaining native inventory is stock. |
 | `units[].source` | The opening marks inherited units `legacy`, the first round's advance team `joined`, and a squad its officers deliver that round `delivered`; `legacy` is the omitted default |
 | Deliveries | The snapshot precedes what the round's officers deliver as it opens, so the squads, commander skills, equipment and unlocks each officer's schedule names are added to it, an officer that draws its item draws it from the side's own stream, and a delivered squad lands where [the board puts it](../../rules/landing.md) |
 
 The reinforcement dealer supplies the shared stream and pool checkpoint.
-`equipment` is rebuilt by conversion's own rule. The income, the
+`equipments` is rebuilt by conversion's own rule. The income, the
 allowances, the cooldowns, the energy tower skills, unit sources and the
 deliveries are what a round's opening does, and conversion makes that opening
 rather than restating it: it reads the snapshot as it stands before the round

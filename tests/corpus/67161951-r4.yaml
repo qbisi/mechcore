@@ -27,7 +27,7 @@ blue:
   - {name: crawler, index: 6, position: {x: 145, y: -190}, exp: 109/218/450}
   - {name: crawler, index: 8, position: {x: 290, y: -285}, exp: 10/42/450, rotated: true}
   - {name: crawler, index: 9, position: {x: 95, y: -20}, exp: 98/134/450}
-  - {name: tarantula, index: 10, position: {x: 25, y: -25}, level: 3, exp: 0/465/5343, equipment: [anti_interference_module], source: joined}
+  - {name: tarantula, index: 10, position: {x: 25, y: -25}, level: 3, exp: 0/465/5343, equipments: [anti_interference_module], source: joined}
   - {name: abyss, index: 11, position: {x: 95, y: -85}, exp: 0/964/4800, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}

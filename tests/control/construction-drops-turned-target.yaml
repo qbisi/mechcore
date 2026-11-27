@@ -13,7 +13,7 @@ blue:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: overlord, index: 0, position: {x: 325, y: 285}, level: 9, exp: 5886/6442/11773, rotated: true, equipment: [mustang_production_line]}
+  - {name: overlord, index: 0, position: {x: 325, y: 285}, level: 9, exp: 5886/6442/11773, rotated: true, equipments: [mustang_production_line]}
   - {name: hacker, index: 1, position: {x: 95, y: -85}, level: 9, exp: 0/1802/3767, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
@@ -29,7 +29,7 @@ red:
     fang: [armor_piercing_bullets]
   blueprints: [defense_enhancement_ii]
   units:
-  - {name: fang, index: 0, position: {x: 115, y: -270}, level: 7, exp: 1889/1957/3778, equipment: [heavy_armor]}
+  - {name: fang, index: 0, position: {x: 115, y: -270}, level: 7, exp: 1889/1957/3778, equipments: [heavy_armor]}
   - {name: rhino, index: 1, position: {x: 15, y: -135}, level: 2, source: delivered}
   - {name: fire_badger, index: 2, position: {x: 145, y: -60}, source: joined}
   battle_skills:

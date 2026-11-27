@@ -17,7 +17,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 3]
   units:
-  - {name: wasp, index: 0, position: {x: 100, y: -45}, level: 9, exp: 3027/6055/6055, rotated: true, equipment: [super_heavy_armor]}
+  - {name: wasp, index: 0, position: {x: 100, y: -45}, level: 9, exp: 3027/6055/6055, rotated: true, equipments: [super_heavy_armor]}
   - {name: fire_badger, index: 1, position: {x: 5, y: -90}, exp: 0/288/1400, source: delivered}
   contraptions:
   - {name: shield, index: 0, position: {x: -180, y: -230}}
@@ -29,7 +29,7 @@ red:
   techs:
     fang: [portable_shield, grenade_launcher, range_enhancement, mechanical_rage, armor_piercing_bullets, ignite]
   units:
-  - {name: fang, index: 0, position: {x: 115, y: -40}, level: 2, exp: 1352/1352/1352, equipment: [small_amplifying_core]}
+  - {name: fang, index: 0, position: {x: 115, y: -40}, level: 2, exp: 1352/1352/1352, equipments: [small_amplifying_core]}
   - {name: sabertooth, index: 1, position: {x: 155, y: -55}, exp: 0/268/1300, source: delivered}
   - {name: wasp, index: 2, position: {x: -95, y: -180}, level: 8, source: joined}
   battle_skills:

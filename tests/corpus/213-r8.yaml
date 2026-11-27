@@ -40,7 +40,7 @@ blue:
   - {name: crawler, index: 21, position: {x: -290, y: -285}, exp: 212/322/450, rotated: true}
   - {name: crawler, index: 22, position: {x: -190, y: -165}, exp: 161/179/450, rotated: true}
   - {name: arclight, index: 23, position: {x: 350, y: 180}, exp: 81/167/750}
-  - {name: arclight, index: 24, position: {x: 350, y: 300}, level: 2, exp: 81/179/1690, equipment: [heavy_armor]}
+  - {name: arclight, index: 24, position: {x: 350, y: 300}, level: 2, exp: 81/179/1690, equipments: [heavy_armor]}
   - {name: crawler, index: 25, position: {x: 210, y: -35}, exp: 47/72/450, rotated: true}
   - {name: crawler, index: 26, position: {x: 310, y: 245}, exp: 39/79/450}
   - {name: arclight, index: 27, position: {x: 350, y: 90}, exp: 22/224/750}
@@ -78,7 +78,7 @@ red:
   - {name: crawler, index: 6, position: {x: 30, y: -165}, exp: 450/450/450, rotated: true}
   - {name: fang, index: 7, position: {x: 230, y: -225}, exp: 396/457/600, rotated: true}
   - {name: fang, index: 8, position: {x: -170, y: -175}, exp: 600/600/600, rotated: true}
-  - {name: phoenix, index: 9, position: {x: 160, y: -130}, level: 3, exp: 2627/2837/4630, rotated: true, equipment: [laser_sights]}
+  - {name: phoenix, index: 9, position: {x: 160, y: -130}, level: 3, exp: 2627/2837/4630, rotated: true, equipments: [laser_sights]}
   - {name: crawler, index: 10, position: {x: -325, y: 130}, exp: 22/22/450, rotated: true}
   - {name: crawler, index: 11, position: {x: 90, y: -35}, exp: 172/257/450, rotated: true}
   - {name: fire_badger, index: 12, position: {x: -105, y: -170}, level: 2, exp: 475/769/3154}

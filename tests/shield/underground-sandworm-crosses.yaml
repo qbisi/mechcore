@@ -15,7 +15,7 @@ blue:
 red:
   core_damage: 350
   units:
-  - {name: vulcan, index: 0, position: {x: 0, y: -120}, equipment: [barrier]}
+  - {name: vulcan, index: 0, position: {x: 0, y: -120}, equipments: [barrier]}
 asserts:
 - sql: |
     SELECT u.tick, u.motion_state, u.visibility, s.active, s.energy__current,

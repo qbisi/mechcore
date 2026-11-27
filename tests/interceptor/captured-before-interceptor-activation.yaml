@@ -16,7 +16,7 @@ blue:
   blueprints: [attack_enhancement]
   tower_strengthen_levels: [1, 2]
   units:
-  - {name: hacker, index: 0, position: {x: -315, y: 75}, level: 7, exp: 1763/3208/3526, rotated: true, equipment: [super_heavy_armor]}
+  - {name: hacker, index: 0, position: {x: -315, y: 75}, level: 7, exp: 1763/3208/3526, rotated: true, equipments: [super_heavy_armor]}
   - {name: fire_badger, index: 1, position: {x: -245, y: -110}, exp: 0/340/1400, source: delivered}
   - {name: steel_ball, index: 2, position: {x: 45, y: -250}, level: 4, exp: 0/424/4490, source: joined}
   constructions:
@@ -34,7 +34,7 @@ red:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: mustang, index: 0, position: {x: 340, y: 35}, level: 3, exp: 0/297/4274, equipment: [improved_firepower_control_system], travelling: true, source: joined}
+  - {name: mustang, index: 0, position: {x: 340, y: 35}, level: 3, exp: 0/297/4274, equipments: [improved_firepower_control_system], travelling: true, source: joined}
   - {name: phantom_ray, index: 1, position: {x: 275, y: -210}, level: 8, exp: 0/6727/6727, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}

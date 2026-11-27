@@ -25,12 +25,8 @@ pub const JUMP_DRIVES: [(i32, &str); 3] = [(1606, "wasp"), (1611, "overlord"), (
 /// in, given the side's researched technologies.
 #[must_use]
 pub(crate) fn free(formation: &StateUnit, side: &SideState) -> bool {
-    side.equipment.iter().any(|item| {
-        item.id == DEPLOYMENT_MODULE
-            && item
-                .fitted
-                .is_some_and(|fitted| fitted.unit == formation.index)
-    }) || JUMP_DRIVES
-        .iter()
-        .any(|(tech, unit)| *unit == formation.type_name && side.techs.contains(tech))
+    formation.equipments.contains(&DEPLOYMENT_MODULE)
+        || JUMP_DRIVES
+            .iter()
+            .any(|(tech, unit)| *unit == formation.type_name && side.techs.contains(tech))
 }

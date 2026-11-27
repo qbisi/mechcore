@@ -11,7 +11,7 @@ blue:
   blueprints: [defense_enhancement_ii]
   energy_tower_skills: [high_mobility]
   units:
-  - {name: void_eye, index: 0, position: {x: -320, y: 220}, rotated: true, equipment: [laser_sights], travelling: true, source: joined}
+  - {name: void_eye, index: 0, position: {x: -320, y: 220}, rotated: true, equipments: [laser_sights], travelling: true, source: joined}
   - {name: melting_point, index: 1, position: {x: -180, y: -30}, level: 3, exp: 0/4987/4987, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
@@ -27,7 +27,7 @@ red:
   blueprints: [attack_enhancement]
   units:
   - {name: sabertooth, index: 0, position: {x: 175, y: -275}, exp: 0/216/1300, source: delivered}
-  - {name: typhoon, index: 1, position: {x: 320, y: 20}, level: 9, exp: 0/4182/13118, rotated: true, equipment: [deployment_module], travelling: true, source: joined}
+  - {name: typhoon, index: 1, position: {x: 320, y: 20}, level: 9, exp: 0/4182/13118, rotated: true, equipments: [deployment_module], travelling: true, source: joined}
   - {name: wraith, index: 2, position: {x: 165, y: -35}, level: 9, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: 150, y: -170}}

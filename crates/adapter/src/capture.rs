@@ -4829,7 +4829,7 @@ fn read_native_side(
                 level: Some(displayed_level),
                 exp: Experience::of(exp, type_name, displayed_level)?,
                 rotated: Some(rotated),
-                equipment,
+                equipments: equipment,
                 travelling: Some(travelling),
                 source: if old {
                     mechcore_document::UnitSource::Legacy

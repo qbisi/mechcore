@@ -14,7 +14,7 @@ blue:
   blueprints: [attack_enhancement]
   energy_tower_skills: [high_mobility]
   units:
-  - {name: wraith, index: 0, position: {x: -185, y: -275}, level: 3, exp: 4007/8014/8014, rotated: true, equipment: [enhancement_module]}
+  - {name: wraith, index: 0, position: {x: -185, y: -275}, level: 3, exp: 4007/8014/8014, rotated: true, equipments: [enhancement_module]}
   - {name: sabertooth, index: 1, position: {x: -185, y: -185}, exp: 0/45/1300, source: delivered}
   - {name: crawler, index: 2, position: {x: 5, y: -40}, level: 9, exp: 0/1205/3027, source: joined}
   constructions:
@@ -30,7 +30,7 @@ red:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [3, 1]
   units:
-  - {name: fortress, index: 0, position: {x: 330, y: 40}, level: 6, exp: 4639/5375/9278, rotated: true, equipment: [mustang_production_line]}
+  - {name: fortress, index: 0, position: {x: 330, y: 40}, level: 6, exp: 4639/5375/9278, rotated: true, equipments: [mustang_production_line]}
   - {name: crawler, index: 1, position: {x: 55, y: -160}, level: 3, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}

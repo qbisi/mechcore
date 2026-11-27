@@ -345,7 +345,7 @@ when omitted:
 - A unit's `index` is required and has no default.
 - A unit's `level` defaults to `1`.
 - A unit's `rotated` defaults to `false`.
-- A unit's `equipment` defaults to `[]`.
+- A unit's `equipments` defaults to `[]`.
 - A unit's `travelling` defaults to `false`.
 - A unit's `source` defaults to `legacy`; `joined` and `delivered` are written explicitly.
 
@@ -752,7 +752,7 @@ following values form the closed public `name` vocabulary for each field:
   index: 0
   position: {x: 0, y: -50}
   exp: 12
-  equipment: [laser_sights]
+  equipments: [laser_sights]
   travelling: false
 ```
 
@@ -765,7 +765,7 @@ boolean, defaults to `false`, and declares the native unit-orientation flag. It
 is region-relative rather than absolute, so the owning region's own orientation
 still contributes to the world footprint; see the footprint rules above for the
 exact transposition.
-`equipment` lists the items the unit wears, in the order they were fitted;
+`equipments` lists the items the unit wears, in the order they were fitted;
 the adapter resolves each to its native `EquipmentData.ID`. A formation has
 one slot, and each officer its side holds adds that officer's
 `equipment_slots` from [`config/officers.yaml`](../../../config/officers.yaml),
@@ -786,7 +786,7 @@ The executor adds the unit, obtains its runtime unit index, moves it to the
 declared position and orientation, and verifies type, level, position, and
 rotation through authoritative unit readback. Equipment is fitted later, once
 the side's officers are added, because an officer can add the slot a second
-item needs: for each item in `equipment`, in order, the executor adds one copy
+item needs: for each item in `equipments`, in order, the executor adds one copy
 from the runtime catalog to the current side's Training Ground inventory
 through `MAD_AddEquipment`, uses the existing native `PAD_UseEquipment` action
 on that unit, and requires authoritative equipment ownership readback.

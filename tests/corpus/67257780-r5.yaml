@@ -26,7 +26,7 @@ blue:
   - {name: crawler, index: 8, position: {x: -140, y: -255}, exp: 53/123/450, rotated: true}
   - {name: crawler, index: 9, position: {x: 140, y: -255}, exp: 98/139/450, rotated: true}
   - {name: mustang, index: 10, position: {x: -175, y: -300}, level: 2, exp: 1865/2704/2704}
-  - {name: sandworm, index: 11, position: {x: 170, y: -250}, exp: 1089/1482/2000, equipment: [amplifying_core]}
+  - {name: sandworm, index: 11, position: {x: 170, y: -250}, exp: 1089/1482/2000, equipments: [amplifying_core]}
   - {name: sandworm, index: 12, position: {x: -170, y: -250}, exp: 418/932/2000}
   - {name: sandworm, index: 13, position: {x: -30, y: -250}, exp: 573/1681/2000}
   - {name: fang, index: 14, position: {x: -140, y: -95}, exp: 0/40/600, rotated: true}

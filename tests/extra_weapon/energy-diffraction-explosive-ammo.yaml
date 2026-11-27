@@ -13,7 +13,7 @@ blue:
   techs:
     melting_point: [energy_diffraction]
   units:
-  - {name: melting_point, index: 0, position: {x: 0, y: -100}, exp: 0/400/1400, equipment: [explosive_ammo], source: joined}
+  - {name: melting_point, index: 0, position: {x: 0, y: -100}, exp: 0/400/1400, equipments: [explosive_ammo], source: joined}
 red:
   core_damage: 350
   units:

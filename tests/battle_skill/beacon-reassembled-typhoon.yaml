@@ -16,7 +16,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [2, 1]
   units:
-  - {name: typhoon, index: 0, position: {x: 130, y: -30}, level: 2, exp: 0/2575/4394, rotated: true, equipment: [portable_shield], source: joined}
+  - {name: typhoon, index: 0, position: {x: 130, y: -30}, level: 2, exp: 0/2575/4394, rotated: true, equipments: [portable_shield], source: joined}
   - {name: overlord, index: 1, position: {x: 275, y: -275}, level: 5, exp: 0/7425/9118, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: 205, y: -155}}
@@ -31,7 +31,7 @@ red:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: stormcaller, index: 0, position: {x: -5, y: -110}, level: 2, exp: 0/675/2479, equipment: [anti_interference_module], source: joined}
+  - {name: stormcaller, index: 0, position: {x: -5, y: -110}, level: 2, exp: 0/675/2479, equipments: [anti_interference_module], source: joined}
   - {name: vulcan, index: 1, position: {x: -100, y: -50}, level: 6, exp: 0/1125/14033, source: joined}
   battle_skills:
   - {name: photon_emission, positions: [{x: 0, y: -50}]}

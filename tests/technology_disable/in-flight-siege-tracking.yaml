@@ -14,7 +14,7 @@ blue:
     scorpion: [doubleshot, field_maintenance, armor_enhancement, siege_mode, range_enhancement, convergent_fire, acid_attack]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: scorpion, index: 0, position: {x: -125, y: -135}, level: 3, rotated: true, equipment: [dominion_core], source: joined}
+  - {name: scorpion, index: 0, position: {x: -125, y: -135}, level: 3, rotated: true, equipments: [dominion_core], source: joined}
   - {name: fire_badger, index: 1, position: {x: 45, y: -140}, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: -145, y: -235}}
@@ -29,7 +29,7 @@ red:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [2, 1]
   units:
-  - {name: phoenix, index: 0, position: {x: 220, y: -160}, level: 6, exp: 7539/7539/7539, equipment: [deployment_module]}
+  - {name: phoenix, index: 0, position: {x: 220, y: -160}, level: 6, exp: 7539/7539/7539, equipments: [deployment_module]}
   - {name: marksman, index: 1, position: {x: -80, y: -240}, level: 3, source: delivered}
   - {name: sledgehammer, index: 2, position: {x: -115, y: -60}, level: 6, exp: 0/402/7539, source: joined}
   constructions:

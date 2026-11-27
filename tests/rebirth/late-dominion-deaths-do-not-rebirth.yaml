@@ -17,7 +17,7 @@ blue:
   tower_strengthen_levels: [4, 4]
   units:
   - {name: typhoon, index: 0, position: {x: -260, y: -180}, source: delivered}
-  - {name: hacker, index: 1, position: {x: -335, y: 225}, level: 6, exp: 0/3247/3247, rotated: true, equipment: [dominion_core], travelling: true, source: joined}
+  - {name: hacker, index: 1, position: {x: -335, y: 225}, level: 6, exp: 0/3247/3247, rotated: true, equipments: [dominion_core], travelling: true, source: joined}
   - {name: tarantula, index: 2, position: {x: -245, y: -135}, level: 9, exp: 0/5100/10091, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: 65, y: -205}}
@@ -31,7 +31,7 @@ red:
   blueprints: [attack_enhancement_ii]
   units:
   - {name: typhoon, index: 0, position: {x: -10, y: -40}, source: delivered}
-  - {name: typhoon, index: 1, position: {x: 350, y: 140}, level: 9, exp: 0/12000/13118, equipment: [haste_module], travelling: true, source: joined}
+  - {name: typhoon, index: 1, position: {x: 350, y: 140}, level: 9, exp: 0/12000/13118, equipments: [haste_module], travelling: true, source: joined}
   - {name: sabertooth, index: 2, position: {x: -285, y: -85}, level: 7, exp: 0/200/8185, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: -155, y: -80}}

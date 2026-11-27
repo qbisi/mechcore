@@ -16,6 +16,6 @@ blue:
 red:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/400/1150, equipment: [portable_shield], source: joined}
+  - {name: rhino, index: 0, position: {x: 5, y: -95}, exp: 0/400/1150, equipments: [portable_shield], source: joined}
 ticks: 203
 hash: 27:9fcea0c4a9e65e11f496010fee69f40afc9f5f1067d79bcf60efa2391db717e9

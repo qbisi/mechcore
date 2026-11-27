@@ -405,7 +405,7 @@ pub fn project_side(state: &SideState, side_name: &str) -> Result<Side, String> 
         recovered,
         units: state
             .active_units()
-            .map(|formation| formation.placement(state))
+            .map(crate::r#match::StateUnit::placement)
             .collect::<Result<_, _>>()?,
         constructions: state.constructions.clone(),
         contraptions: state.contraptions.clone(),

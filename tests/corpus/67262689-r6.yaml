@@ -26,10 +26,10 @@ blue:
   - {name: fang, index: 7, position: {x: 145, y: -40}, level: 2, exp: 295/813/1352}
   - {name: fang, index: 8, position: {x: 245, y: -80}, level: 2, exp: 930/1207/1352}
   - {name: marksman, index: 9, position: {x: -110, y: -160}, exp: 274/597/650}
-  - {name: scorpion, index: 10, position: {x: -175, y: -165}, exp: 1500/1500/1500, equipment: [secondary_laser_sight]}
+  - {name: scorpion, index: 10, position: {x: -175, y: -165}, exp: 1500/1500/1500, equipments: [secondary_laser_sight]}
   - {name: typhoon, index: 11, position: {x: 20, y: -90}, exp: 89/124/1950}
   - {name: marksman, index: 12, position: {x: -180, y: -190}, exp: 224/421/650}
-  - {name: marksman, index: 13, position: {x: -90, y: -180}, exp: 317/390/650, equipment: [secondary_laser_sight]}
+  - {name: marksman, index: 13, position: {x: -90, y: -180}, exp: 317/390/650, equipments: [secondary_laser_sight]}
   - {name: mustang, index: 14, position: {x: -180, y: -225}, exp: 335/865/1200, rotated: true}
   - {name: mustang, index: 15, position: {x: 160, y: -215}, exp: 634/1200/1200, rotated: true}
   - {name: fang, index: 16, position: {x: -25, y: -40}, source: joined}
@@ -48,10 +48,10 @@ red:
   blueprints: [attack_enhancement, defense_enhancement]
   units:
   - {name: fire_badger, index: 3, position: {x: 205, y: -50}, exp: 1309/1400/1400}
-  - {name: fire_badger, index: 4, position: {x: 125, y: -50}, level: 3, exp: 3694/4987/4987, equipment: [portable_shield]}
+  - {name: fire_badger, index: 4, position: {x: 125, y: -50}, level: 3, exp: 3694/4987/4987, equipments: [portable_shield]}
   - {name: crawler, index: 5, position: {x: 170, y: -135}, level: 2, exp: 1014/1014/1014, rotated: true}
   - {name: crawler, index: 6, position: {x: -290, y: -35}, level: 2, exp: 468/540/1014, rotated: true}
-  - {name: sabertooth, index: 7, position: {x: 165, y: -55}, level: 3, exp: 0/1015/4630, equipment: [haste_module]}
+  - {name: sabertooth, index: 7, position: {x: 165, y: -55}, level: 3, exp: 0/1015/4630, equipments: [haste_module]}
   - {name: wasp, index: 8, position: {x: -325, y: 300}, level: 2, exp: 2028/2028/2028, rotated: true}
   - {name: mustang, index: 9, position: {x: -5, y: -160}, level: 3, exp: 2164/3602/4274}
   - {name: crawler, index: 10, position: {x: 310, y: 225}, level: 2}

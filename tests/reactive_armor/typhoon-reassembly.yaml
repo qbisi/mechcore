@@ -16,7 +16,7 @@ blue:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: typhoon, index: 0, position: {x: -70, y: -180}, level: 2, exp: 2197/4394/4394, rotated: true, equipment: [explosive_ammo]}
+  - {name: typhoon, index: 0, position: {x: -70, y: -180}, level: 2, exp: 2197/4394/4394, rotated: true, equipments: [explosive_ammo]}
   - {name: fire_badger, index: 1, position: {x: 195, y: -290}, source: delivered}
   - {name: farseer, index: 2, position: {x: -25, y: -35}, level: 3, source: joined}
   contraptions:
@@ -29,7 +29,7 @@ red:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: void_eye, index: 0, position: {x: -340, y: 290}, level: 9, exp: 0/2352/4373, rotated: true, equipment: [haste_module], travelling: true, source: joined}
+  - {name: void_eye, index: 0, position: {x: -340, y: 290}, level: 9, exp: 0/2352/4373, rotated: true, equipments: [haste_module], travelling: true, source: joined}
   - {name: phantom_ray, index: 1, position: {x: -205, y: -270}, level: 9, exp: 0/3050/6727, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: -275, y: -300}}

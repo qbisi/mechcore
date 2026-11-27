@@ -19,7 +19,7 @@ blue:
   tower_strengthen_levels: [1, 1]
   units:
   - {name: rhino, index: 0, position: {x: -25, y: -295}, level: 2, source: delivered}
-  - {name: marksman, index: 1, position: {x: 260, y: -180}, level: 7, exp: 0/4093/4093, equipment: [secondary_fire_control_system], source: joined}
+  - {name: marksman, index: 1, position: {x: 260, y: -180}, level: 7, exp: 0/4093/4093, equipments: [secondary_fire_control_system], source: joined}
   - {name: sandworm, index: 2, position: {x: -60, y: -290}, level: 3, exp: 0/1400/7124, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
@@ -35,7 +35,7 @@ red:
   blueprints: [defense_enhancement]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: tarantula, index: 0, position: {x: -275, y: -45}, level: 9, exp: 5045/5669/10091, rotated: true, equipment: [nano_repair_kit]}
+  - {name: tarantula, index: 0, position: {x: -275, y: -45}, level: 9, exp: 5045/5669/10091, rotated: true, equipments: [nano_repair_kit]}
   - {name: rhino, index: 1, position: {x: 255, y: -255}, level: 2, source: delivered}
   - {name: hacker, index: 2, position: {x: -255, y: -195}, level: 8, source: joined}
   contraptions:

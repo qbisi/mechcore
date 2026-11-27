@@ -18,7 +18,7 @@ blue:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [3, 2]
   units:
-  - {name: rhino, index: 0, position: {x: -175, y: -35}, level: 5, exp: 0/5992/5992, equipment: [super_heavy_armor], source: joined}
+  - {name: rhino, index: 0, position: {x: -175, y: -35}, level: 5, exp: 0/5992/5992, equipments: [super_heavy_armor], source: joined}
   - {name: phantom_ray, index: 1, position: {x: 195, y: -240}, level: 4, exp: 0/200/4490, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
@@ -34,7 +34,7 @@ red:
   blueprints: [attack_enhancement_ii]
   tower_strengthen_levels: [4, 1]
   units:
-  - {name: hacker, index: 0, position: {x: 155, y: -255}, rotated: true, equipment: [dominion_core], source: joined}
+  - {name: hacker, index: 0, position: {x: 155, y: -255}, rotated: true, equipments: [dominion_core], source: joined}
   - {name: centurion, index: 1, position: {x: 75, y: -55}, level: 7, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: 185, y: -260}, retained: false}

@@ -17,6 +17,6 @@ blue:
 red:
   core_damage: 0
   units:
-  - {name: hacker, index: 0, position: {x: -5, y: -105}, exp: 0/400/560, equipment: [anti_interference_module], source: joined}
+  - {name: hacker, index: 0, position: {x: -5, y: -105}, exp: 0/400/560, equipments: [anti_interference_module], source: joined}
 ticks: 169
 hash: 27:4d9767f9549d29a6ca25fb0559b223624a7c8bc3cdc3d7efb5aeb8190b08edd6

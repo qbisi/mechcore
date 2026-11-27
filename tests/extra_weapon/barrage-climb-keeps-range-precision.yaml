@@ -16,7 +16,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [1, 1]
   units:
-  - {name: melting_point, index: 0, position: {x: 330, y: 280}, level: 4, exp: 6286/6286/6286, rotated: true, equipment: [heavy_armor]}
+  - {name: melting_point, index: 0, position: {x: 330, y: 280}, level: 4, exp: 6286/6286/6286, rotated: true, equipments: [heavy_armor]}
   - {name: fire_badger, index: 1, position: {x: 255, y: -30}, source: delivered}
   - {name: stormcaller, index: 2, position: {x: 215, y: -210}, level: 9, exp: 0/1160/7400, source: joined}
   contraptions:
@@ -29,7 +29,7 @@ red:
   blueprints: [defense_enhancement_ii]
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: crawler, index: 0, position: {x: 25, y: -270}, level: 7, exp: 1416/2833/2833, equipment: [dominion_core]}
+  - {name: crawler, index: 0, position: {x: 25, y: -270}, level: 7, exp: 1416/2833/2833, equipments: [dominion_core]}
   - {name: sabertooth, index: 1, position: {x: 155, y: -105}, exp: 0/1300/1300, source: delivered}
   - {name: scorpion, index: 2, position: {x: -185, y: -185}, level: 8, exp: 0/108/10091, source: joined}
   constructions:

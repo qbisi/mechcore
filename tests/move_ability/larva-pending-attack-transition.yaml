@@ -20,7 +20,7 @@ blue:
   tower_strengthen_levels: [4, 2]
   units:
   - {name: sabertooth, index: 0, position: {x: -175, y: -175}, exp: 0/88/1300, source: delivered}
-  - {name: sandworm, index: 1, position: {x: -140, y: -110}, level: 6, exp: 0/8/11598, equipment: [steel_ball_production_line], source: joined}
+  - {name: sandworm, index: 1, position: {x: -140, y: -110}, level: 6, exp: 0/8/11598, equipments: [steel_ball_production_line], source: joined}
   - {name: marksman, index: 2, position: {x: 40, y: -100}, level: 6, exp: 0/1160/3769, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}

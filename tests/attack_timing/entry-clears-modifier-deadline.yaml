@@ -18,7 +18,7 @@ blue:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: void_eye, index: 0, position: {x: -30, y: -80}, level: 7, exp: 0/4093/4093, rotated: true, equipment: [laser_sights], source: joined}
+  - {name: void_eye, index: 0, position: {x: -30, y: -80}, level: 7, exp: 0/4093/4093, rotated: true, equipments: [laser_sights], source: joined}
   - {name: wraith, index: 1, position: {x: 235, y: -255}, level: 6, exp: 0/6970/13047, source: joined}
   constructions:
   - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
@@ -34,7 +34,7 @@ red:
   blueprints: [attack_enhancement_ii]
   energy_tower_skills: [enhanced_range]
   units:
-  - {name: mustang, index: 0, position: {x: 140, y: -55}, level: 8, exp: 0/2574/8073, rotated: true, equipment: [explosive_ammo], source: joined}
+  - {name: mustang, index: 0, position: {x: 140, y: -55}, level: 8, exp: 0/2574/8073, rotated: true, equipments: [explosive_ammo], source: joined}
   - {name: stormcaller, index: 1, position: {x: -75, y: -30}, level: 8, exp: 0/120/7400, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: -90, y: -305}}

@@ -16,7 +16,7 @@ blue:
   energy_tower_skills: [enhanced_range]
   units:
   - {name: marksman, index: 0, position: {x: -240, y: -70}, level: 3, source: delivered}
-  - {name: stormcaller, index: 1, position: {x: 325, y: 90}, rotated: true, equipment: [photon_coating], travelling: true, source: joined}
+  - {name: stormcaller, index: 1, position: {x: 325, y: 90}, rotated: true, equipments: [photon_coating], travelling: true, source: joined}
   - {name: typhoon, index: 2, position: {x: -200, y: -160}, level: 9, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
@@ -30,7 +30,7 @@ red:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: hacker, index: 0, position: {x: -255, y: -55}, level: 8, exp: 3767/3767/3767, equipment: [laser_sights]}
+  - {name: hacker, index: 0, position: {x: -255, y: -55}, level: 8, exp: 3767/3767/3767, equipments: [laser_sights]}
   - {name: marksman, index: 1, position: {x: 170, y: -140}, level: 3, exp: 0/1000/2315, source: delivered}
   - {name: raiden, index: 2, position: {x: -170, y: -240}, level: 6, exp: 0/10800/13917, source: joined}
   contraptions:

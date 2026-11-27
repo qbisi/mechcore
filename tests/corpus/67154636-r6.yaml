@@ -55,7 +55,7 @@ red:
   - {name: vortex, index: 0, position: {x: -120, y: -170}, exp: 750/750/750}
   - {name: vortex, index: 1, position: {x: 150, y: -150}, exp: 750/750/750}
   - {name: vortex, index: 2, position: {x: 130, y: -150}, exp: 750/750/750}
-  - {name: tarantula, index: 3, position: {x: 95, y: -145}, level: 2, exp: 1241/1384/3380, equipment: [photon_coating]}
+  - {name: tarantula, index: 3, position: {x: 95, y: -145}, level: 2, exp: 1241/1384/3380, equipments: [photon_coating]}
   - {name: tarantula, index: 4, position: {x: 195, y: -145}, exp: 288/317/1500}
   - {name: arclight, index: 5, position: {x: 70, y: -180}, exp: 750/750/750}
   - {name: arclight, index: 6, position: {x: 210, y: -180}, level: 2, exp: 208/499/1690}

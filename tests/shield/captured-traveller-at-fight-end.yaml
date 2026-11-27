@@ -19,7 +19,7 @@ blue:
     hacker: [barrier, enhanced_control, electromagnetic_interference, range_enhancement, multi_control]
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: hacker, index: 0, position: {x: -325, y: 115}, level: 4, rotated: true, equipment: [dominion_core], travelling: true, source: joined}
+  - {name: hacker, index: 0, position: {x: -325, y: 115}, level: 4, rotated: true, equipments: [dominion_core], travelling: true, source: joined}
   - {name: sandworm, index: 1, position: {x: 70, y: -170}, level: 4, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: -150, y: -130}}
@@ -34,7 +34,7 @@ red:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: hacker, index: 0, position: {x: 285, y: -35}, level: 9, exp: 1883/3767/3767, rotated: true, equipment: [dominion_core]}
+  - {name: hacker, index: 0, position: {x: 285, y: -35}, level: 9, exp: 1883/3767/3767, rotated: true, equipments: [dominion_core]}
   - {name: marksman, index: 1, position: {x: -100, y: -150}, level: 3, source: delivered}
   - {name: overlord, index: 2, position: {x: -65, y: -245}, level: 8, source: joined}
   battle_skills:

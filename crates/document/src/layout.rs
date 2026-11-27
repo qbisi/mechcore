@@ -177,7 +177,7 @@ pub struct UnitPlacement {
         with = "crate::names::equipment::many"
     )]
     #[schemars(with = "Vec<String>")]
-    pub equipment: Vec<i32>,
+    pub equipments: Vec<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub travelling: Option<bool>,
     /// How the unit came to its side; `legacy`, the default, is not written.

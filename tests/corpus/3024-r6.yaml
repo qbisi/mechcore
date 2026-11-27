@@ -18,8 +18,8 @@ blue:
   - {name: void_eye, index: 0, position: {x: -210, y: -70}, level: 3, exp: 568/590/2315}
   - {name: void_eye, index: 1, position: {x: -70, y: -70}, level: 2, exp: 16/630/1465}
   - {name: void_eye, index: 2, position: {x: -140, y: -70}, level: 3, exp: 93/191/2315}
-  - {name: tarantula, index: 3, position: {x: -175, y: -65}, level: 2, exp: 2975/3380/3380, equipment: [haste_module]}
-  - {name: tarantula, index: 4, position: {x: -105, y: -65}, level: 2, exp: 797/3000/3380, equipment: [laser_sights]}
+  - {name: tarantula, index: 3, position: {x: -175, y: -65}, level: 2, exp: 2975/3380/3380, equipments: [haste_module]}
+  - {name: tarantula, index: 4, position: {x: -105, y: -65}, level: 2, exp: 797/3000/3380, equipments: [laser_sights]}
   - {name: crawler, index: 5, position: {x: -180, y: -105}, exp: 250/278/450, rotated: true}
   - {name: crawler, index: 6, position: {x: -100, y: -105}, exp: 103/137/450, rotated: true}
   - {name: tarantula, index: 7, position: {x: 145, y: -145}, level: 2, exp: 0/809/3380}
@@ -55,9 +55,9 @@ red:
   - {name: sledgehammer, index: 4, position: {x: -80, y: -175}, level: 2, exp: 606/1313/2929, rotated: true}
   - {name: crawler, index: 5, position: {x: -135, y: -190}, exp: 450/450/450}
   - {name: crawler, index: 6, position: {x: 135, y: -190}, exp: 127/127/450}
-  - {name: hound, index: 7, position: {x: -110, y: -170}, level: 2, exp: 781/1448/1690, equipment: [secondary_fire_control_system]}
+  - {name: hound, index: 7, position: {x: -110, y: -170}, level: 2, exp: 781/1448/1690, equipments: [secondary_fire_control_system]}
   - {name: hound, index: 8, position: {x: 110, y: -170}, level: 2, exp: 0/404/1690}
-  - {name: hound, index: 9, position: {x: 0, y: -250}, level: 3, exp: 0/877/2671, equipment: [haste_module]}
+  - {name: hound, index: 9, position: {x: 0, y: -250}, level: 3, exp: 0/877/2671, equipments: [haste_module]}
   - {name: fang, index: 10, position: {x: -140, y: -225}, exp: 42/42/600, rotated: true}
   - {name: fang, index: 11, position: {x: 0, y: -145}, exp: 119/121/600, rotated: true}
   - {name: fang, index: 12, position: {x: 140, y: -225}, exp: 75/137/600, rotated: true}
@@ -69,8 +69,8 @@ red:
   - {name: fang, index: 18, position: {x: 240, y: -285}, rotated: true}
   - {name: crawler, index: 19, position: {x: 130, y: -285}, exp: 25/79/450, rotated: true}
   - {name: fang, index: 20, position: {x: -140, y: -115}, exp: 50/131/600, rotated: true}
-  - {name: fortress, index: 21, position: {x: 260, y: -200}, exp: 0/1600/1600, equipment: [secondary_fire_control_system], source: joined}
-  - {name: fortress, index: 22, position: {x: -280, y: -50}, exp: 0/138/1600, equipment: [secondary_fire_control_system], source: joined}
+  - {name: fortress, index: 21, position: {x: 260, y: -200}, exp: 0/1600/1600, equipments: [secondary_fire_control_system], source: joined}
+  - {name: fortress, index: 22, position: {x: -280, y: -50}, exp: 0/138/1600, equipments: [secondary_fire_control_system], source: joined}
   - {name: crawler, index: 23, position: {x: -275, y: -20}, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}

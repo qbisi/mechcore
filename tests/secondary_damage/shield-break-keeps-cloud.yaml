@@ -17,7 +17,7 @@ blue:
   tower_strengthen_levels: [1, 2]
   units:
   - {name: typhoon, index: 0, position: {x: -90, y: -100}, exp: 0/600/1950, source: delivered}
-  - {name: vortex, index: 1, position: {x: 110, y: -210}, level: 4, exp: 0/2960/3368, equipment: [secondary_heavy_armor], source: joined}
+  - {name: vortex, index: 1, position: {x: 110, y: -210}, level: 4, exp: 0/2960/3368, equipments: [secondary_heavy_armor], source: joined}
   - {name: war_factory, index: 2, position: {x: 175, y: -255}, level: 2, exp: 0/1360/7210, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
@@ -31,7 +31,7 @@ red:
     mustang: [armor_piercing_bullets]
   blueprints: [defense_enhancement]
   units:
-  - {name: mustang, index: 0, position: {x: -270, y: -95}, level: 3, exp: 0/12/4274, rotated: true, equipment: [heavy_armor]}
+  - {name: mustang, index: 0, position: {x: -270, y: -95}, level: 3, exp: 0/12/4274, rotated: true, equipments: [heavy_armor]}
   - {name: vortex, index: 1, position: {x: -90, y: -240}, level: 2, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: 100, y: -110}, retained: false}

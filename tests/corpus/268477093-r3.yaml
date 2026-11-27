@@ -22,7 +22,7 @@ blue:
   - {name: crawler, index: 9, position: {x: 270, y: -285}, exp: 0/26/450, rotated: true}
   - {name: arclight, index: 10, position: {x: -100, y: -160}, level: 2, exp: 0/418/1690, source: joined}
   - {name: arclight, index: 11, position: {x: -200, y: -160}, level: 2, exp: 0/518/1690, source: joined}
-  - {name: centurion, index: 12, position: {x: 105, y: -165}, exp: 0/208/2250, equipment: [haste_module], source: joined}
+  - {name: centurion, index: 12, position: {x: 105, y: -165}, exp: 0/208/2250, equipments: [haste_module], source: joined}
   - {name: centurion, index: 13, position: {x: 215, y: -165}, exp: 0/506/2250, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}

@@ -16,7 +16,7 @@ blue:
   tower_strengthen_levels: [2, 3]
   units:
   - {name: typhoon, index: 0, position: {x: -30, y: -230}, exp: 0/255/1950, source: delivered}
-  - {name: hound, index: 1, position: {x: 340, y: 150}, level: 6, exp: 0/251/4349, rotated: true, equipment: [amplifying_core], travelling: true, source: joined}
+  - {name: hound, index: 1, position: {x: 340, y: 150}, level: 6, exp: 0/251/4349, rotated: true, equipments: [amplifying_core], travelling: true, source: joined}
   - {name: fire_badger, index: 2, position: {x: -95, y: -20}, level: 5, exp: 0/634/7295, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
@@ -33,7 +33,7 @@ red:
   blueprints: [attack_enhancement]
   energy_tower_skills: [high_mobility]
   units:
-  - {name: mustang, index: 0, position: {x: -10, y: -185}, exp: 600/1121/1200, rotated: true, equipment: [explosive_ammo]}
+  - {name: mustang, index: 0, position: {x: -10, y: -185}, exp: 600/1121/1200, rotated: true, equipments: [explosive_ammo]}
   - {name: typhoon, index: 1, position: {x: 150, y: -60}, source: delivered}
   - {name: vulcan, index: 2, position: {x: 0, y: -50}, level: 9, exp: 0/4856/16280, source: joined}
   constructions:

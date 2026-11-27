@@ -17,7 +17,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
   - {name: sabertooth, index: 0, position: {x: -235, y: -265}, exp: 0/134/1300, source: delivered}
-  - {name: crawler, index: 1, position: {x: -325, y: 180}, level: 2, exp: 0/334/1014, rotated: true, equipment: [secondary_fire_control_system], travelling: true, source: joined}
+  - {name: crawler, index: 1, position: {x: -325, y: 180}, level: 2, exp: 0/334/1014, rotated: true, equipments: [secondary_fire_control_system], travelling: true, source: joined}
   - {name: raiden, index: 2, position: {x: 60, y: -220}, level: 4, exp: 0/1134/10777, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: 235, y: -40}, retained: false}
@@ -30,7 +30,7 @@ red:
     tarantula: [armor_piercing_bullets]
   blueprints: [attack_enhancement_ii]
   units:
-  - {name: tarantula, index: 0, position: {x: -95, y: -25}, exp: 750/750/1500, rotated: true, equipment: [enhancement_module]}
+  - {name: tarantula, index: 0, position: {x: -95, y: -25}, exp: 750/750/1500, rotated: true, equipments: [enhancement_module]}
   - {name: fire_badger, index: 1, position: {x: -155, y: -140}, source: delivered}
   - {name: wraith, index: 2, position: {x: -95, y: -245}, exp: 0/96/2250, source: joined}
   constructions:

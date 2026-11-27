@@ -46,14 +46,14 @@ red:
   - {name: crawler, index: 0, position: {x: -105, y: -190}, exp: 84/102/450}
   - {name: crawler, index: 1, position: {x: -235, y: -190}, exp: 190/231/450}
   - {name: crawler, index: 2, position: {x: 105, y: -190}, exp: 130/149/450}
-  - {name: mustang, index: 3, position: {x: -105, y: -210}, exp: 1022/1200/1200, equipment: [secondary_fire_control_system]}
-  - {name: mustang, index: 4, position: {x: 105, y: -210}, exp: 984/1200/1200, equipment: [secondary_fire_control_system]}
+  - {name: mustang, index: 3, position: {x: -105, y: -210}, exp: 1022/1200/1200, equipments: [secondary_fire_control_system]}
+  - {name: mustang, index: 4, position: {x: 105, y: -210}, exp: 984/1200/1200, equipments: [secondary_fire_control_system]}
   - {name: crawler, index: 5, position: {x: 225, y: -190}, exp: 133/172/450}
   - {name: steel_ball, index: 6, position: {x: 105, y: -170}, level: 2, exp: 0/1157/2253}
   - {name: steel_ball, index: 7, position: {x: -105, y: -170}, level: 2, exp: 0/1378/2253}
   - {name: steel_ball, index: 8, position: {x: -235, y: -170}, level: 2, exp: 0/381/2253}
   - {name: steel_ball, index: 9, position: {x: 225, y: -170}, exp: 340/1000/1000}
-  - {name: mustang, index: 10, position: {x: -235, y: -210}, exp: 455/1006/1200, equipment: [secondary_fire_control_system]}
+  - {name: mustang, index: 10, position: {x: -235, y: -210}, exp: 455/1006/1200, equipments: [secondary_fire_control_system]}
   - {name: wasp, index: 11, position: {x: -320, y: 275}, level: 3, exp: 0/833/3206, travelling: true, source: joined}
   - {name: mustang, index: 12, position: {x: 225, y: -210}, exp: 0/539/1200, source: joined}
   battle_skills:

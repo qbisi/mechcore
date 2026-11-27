@@ -124,8 +124,8 @@ Each unit carries its `source`. In an opening state, an inherited unit is
 and a squad an officer delivers as the round opens is `delivered`. Units bought
 or granted by the round's decisions are `joined` while applying those decisions.
 Projection checks identities and sources against the opening roster and
-allocator. It adds fitted equipment in slot order to each surviving unit
-and lists recovered `delivered` squads in `Layout.recovered`.
+allocator. Each unit carries its fitted equipment in slot order onto the
+layout, and `Layout.recovered` lists recovered `delivered` squads.
 
 The side copies `officers`, `techs`, `constructions`, `contraptions` and
 `tower_strengthen_levels`. Two more fields are filtered:
@@ -192,7 +192,7 @@ No random stream is a state field. Four streams exist:
 The two recorded streams are excluded on the argument the reinforcement pool
 follows: they decide what a later round is offered or handed, and this round's
 offer is already stated by `reinforce_offers`, as this round's hand-out is by
-the side's `equipment`. `Player.random` is what an officer that hands out one
+the side's `equipments`. `Player.random` is what an officer that hands out one
 of its items draws from; a [match](match.md) states each side's seed in its
 header, and nothing else in a standard match draws from it. Neither is read by
 a fight, so neither changes anything a layout can express. The two derived streams are computed from
@@ -234,8 +234,7 @@ reach a layout transformed, and the fields a layout has no reason to hold.
       energy_tower_skills: [rapid_resupply]
       tower_strengthen_levels: [1, 1]
 
-      equipment:
-        - {name: improved_firepower_control_system}
+      equipments: [improved_firepower_control_system]
 
       battle_skills:
         - index: 0
@@ -337,28 +336,30 @@ fails loudly instead of having its levels written to the wrong building.
 A side holds exactly two towers. Both draw from one shared catalogue whose four
 rows raise the crystal's life, so a level is in `0..=4` for either tower.
 
-### Equipment ownership and fitting order
+### Equipment is stock plus what is fitted
 
-The side's `equipment` lists every owned copy. Unfitted copies carry only
-`name`. A fitted copy also carries `fitted`, with a standing unit's index
-and its zero-based fitting slot.
+A state stores the difference rather than the record. Side `equipments` lists
+only what the side owns and no unit wears, as a sorted multiset of item names,
+and each formation's `equipments` list names what it wears in fitting order.
+The two together enumerate everything owned, and neither can be derived from the
+other: dropping the side list would lose an unfitted item, and dropping a unit's
+field would lose which unit wears what and in which order.
 
 ```yaml
-      equipment:
-        - {name: laser_sights}
-        - {name: laser_sights, fitted: {unit: 5, slot: 1}}
-        - {name: heavy_armor, fitted: {unit: 5, slot: 0}}
+      equipments: [laser_sights]
+      units:
+        - {name: crawler, index: 5, position: {x: 0, y: -160}, equipments: [heavy_armor, laser_sights]}
 ```
 
-A side can own several copies of an item, and a formation's fitting slots run
-from zero in the order it fitted them. The example projects the unit's items
-as `[heavy_armor, laser_sights]`. Duplicate slots and gaps are refused.
-Recovering the unit returns its copies to stock by clearing their fittings.
+A side can own several copies of an item, and recovering a formation drops its
+tombstone's items back into the side's `equipments` stock (keeping a tombstone
+that still carries items invalid). Projecting onto a layout copies each
+standing unit's `equipments` list directly in slot order.
 
-A native replay writes each copy to `equipmentDatas` with permanent durability
-`-1`, and each fitted copy to its unit's `equipments` list in slot order.
-The stock on import comes from the inventory after accounting for the copies
-listed on units.
+A native replay writes each copy—both fitted and unfitted—to `equipmentDatas`
+with permanent durability `-1`, and each fitted copy to its unit's
+`equipments` list in slot order. The stock on import comes from subtracting the
+copies worn by units from the native inventory.
 
 ### Supply and reactor core
 
@@ -603,7 +604,8 @@ or upgrade.
 | Collection | Order |
 | --- | --- |
 | `battle_skills` | ascending `index` |
-| `equipment` | ascending item ID, unfitted copies first, then fitted unit index and slot |
+| `equipments` | ascending item ID, a multiset of unfitted stock |
+| a unit's `equipments` | in fitting order (slot 0 first) |
 | `units`, `constructions`, `contraptions` | ascending `index` |
 | `officers` | ascending ID, a multiset |
 | `techs` | ascending unit ID, each unit's technologies ascending ID |
@@ -614,10 +616,9 @@ or upgrade.
 | `reinforce_offers` | as dealt, then the decline; a choice names a position in it |
 | `tower_strengthen_levels` | by building-manager position |
 
-The rule behind the first three rows is that a collection is ordered by the key
+The rule behind the first rows is that a collection is ordered by the key
 the actions use to reference it, so document order and action resolution can
-never disagree. The equipment table's order leaves each formation's fitting
-order in its slots.
+never disagree. Each formation's `equipments` list keeps its fitting order.
 
 One cross-check goes with that order rather than in it. Each entry of
 `next_index` must be greater than the highest index in the collection it

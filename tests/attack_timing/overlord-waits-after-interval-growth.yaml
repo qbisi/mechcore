@@ -13,7 +13,7 @@ blue:
     overlord: [launcher_overload]
   tower_strengthen_levels: [2, 4]
   units:
-  - {name: overlord, index: 0, position: {x: -225, y: -65}, level: 8, exp: 11773/11773/11773, equipment: [small_amplifying_core]}
+  - {name: overlord, index: 0, position: {x: -225, y: -65}, level: 8, exp: 11773/11773/11773, equipments: [small_amplifying_core]}
   - {name: marksman, index: 1, position: {x: 90, y: -200}, level: 3, exp: 0/120/2315, source: delivered}
   - {name: scorpion, index: 2, position: {x: 55, y: -215}, level: 9, exp: 0/60/10091, source: joined}
   constructions:
@@ -30,7 +30,7 @@ red:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [4, 3]
   units:
-  - {name: marksman, index: 0, position: {x: 90, y: -230}, level: 9, exp: 4373/4373/4373, equipment: [portable_shield]}
+  - {name: marksman, index: 0, position: {x: 90, y: -230}, level: 9, exp: 4373/4373/4373, equipments: [portable_shield]}
   - {name: marksman, index: 1, position: {x: 70, y: -20}, level: 3, exp: 0/2315/2315, source: delivered}
   - {name: farseer, index: 2, position: {x: 265, y: -235}, level: 9, exp: 0/3950/12109, source: joined}
   constructions:

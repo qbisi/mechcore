@@ -13,7 +13,7 @@ blue:
     phantom_ray: [energy_shield, high_explosive_ammo, burst_mode, armor_enhancement, ground_targeting, stealth_cloak, range_enhancement, sticky_oil_bomb]
   tower_strengthen_levels: [1, 4]
   units:
-  - {name: phantom_ray, index: 0, position: {x: 235, y: -110}, level: 9, exp: 0/1320/6727, equipment: [laser_sights], source: joined}
+  - {name: phantom_ray, index: 0, position: {x: 235, y: -110}, level: 9, exp: 0/1320/6727, equipments: [laser_sights], source: joined}
   - {name: abyss, index: 1, position: {x: -115, y: -275}, level: 5, exp: 0/10920/25010, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
@@ -29,7 +29,7 @@ red:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 3]
   units:
-  - {name: centurion, index: 0, position: {x: -135, y: -215}, level: 7, exp: 0/7234/14167, rotated: true, equipment: [dominion_core], source: joined}
+  - {name: centurion, index: 0, position: {x: -135, y: -215}, level: 7, exp: 0/7234/14167, rotated: true, equipments: [dominion_core], source: joined}
   - {name: melting_point, index: 1, position: {x: 60, y: -240}, level: 2, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: 220, y: -165}, retained: false}

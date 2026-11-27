@@ -14,7 +14,7 @@ blue:
   blueprints: [defense_enhancement_ii]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: sabertooth, index: 0, position: {x: -95, y: -85}, level: 3, exp: 2315/4630/4630, rotated: true, equipment: [dominion_core]}
+  - {name: sabertooth, index: 0, position: {x: -95, y: -85}, level: 3, exp: 2315/4630/4630, rotated: true, equipments: [dominion_core]}
   - {name: fire_badger, index: 1, position: {x: 95, y: -240}, exp: 0/50/1400, source: delivered}
   - {name: sledgehammer, index: 2, position: {x: 275, y: -160}, level: 9, exp: 0/150/8746, source: joined}
   constructions:
@@ -32,7 +32,7 @@ red:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: wraith, index: 0, position: {x: 325, y: 175}, level: 5, exp: 0/2468/11724, equipment: [explosive_ammo], travelling: true, source: joined}
+  - {name: wraith, index: 0, position: {x: 325, y: 175}, level: 5, exp: 0/2468/11724, equipments: [explosive_ammo], travelling: true, source: joined}
   - {name: sledgehammer, index: 1, position: {x: -45, y: -80}, level: 9, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: -120, y: -65}, retained: false}

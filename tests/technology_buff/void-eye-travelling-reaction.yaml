@@ -18,7 +18,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 2]
   units:
-  - {name: sabertooth, index: 0, position: {x: -215, y: -95}, level: 9, exp: 4373/4571/8746, equipment: [nano_repair_kit]}
+  - {name: sabertooth, index: 0, position: {x: -215, y: -95}, level: 9, exp: 4373/4571/8746, equipments: [nano_repair_kit]}
   - {name: sabertooth, index: 1, position: {x: -165, y: -255}, exp: 0/396/1300, source: delivered}
   - {name: wraith, index: 2, position: {x: 205, y: -205}, level: 7, exp: 0/1200/14167, source: joined}
   contraptions:
@@ -33,7 +33,7 @@ red:
   blueprints: [defense_enhancement]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: void_eye, index: 0, position: {x: 320, y: 240}, level: 2, equipment: [deployment_module], travelling: true, source: joined}
+  - {name: void_eye, index: 0, position: {x: 320, y: 240}, level: 2, equipments: [deployment_module], travelling: true, source: joined}
   - {name: stormcaller, index: 1, position: {x: -225, y: -260}, level: 2, source: joined}
   battle_skills:
   - {name: sticky_oil_bomb, positions: [{x: -150, y: 70}, {x: -35, y: 25}]}

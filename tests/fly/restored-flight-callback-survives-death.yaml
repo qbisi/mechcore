@@ -18,7 +18,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [2, 4]
   units:
-  - {name: wasp, index: 0, position: {x: -275, y: -60}, level: 2, exp: 2028/2028/2028, equipment: [absorption_module]}
+  - {name: wasp, index: 0, position: {x: -275, y: -60}, level: 2, exp: 2028/2028/2028, equipments: [absorption_module]}
   - {name: marksman, index: 1, position: {x: -80, y: -140}, level: 3, source: delivered}
   - {name: fortress, index: 2, position: {x: 270, y: -140}, level: 4, exp: 0/7184/7184, source: joined}
   contraptions:

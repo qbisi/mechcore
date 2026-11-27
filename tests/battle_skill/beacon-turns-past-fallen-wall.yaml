@@ -15,7 +15,7 @@ blue:
   blueprints: [defense_enhancement]
   tower_strengthen_levels: [4, 2]
   units:
-  - {name: fire_badger, index: 0, position: {x: -250, y: -165}, level: 9, exp: 9418/9418/9418, rotated: true, equipment: [haste_module]}
+  - {name: fire_badger, index: 0, position: {x: -250, y: -165}, level: 9, exp: 9418/9418/9418, rotated: true, equipments: [haste_module]}
   - {name: rhino, index: 1, position: {x: -275, y: -95}, level: 2, exp: 0/33/2591, source: delivered}
   - {name: phoenix, index: 2, position: {x: -220, y: -180}, level: 5, exp: 0/5421/6774, source: joined}
   contraptions:
@@ -31,7 +31,7 @@ red:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 3]
   units:
-  - {name: steel_ball, index: 0, position: {x: -205, y: -180}, level: 7, exp: 3148/6296/6296, equipment: [super_heavy_armor]}
+  - {name: steel_ball, index: 0, position: {x: -205, y: -180}, level: 7, exp: 3148/6296/6296, equipments: [super_heavy_armor]}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
   - {name: rapid_fire_turret, index: 1, position: {x: -140, y: -100}}

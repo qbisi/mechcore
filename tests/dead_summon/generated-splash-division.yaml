@@ -14,7 +14,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: steel_ball, index: 0, position: {x: 335, y: 160}, level: 6, exp: 0/2800/5799, rotated: true, equipment: [secondary_fire_control_system], travelling: true, source: joined}
+  - {name: steel_ball, index: 0, position: {x: 335, y: 160}, level: 6, exp: 0/2800/5799, rotated: true, equipments: [secondary_fire_control_system], travelling: true, source: joined}
   - {name: melting_point, index: 1, position: {x: 270, y: -170}, level: 2, exp: 0/1742/3154, source: joined}
   battle_skills:
   - {name: shield_airdrop, positions: [{x: 285, y: -25}]}
@@ -27,7 +27,7 @@ red:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [3, 3]
   units:
-  - {name: phantom_ray, index: 0, position: {x: 210, y: -45}, level: 7, exp: 6296/6296/6296, rotated: true, equipment: [haste_module]}
+  - {name: phantom_ray, index: 0, position: {x: 210, y: -45}, level: 7, exp: 6296/6296/6296, rotated: true, equipments: [haste_module]}
   - {name: war_factory, index: 1, position: {x: -215, y: -135}, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: -275, y: -245}, retained: false}

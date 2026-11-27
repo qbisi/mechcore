@@ -16,7 +16,7 @@ blue:
     typhoon: [field_reassembly, field_entrenchment, reactive_armor, maintenance_array, wreckage_detonation, range_enhancement, air_defense_mark]
   blueprints: [attack_enhancement_ii]
   units:
-  - {name: typhoon, index: 0, position: {x: 190, y: -180}, level: 3, exp: 3473/4873/6946, rotated: true, equipment: [anti_interference_module]}
+  - {name: typhoon, index: 0, position: {x: 190, y: -180}, level: 3, exp: 3473/4873/6946, rotated: true, equipments: [anti_interference_module]}
   - {name: melting_point, index: 1, position: {x: -160, y: -110}, level: 2, exp: 0/100/3154, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
@@ -33,7 +33,7 @@ red:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 2]
   units:
-  - {name: overlord, index: 0, position: {x: 95, y: -35}, level: 4, exp: 7858/7858/7858, equipment: [steel_ball_production_line]}
+  - {name: overlord, index: 0, position: {x: 95, y: -35}, level: 4, exp: 7858/7858/7858, equipments: [steel_ball_production_line]}
   - {name: rhino, index: 1, position: {x: -25, y: -195}, level: 2, exp: 0/800/2591, source: delivered}
   - {name: overlord, index: 2, position: {x: 165, y: -55}, level: 5, exp: 0/3074/9118, source: joined}
   constructions:

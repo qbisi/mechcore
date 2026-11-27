@@ -14,7 +14,7 @@ blue:
   tower_strengthen_levels: [4, 4]
   units:
   - {name: marksman, index: 0, position: {x: 150, y: -260}, level: 3, exp: 0/1150/2315, source: delivered}
-  - {name: crawler, index: 1, position: {x: 140, y: -205}, level: 9, exp: 0/800/3027, rotated: true, equipment: [explosive_ammo], source: joined}
+  - {name: crawler, index: 1, position: {x: 140, y: -205}, level: 9, exp: 0/800/3027, rotated: true, equipments: [explosive_ammo], source: joined}
   - {name: wasp, index: 2, position: {x: -95, y: -120}, level: 6, exp: 0/1450/5219, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: -165, y: -85}}
@@ -28,7 +28,7 @@ red:
   blueprints: [defense_enhancement_ii]
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: arclight, index: 0, position: {x: -90, y: -30}, level: 2, exp: 845/947/1690, rotated: true, equipment: [secondary_heavy_armor]}
+  - {name: arclight, index: 0, position: {x: -90, y: -30}, level: 2, exp: 845/947/1690, rotated: true, equipments: [secondary_heavy_armor]}
   - {name: marksman, index: 1, position: {x: -280, y: -140}, level: 3, exp: 0/578/2315, source: delivered}
   - {name: marksman, index: 2, position: {x: 160, y: -220}, level: 2, exp: 0/646/1465, source: joined}
   constructions:

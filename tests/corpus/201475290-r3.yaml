@@ -17,17 +17,17 @@ blue:
     fang: [range_enhancement]
   blueprints: [defense_enhancement]
   units:
-  - {name: fang, index: 0, position: {x: -245, y: -80}, exp: 0/600/600, equipment: [secondary_fire_control_system]}
+  - {name: fang, index: 0, position: {x: -245, y: -80}, exp: 0/600/600, equipments: [secondary_fire_control_system]}
   - {name: fang, index: 1, position: {x: -155, y: -80}, exp: 13/307/600}
   - {name: fang, index: 2, position: {x: -140, y: -205}, exp: 12/135/600, rotated: true}
-  - {name: fire_badger, index: 4, position: {x: -110, y: -85}, exp: 147/255/1400, rotated: true, equipment: [small_amplifying_core]}
+  - {name: fire_badger, index: 4, position: {x: -110, y: -85}, exp: 147/255/1400, rotated: true, equipments: [small_amplifying_core]}
   - {name: fang, index: 5, position: {x: -65, y: -80}, exp: 148/362/600}
   - {name: fang, index: 6, position: {x: 140, y: -205}, exp: 80/80/600, rotated: true}
-  - {name: wasp, index: 7, position: {x: 330, y: 285}, exp: 354/802/900, equipment: [deployment_module], travelling: true}
+  - {name: wasp, index: 7, position: {x: 330, y: 285}, exp: 354/802/900, equipments: [deployment_module], travelling: true}
   - {name: fang, index: 8, position: {x: -350, y: 35}, exp: 80/250/600}
   - {name: fang, index: 9, position: {x: -275, y: -20}, exp: 0/527/600}
   - {name: fang, index: 10, position: {x: -350, y: 285}, exp: 194/194/600}
-  - {name: sabertooth, index: 11, position: {x: -235, y: -25}, exp: 0/875/1300, equipment: [small_amplifying_core], source: joined}
+  - {name: sabertooth, index: 11, position: {x: -235, y: -25}, exp: 0/875/1300, equipments: [small_amplifying_core], source: joined}
   - {name: fang, index: 12, position: {x: -310, y: 35}, exp: 0/254/600, travelling: true, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}

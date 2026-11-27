@@ -14,7 +14,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: fang, index: 0, position: {x: 210, y: -285}, exp: 600/600, rotated: true, equipment: [small_amplifying_core]}
+  - {name: fang, index: 0, position: {x: 210, y: -285}, exp: 600/600, rotated: true, equipments: [small_amplifying_core]}
   - {name: marksman, index: 1, position: {x: -20, y: -70}, level: 3, source: delivered}
   - {name: hacker, index: 2, position: {x: 65, y: -195}, level: 8, source: joined}
   constructions:
@@ -30,7 +30,7 @@ red:
   blueprints: [attack_enhancement_ii]
   energy_tower_skills: [enhanced_range]
   units:
-  - {name: hacker, index: 0, position: {x: 135, y: -285}, level: 9, rotated: true, equipment: [absorption_module]}
+  - {name: hacker, index: 0, position: {x: 135, y: -285}, level: 9, rotated: true, equipments: [absorption_module]}
   - {name: marksman, index: 1, position: {x: 270, y: -280}, level: 3, source: delivered}
   - {name: war_factory, index: 2, position: {x: -65, y: -95}, level: 6, source: joined}
   contraptions:

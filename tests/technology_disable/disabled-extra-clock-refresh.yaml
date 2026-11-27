@@ -15,7 +15,7 @@ blue:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [4, 1]
   units:
-  - {name: raiden, index: 0, position: {x: 120, y: -50}, exp: 1200/1700/2400, rotated: true, equipment: [enhancement_module]}
+  - {name: raiden, index: 0, position: {x: 120, y: -50}, exp: 1200/1700/2400, rotated: true, equipments: [enhancement_module]}
   - {name: scorpion, index: 1, position: {x: 25, y: -55}, level: 8, exp: 0/300/10091, source: joined}
   constructions:
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -31,7 +31,7 @@ red:
   blueprints: [defense_enhancement_ii]
   energy_tower_skills: [enhanced_range]
   units:
-  - {name: rhino, index: 0, position: {x: 325, y: 275}, level: 5, exp: 0/5992/5992, rotated: true, equipment: [secondary_fire_control_system], travelling: true, source: joined}
+  - {name: rhino, index: 0, position: {x: 325, y: 275}, level: 5, exp: 0/5992/5992, rotated: true, equipments: [secondary_fire_control_system], travelling: true, source: joined}
   - {name: tarantula, index: 1, position: {x: 65, y: -205}, source: joined}
   battle_skills:
   - {name: sticky_oil_bomb, positions: [{x: 215, y: 225}, {x: 30, y: -190}]}

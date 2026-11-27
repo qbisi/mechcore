@@ -22,7 +22,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: wraith, index: 0, position: {x: -75, y: -105}, level: 2, exp: 5070/5070/5070, rotated: true, equipment: [heavy_armor]}
+  - {name: wraith, index: 0, position: {x: -75, y: -105}, level: 2, exp: 5070/5070/5070, rotated: true, equipments: [heavy_armor]}
   - {name: centurion, index: 1, position: {x: -65, y: -135}, level: 6, exp: 0/600/13047, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
@@ -39,7 +39,7 @@ red:
   tower_strengthen_levels: [4, 4]
   units:
   - {name: sabertooth, index: 0, position: {x: 275, y: -95}, source: delivered}
-  - {name: farseer, index: 1, position: {x: -205, y: -65}, level: 5, exp: 0/7718/9379, equipment: [haste_module], source: joined}
+  - {name: farseer, index: 1, position: {x: -205, y: -65}, level: 5, exp: 0/7718/9379, equipments: [haste_module], source: joined}
   - {name: void_eye, index: 2, position: {x: -190, y: -40}, level: 2, exp: 0/1465/1465, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: 145, y: -310}}

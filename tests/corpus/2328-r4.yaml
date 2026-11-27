@@ -41,7 +41,7 @@ red:
   - {name: hound, index: 1, position: {x: 140, y: -100}, exp: 634/750/750}
   - {name: hound, index: 2, position: {x: 250, y: -90}, exp: 750/750/750}
   - {name: sabertooth, index: 3, position: {x: 195, y: -95}, level: 2, exp: 0/1506/2929}
-  - {name: sabertooth, index: 4, position: {x: 85, y: -95}, level: 2, exp: 0/243/2929, equipment: [nano_repair_kit]}
+  - {name: sabertooth, index: 4, position: {x: 85, y: -95}, level: 2, exp: 0/243/2929, equipments: [nano_repair_kit]}
   - {name: crawler, index: 5, position: {x: 140, y: -135}, exp: 450/450/450, rotated: true}
   - {name: crawler, index: 6, position: {x: 30, y: -135}, exp: 167/200/450, rotated: true}
   - {name: crawler, index: 7, position: {x: -5, y: -40}, exp: 2/2/450}

@@ -15,7 +15,7 @@ blue:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: phoenix, index: 0, position: {x: 160, y: -60}, level: 3, exp: 0/4630/4630, rotated: true, equipment: [deployment_module], source: joined}
+  - {name: phoenix, index: 0, position: {x: 160, y: -60}, level: 3, exp: 0/4630/4630, rotated: true, equipments: [deployment_module], source: joined}
   - {name: centurion, index: 1, position: {x: -55, y: -255}, level: 8, exp: 0/4400/15137, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: 125, y: -235}}
@@ -28,7 +28,7 @@ red:
     stormcaller: [high_explosive_ammo, incendiary_bomb, electromagnetic_explosion, range_enhancement, launcher_overload, heavy_missile]
   blueprints: [defense_enhancement_ii]
   units:
-  - {name: stormcaller, index: 0, position: {x: -200, y: -35}, level: 8, rotated: true, equipment: [portable_shield], source: joined}
+  - {name: stormcaller, index: 0, position: {x: -200, y: -35}, level: 8, rotated: true, equipments: [portable_shield], source: joined}
   - {name: phoenix, index: 1, position: {x: 200, y: -300}, level: 6, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: -285, y: -55}, retained: false}

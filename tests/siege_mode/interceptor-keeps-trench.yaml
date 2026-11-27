@@ -19,7 +19,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: sabertooth, index: 0, position: {x: -345, y: 55}, level: 7, exp: 4092/4902/8185, rotated: true, equipment: [secondary_heavy_armor]}
+  - {name: sabertooth, index: 0, position: {x: -345, y: 55}, level: 7, exp: 4092/4902/8185, rotated: true, equipments: [secondary_heavy_armor]}
   - {name: mustang, index: 1, position: {x: -25, y: -110}, level: 4, exp: 0/436/5388, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
@@ -33,7 +33,7 @@ red:
     melting_point: [energy_absorption, electromagnetic_barrage, energy_diffraction, crawler_production, armor_enhancement, range_enhancement]
   blueprints: [attack_enhancement_ii]
   units:
-  - {name: melting_point, index: 0, position: {x: -150, y: -100}, level: 3, exp: 4987/4987/4987, rotated: true, equipment: [explosive_ammo]}
+  - {name: melting_point, index: 0, position: {x: -150, y: -100}, level: 3, exp: 4987/4987/4987, rotated: true, equipments: [explosive_ammo]}
   - {name: fire_badger, index: 1, position: {x: 135, y: -230}, source: delivered}
   - {name: rhino, index: 2, position: {x: -75, y: -55}, level: 8, exp: 0/360/7736, source: joined}
   contraptions:

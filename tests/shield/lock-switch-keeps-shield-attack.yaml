@@ -21,7 +21,7 @@ blue:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: fortress, index: 0, position: {x: -260, y: -180}, level: 3, exp: 0/5699/5699, rotated: true, equipment: [dominion_core]}
+  - {name: fortress, index: 0, position: {x: -260, y: -180}, level: 3, exp: 0/5699/5699, rotated: true, equipments: [dominion_core]}
   - {name: wraith, index: 1, position: {x: 45, y: -105}, level: 6, exp: 0/1400/13047, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: 65, y: -155}, retained: false}
@@ -31,7 +31,7 @@ red:
   blueprints: [attack_enhancement_ii]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: phoenix, index: 0, position: {x: -110, y: -270}, level: 6, exp: 0/6908/7539, rotated: true, equipment: [haste_module], source: joined}
+  - {name: phoenix, index: 0, position: {x: -110, y: -270}, level: 6, exp: 0/6908/7539, rotated: true, equipments: [haste_module], source: joined}
   - {name: steel_ball, index: 1, position: {x: 85, y: -90}, level: 4, exp: 0/200/4490, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: 180, y: -130}, retained: false}

@@ -18,7 +18,7 @@ blue:
   - {name: hound, index: 6, position: {x: 200, y: -200}}
   - {name: centurion, index: 8, position: {x: -65, y: -215}, exp: 866/966/2250}
   - {name: centurion, index: 9, position: {x: 35, y: -215}, exp: 2116/2250/2250}
-  - {name: centurion, index: 10, position: {x: 235, y: -245}, exp: 0/666/2250, equipment: [amplifying_core], source: joined}
+  - {name: centurion, index: 10, position: {x: 235, y: -245}, exp: 0/666/2250, equipments: [amplifying_core], source: joined}
   - {name: fang, index: 11, position: {x: 140, y: -205}, exp: 0/66/600, rotated: true, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
@@ -38,7 +38,7 @@ red:
   - {name: tarantula, index: 4, position: {x: -115, y: -165}, exp: 965/1218/1500}
   - {name: tarantula, index: 5, position: {x: 5, y: -155}, exp: 471/471/1500}
   - {name: marksman, index: 6, position: {x: 30, y: -160}, exp: 246/650/650}
-  - {name: rhino, index: 7, position: {x: 265, y: -295}, exp: 256/842/1150, equipment: [amplifying_core]}
+  - {name: rhino, index: 7, position: {x: 265, y: -295}, exp: 256/842/1150, equipments: [amplifying_core]}
   - {name: rhino, index: 8, position: {x: -265, y: -295}, exp: 517/536/1150}
   - {name: marksman, index: 9, position: {x: -20, y: -160}, exp: 33/100/650}
   - {name: marksman, index: 10, position: {x: 90, y: -170}, exp: 0/564/650, source: joined}

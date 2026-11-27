@@ -23,7 +23,7 @@ blue:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: sandworm, index: 0, position: {x: 160, y: -130}, exp: 1000/1192/2000, equipment: [tank_production_line]}
+  - {name: sandworm, index: 0, position: {x: 160, y: -130}, exp: 1000/1192/2000, equipments: [tank_production_line]}
   - {name: fire_badger, index: 1, position: {x: 215, y: -150}, exp: 0/68/1400, source: delivered}
   - {name: void_eye, index: 2, position: {x: -160, y: -190}, level: 4, exp: 0/120/2919, source: joined}
   constructions:
@@ -42,7 +42,7 @@ red:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: crawler, index: 0, position: {x: 120, y: -135}, level: 3, exp: 1603/1603/1603, rotated: true, equipment: [small_amplifying_core]}
+  - {name: crawler, index: 0, position: {x: 120, y: -135}, level: 3, exp: 1603/1603/1603, rotated: true, equipments: [small_amplifying_core]}
   - {name: wasp, index: 1, position: {x: 205, y: -100}, level: 5, exp: 0/1701/4689, source: joined}
   constructions:
   - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}

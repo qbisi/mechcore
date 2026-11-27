@@ -16,7 +16,7 @@ blue:
   blueprints: [attack_enhancement]
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: raiden, index: 0, position: {x: -200, y: -60}, level: 4, exp: 10777/10777/10777, rotated: true, equipment: [steel_ball_production_line]}
+  - {name: raiden, index: 0, position: {x: -200, y: -60}, level: 4, exp: 10777/10777/10777, rotated: true, equipments: [steel_ball_production_line]}
   - {name: fire_badger, index: 1, position: {x: -205, y: -20}, exp: 0/60/1400, source: delivered}
   - {name: hound, index: 2, position: {x: 30, y: -40}, level: 2, source: joined}
   constructions:
@@ -35,7 +35,7 @@ red:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: raiden, index: 0, position: {x: 340, y: 30}, exp: 1200/1468/2400, equipment: [enhancement_module]}
+  - {name: raiden, index: 0, position: {x: 340, y: 30}, exp: 1200/1468/2400, equipments: [enhancement_module]}
   - {name: sabertooth, index: 1, position: {x: -245, y: -185}, exp: 0/636/1300, source: delivered}
   - {name: war_factory, index: 2, position: {x: 65, y: -175}, level: 3, exp: 0/1454/11398, source: joined}
   constructions:

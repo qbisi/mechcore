@@ -17,7 +17,7 @@ blue:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: raiden, index: 0, position: {x: -330, y: 170}, level: 4, exp: 0/468/10777, equipment: [laser_sights], travelling: true, source: joined}
+  - {name: raiden, index: 0, position: {x: -330, y: 170}, level: 4, exp: 0/468/10777, equipments: [laser_sights], travelling: true, source: joined}
   - {name: mountain, index: 1, position: {x: 155, y: -105}, level: 4, exp: 0/800/14369, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: -75, y: -260}}
@@ -29,7 +29,7 @@ red:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: overlord, index: 0, position: {x: -165, y: -215}, level: 3, exp: 6233/6233/6233, equipment: [steel_ball_production_line]}
+  - {name: overlord, index: 0, position: {x: -165, y: -215}, level: 3, exp: 6233/6233/6233, equipments: [steel_ball_production_line]}
   - {name: vortex, index: 1, position: {x: 50, y: -30}, level: 6, exp: 0/3000/4349, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: -15, y: -190}}

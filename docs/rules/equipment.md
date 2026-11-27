@@ -31,10 +31,10 @@ own target restrictions (`mechType`, `unitID`).
 `equipmentCountChangeValue`: Equipment Expansion (`10540`) adds one, so a side
 holding it fits two to each formation. Nothing else in a standard match sets
 it. The slot is there as soon as the officer is added, and two items write
-their corrections as an item and an officer do, each in its own channel. A
-layout lists each formation's equipment in fitting order, which state
-records as its fitting slots. The document compiler gives a formation the
-slot count above from the side's officers.
+their corrections as an item and an officer do, each in its own channel. Both a
+layout and a match state list each formation's worn items in `equipments`, in
+fitting order. The document compiler gives a formation the slot count above
+from the side's officers.
 
 **Two of one item may be worn, and both count.** `CanUseEquipment` asks that
 the item is in stock and worn by nobody, that the formation has a free slot, that

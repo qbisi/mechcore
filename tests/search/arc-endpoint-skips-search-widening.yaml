@@ -33,7 +33,7 @@ red:
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
   - {name: sabertooth, index: 0, position: {x: -65, y: -65}, source: delivered}
-  - {name: sabertooth, index: 1, position: {x: 55, y: -135}, level: 8, exp: 0/8175/8746, rotated: true, equipment: [laser_sights], source: joined}
+  - {name: sabertooth, index: 1, position: {x: 55, y: -135}, level: 8, exp: 0/8175/8746, rotated: true, equipments: [laser_sights], source: joined}
   - {name: melting_point, index: 2, position: {x: -60, y: -210}, level: 7, exp: 0/3225/8815, source: joined}
   constructions:
   - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}

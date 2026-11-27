@@ -33,7 +33,7 @@ red:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: sandworm, index: 0, position: {x: 70, y: -280}, level: 4, exp: 8981/8981/8981, rotated: true, equipment: [deployment_module]}
+  - {name: sandworm, index: 0, position: {x: 70, y: -280}, level: 4, exp: 8981/8981/8981, rotated: true, equipments: [deployment_module]}
   - {name: raiden, index: 1, position: {x: 110, y: -240}, level: 9, exp: 0/4834/16146, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: 215, y: -170}}

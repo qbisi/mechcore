@@ -17,7 +17,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 2]
   units:
-  - {name: overlord, index: 0, position: {x: 115, y: -265}, level: 8, exp: 5886/6122/11773, equipment: [steel_ball_production_line]}
+  - {name: overlord, index: 0, position: {x: 115, y: -265}, level: 8, exp: 5886/6122/11773, equipments: [steel_ball_production_line]}
   - {name: typhoon, index: 1, position: {x: 40, y: -120}, exp: 0/62/1950, source: delivered}
   - {name: war_factory, index: 2, position: {x: -95, y: -165}, level: 6, exp: 0/18556/18556, source: joined}
   constructions:
@@ -34,7 +34,7 @@ red:
   tower_strengthen_levels: [4, 4]
   units:
   - {name: typhoon, index: 0, position: {x: 180, y: -160}, exp: 0/12/1950, source: delivered}
-  - {name: fortress, index: 1, position: {x: 330, y: 80}, level: 8, exp: 0/96/10764, rotated: true, equipment: [explosive_ammo], travelling: true, source: joined}
+  - {name: fortress, index: 1, position: {x: 330, y: 80}, level: 8, exp: 0/96/10764, rotated: true, equipments: [explosive_ammo], travelling: true, source: joined}
   - {name: sledgehammer, index: 2, position: {x: 85, y: -180}, level: 8, exp: 0/360/8746, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}

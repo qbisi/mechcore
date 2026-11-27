@@ -409,7 +409,7 @@ fn compile_units(
                 level,
                 exp,
                 rotated,
-                equipment,
+                equipments: equipment,
                 travelling,
                 source,
             } = formation;

@@ -17,7 +17,7 @@ blue:
   tower_strengthen_levels: [1, 3]
   units:
   - {name: typhoon, index: 0, position: {x: -40, y: -70}, source: delivered}
-  - {name: fortress, index: 1, position: {x: -340, y: 270}, exp: 0/500/1600, rotated: true, equipment: [barrier], travelling: true, source: joined}
+  - {name: fortress, index: 1, position: {x: -340, y: 270}, exp: 0/500/1600, rotated: true, equipments: [barrier], travelling: true, source: joined}
   - {name: tarantula, index: 2, position: {x: 25, y: -135}, level: 4, exp: 0/600/6735, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
@@ -36,7 +36,7 @@ red:
   tower_strengthen_levels: [4, 2]
   units:
   - {name: typhoon, index: 0, position: {x: -50, y: -110}, exp: 0/150/1950, source: delivered}
-  - {name: stormcaller, index: 1, position: {x: 245, y: -210}, level: 3, exp: 0/320/3918, equipment: [portable_shield], source: joined}
+  - {name: stormcaller, index: 1, position: {x: 245, y: -210}, level: 3, exp: 0/320/3918, equipments: [portable_shield], source: joined}
   - {name: wraith, index: 2, position: {x: 245, y: -185}, level: 4, exp: 0/600/10103, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: 285, y: -155}}

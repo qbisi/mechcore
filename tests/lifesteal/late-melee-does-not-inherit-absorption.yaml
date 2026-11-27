@@ -13,7 +13,7 @@ blue:
   tower_strengthen_levels: [4, 4]
   units:
   - {name: rhino, index: 0, position: {x: -235, y: -295}, level: 2, exp: 0/16/2591, source: delivered}
-  - {name: steel_ball, index: 1, position: {x: 320, y: 155}, level: 5, exp: 0/5210/5210, equipment: [heavy_armor], travelling: true, source: joined}
+  - {name: steel_ball, index: 1, position: {x: 320, y: 155}, level: 5, exp: 0/5210/5210, equipments: [heavy_armor], travelling: true, source: joined}
   - {name: scorpion, index: 2, position: {x: -285, y: -45}, level: 6, exp: 0/2816/8698, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: 195, y: -65}, retained: false}
@@ -28,7 +28,7 @@ red:
   tower_strengthen_levels: [2, 2]
   units:
   - {name: rhino, index: 0, position: {x: 75, y: -165}, level: 2, source: delivered}
-  - {name: centurion, index: 1, position: {x: 335, y: 265}, level: 8, exp: 0/8000/15137, equipment: [absorption_module], travelling: true, source: joined}
+  - {name: centurion, index: 1, position: {x: 335, y: 265}, level: 8, exp: 0/8000/15137, equipments: [absorption_module], travelling: true, source: joined}
   - {name: sledgehammer, index: 2, position: {x: -65, y: -20}, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}

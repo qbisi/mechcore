@@ -16,7 +16,7 @@ blue:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [1, 1]
   units:
-  - {name: fortress, index: 0, position: {x: -70, y: -150}, level: 3, exp: 5699/5699/5699, rotated: true, equipment: [mustang_production_line]}
+  - {name: fortress, index: 0, position: {x: -70, y: -150}, level: 3, exp: 5699/5699/5699, rotated: true, equipments: [mustang_production_line]}
   - {name: typhoon, index: 1, position: {x: 200, y: -140}, source: delivered}
   - {name: phantom_ray, index: 2, position: {x: 75, y: -50}, level: 5, exp: 0/5210/5210, source: joined}
   constructions:

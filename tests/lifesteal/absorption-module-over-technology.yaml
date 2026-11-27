@@ -13,7 +13,7 @@ blue:
   techs:
     steel_ball: [energy_absorption]
   units:
-  - {name: steel_ball, index: 0, position: {x: 5, y: -100}, exp: 0/400/1000, equipment: [absorption_module], source: joined}
+  - {name: steel_ball, index: 0, position: {x: 5, y: -100}, exp: 0/400/1000, equipments: [absorption_module], source: joined}
 red:
   core_damage: 200
   units:

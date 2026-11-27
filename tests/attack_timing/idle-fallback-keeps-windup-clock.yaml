@@ -16,7 +16,7 @@ blue:
   energy_tower_skills: [high_mobility]
   units:
   - {name: typhoon, index: 0, position: {x: -270, y: -40}, source: delivered}
-  - {name: sabertooth, index: 1, position: {x: 315, y: 65}, level: 9, exp: 0/465/8746, equipment: [secondary_laser_sight], travelling: true, source: joined}
+  - {name: sabertooth, index: 1, position: {x: 315, y: 65}, level: 9, exp: 0/465/8746, equipments: [secondary_laser_sight], travelling: true, source: joined}
   - {name: steel_ball, index: 2, position: {x: 275, y: -20}, level: 3, exp: 0/1355/3562, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
@@ -33,7 +33,7 @@ red:
   tower_strengthen_levels: [2, 1]
   units:
   - {name: typhoon, index: 0, position: {x: -280, y: -130}, source: delivered}
-  - {name: stormcaller, index: 1, position: {x: -335, y: 240}, level: 4, exp: 0/748/4939, rotated: true, equipment: [photon_coating], travelling: true, source: joined}
+  - {name: stormcaller, index: 1, position: {x: -335, y: 240}, level: 4, exp: 0/748/4939, rotated: true, equipments: [photon_coating], travelling: true, source: joined}
   - {name: phantom_ray, index: 2, position: {x: 205, y: -60}, level: 8, exp: 0/6727/6727, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}

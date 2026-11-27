@@ -208,7 +208,7 @@ mod tests {
                             level: None,
                             exp: None,
                             rotated: Some(grid.rotated),
-                            equipment: Vec::new(),
+                            equipments: Vec::new(),
                             travelling: Some(grid.region != "main"),
                             source: UnitSource::Joined,
                         });

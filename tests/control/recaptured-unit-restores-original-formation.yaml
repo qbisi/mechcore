@@ -12,7 +12,7 @@ blue:
   blueprints: [attack_enhancement_ii]
   energy_tower_skills: [high_mobility]
   units:
-  - {name: fire_badger, index: 0, position: {x: 70, y: -95}, exp: 1400/1400/1400, rotated: true, equipment: [heavy_armor]}
+  - {name: fire_badger, index: 0, position: {x: 70, y: -95}, exp: 1400/1400/1400, rotated: true, equipments: [heavy_armor]}
   - {name: hacker, index: 1, position: {x: 285, y: -135}, level: 8, exp: 0/424/3767, source: joined}
   constructions:
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}
@@ -30,7 +30,7 @@ red:
   tower_strengthen_levels: [3, 3]
   units:
   - {name: sabertooth, index: 0, position: {x: 5, y: -55}, exp: 0/1300/1300, source: delivered}
-  - {name: melting_point, index: 1, position: {x: 330, y: 240}, exp: 0/200/1400, rotated: true, equipment: [barrier], travelling: true, source: joined}
+  - {name: melting_point, index: 1, position: {x: 330, y: 240}, exp: 0/200/1400, rotated: true, equipments: [barrier], travelling: true, source: joined}
   - {name: hacker, index: 2, position: {x: 75, y: -145}, level: 5, exp: 0/2918/2918, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}

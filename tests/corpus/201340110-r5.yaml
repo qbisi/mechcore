@@ -23,7 +23,7 @@ blue:
   - {name: hound, index: 2, position: {x: -90, y: -120}, exp: 642/750/750}
   - {name: sabertooth, index: 3, position: {x: -135, y: -95}, level: 2, exp: 543/735/2929}
   - {name: sabertooth, index: 4, position: {x: -225, y: -115}, level: 2, exp: 0/156/2929}
-  - {name: sabertooth, index: 5, position: {x: -45, y: -85}, level: 2, exp: 2882/2929/2929, equipment: [nano_repair_kit]}
+  - {name: sabertooth, index: 5, position: {x: -45, y: -85}, level: 2, exp: 2882/2929/2929, equipments: [nano_repair_kit]}
   - {name: crawler, index: 6, position: {x: -90, y: -155}, exp: 194/310/450, rotated: true}
   - {name: crawler, index: 7, position: {x: 140, y: -205}, exp: 151/244/450, rotated: true}
   - {name: crawler, index: 8, position: {x: -190, y: -285}, exp: 450/450/450, rotated: true}
@@ -52,7 +52,7 @@ red:
   - {name: fire_badger, index: 4, position: {x: 115, y: -70}, exp: 318/405/1400}
   - {name: crawler, index: 5, position: {x: 160, y: -35}, exp: 14/14/450, rotated: true}
   - {name: crawler, index: 6, position: {x: 210, y: -105}, exp: 168/432/450, rotated: true}
-  - {name: wraith, index: 7, position: {x: 125, y: -95}, level: 2, exp: 1225/1486/5070, equipment: [nano_repair_kit]}
+  - {name: wraith, index: 7, position: {x: 125, y: -95}, level: 2, exp: 1225/1486/5070, equipments: [nano_repair_kit]}
   - {name: crawler, index: 8, position: {x: 80, y: -105}, exp: 113/168/450, rotated: true}
   - {name: mustang, index: 10, position: {x: -245, y: -130}, level: 2, exp: 1339/1823/2704}
   - {name: vortex, index: 11, position: {x: 40, y: -70}, exp: 377/525/750}

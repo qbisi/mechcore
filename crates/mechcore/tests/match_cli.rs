@@ -873,7 +873,7 @@ fn a_view_applies_only_the_callers_decisions_and_adds_runtime_legality() {
 fn movement_permission_is_recomputed_from_equipment_and_redeploy_actions() {
     use mechcore_document::{
         layout::UnitSource,
-        r#match::{Action, PanelSkill, StateEquipment},
+        r#match::{Action, PanelSkill},
         mobility,
     };
 
@@ -908,10 +908,7 @@ fn movement_permission_is_recomputed_from_equipment_and_redeploy_actions() {
                 target: mechcore_document::r#match::SkillTarget::Unit(unit),
             }
         } else {
-            blue.equipment.push(StateEquipment {
-                id: mobility::DEPLOYMENT_MODULE,
-                fitted: None,
-            });
+            blue.equipments.push(mobility::DEPLOYMENT_MODULE);
             Action::UseEquipment {
                 equipment: mobility::DEPLOYMENT_MODULE,
                 index: unit,
@@ -1100,9 +1097,7 @@ fn commit_refuses_a_colliding_board_before_sealing_or_clearing_pins() {
 
 #[test]
 fn recovery_reports_a_removal_and_returns_fitted_equipment_to_stock() {
-    use mechcore_document::r#match::{
-        Action, EquipmentFitting, PanelSkill, SkillTarget, StateEquipment,
-    };
+    use mechcore_document::r#match::{Action, PanelSkill, SkillTarget};
     let directory = tempfile::tempdir().unwrap();
     let path = dealt(directory.path());
     open_the_match(&path);
@@ -1119,10 +1114,7 @@ fn recovery_reports_a_removal_and_returns_fitted_equipment_to_stock() {
         standing: Vec::new(),
         release: None,
     });
-    blue.equipment.push(StateEquipment {
-        id: 13_030_001,
-        fitted: Some(EquipmentFitting { unit, slot: 0 }),
-    });
+    blue.units[0].equipments.push(13_030_001);
     fs::write(
         &path,
         mechcore_document::r#match::canonical_yaml(&game).unwrap(),
@@ -1142,10 +1134,7 @@ fn recovery_reports_a_removal_and_returns_fitted_equipment_to_stock() {
     for field in ["position", "exp", "movable", "unpinned"] {
         assert!(tombstone.get(field).is_none(), "{tombstone}");
     }
-    assert_eq!(
-        blue["equipment"],
-        serde_json::json!([{"name": "laser_sights"}])
-    );
+    assert_eq!(blue["equipments"], serde_json::json!(["laser_sights"]));
 }
 
 #[test]
@@ -1882,7 +1871,7 @@ fn a_match_with_a_repeated_reinforcement_choice_is_not_written_as_a_replay() {
 
 #[test]
 fn format_and_grbr_keep_paid_upgrades_before_an_enhancement_module() {
-    use mechcore_document::r#match::{self as match_doc, Action, StateEquipment};
+    use mechcore_document::r#match::{self as match_doc, Action};
 
     let directory = tempfile::tempdir().unwrap();
     let path = dealt(directory.path());
@@ -1894,10 +1883,7 @@ fn format_and_grbr_keep_paid_upgrades_before_an_enhancement_module() {
     let mut bar = unit.exp.unwrap();
     bar.current = bar.maximum;
     unit.exp = Some(bar);
-    turn.state.blue.equipment.push(StateEquipment {
-        id: 13_030_004,
-        fitted: None,
-    });
+    turn.state.blue.equipments.push(13_030_004);
     turn.actions.blue = vec![
         Action::UpgradeUnit { index },
         Action::UseEquipment {

@@ -14,7 +14,7 @@ blue:
   officers: [sabertooth_specialist, improved_phoenix]
   blueprints: [attack_enhancement]
   units:
-  - {name: phoenix, index: 0, position: {x: 310, y: 60}, level: 2, exp: 1464/2929/2929, equipment: [haste_module]}
+  - {name: phoenix, index: 0, position: {x: 310, y: 60}, level: 2, exp: 1464/2929/2929, equipments: [haste_module]}
   - {name: sabertooth, index: 1, position: {x: 65, y: -45}, exp: 0/32/1300, source: delivered}
   - {name: mountain, index: 2, position: {x: -235, y: -45}, level: 7, exp: 0/10512/20148, source: joined}
   contraptions:
@@ -29,7 +29,7 @@ red:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [1, 2]
   units:
-  - {name: farseer, index: 0, position: {x: 135, y: -295}, level: 9, exp: 6054/6054/12109, equipment: [super_heavy_armor]}
+  - {name: farseer, index: 0, position: {x: 135, y: -295}, level: 9, exp: 6054/6054/12109, equipments: [super_heavy_armor]}
   - {name: sabertooth, index: 1, position: {x: 55, y: -255}, exp: 0/174/1300, source: delivered}
   - {name: melting_point, index: 2, position: {x: 0, y: -270}, level: 2, exp: 0/386/3154, source: joined}
   contraptions:

@@ -17,7 +17,7 @@ blue:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [2, 1]
   units:
-  - {name: phantom_ray, index: 0, position: {x: -50, y: -175}, level: 7, exp: 3148/4270/6296, rotated: true, equipment: [deployment_module]}
+  - {name: phantom_ray, index: 0, position: {x: -50, y: -175}, level: 7, exp: 3148/4270/6296, rotated: true, equipments: [deployment_module]}
   - {name: fang, index: 1, position: {x: 65, y: -280}, level: 6, exp: 0/900/3479, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: -105, y: -185}, retained: false}
@@ -31,7 +31,7 @@ red:
   blueprints: [defense_enhancement_ii]
   tower_strengthen_levels: [4, 3]
   units:
-  - {name: void_eye, index: 0, position: {x: 200, y: -100}, level: 9, exp: 0/4373/4373, rotated: true, equipment: [secondary_fire_control_system], source: joined}
+  - {name: void_eye, index: 0, position: {x: 200, y: -100}, level: 9, exp: 0/4373/4373, rotated: true, equipments: [secondary_fire_control_system], source: joined}
   - {name: hound, index: 1, position: {x: -210, y: -200}, level: 3, exp: 0/1848/2671, source: joined}
   battle_skills:
   - {name: electromagnetic_blast, positions: [{x: -155, y: -235}]}

@@ -13,7 +13,7 @@ blue:
   blueprints: [defense_enhancement]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: sledgehammer, index: 0, position: {x: -310, y: 235}, level: 4, equipment: [dominion_core], travelling: true, source: joined}
+  - {name: sledgehammer, index: 0, position: {x: -310, y: 235}, level: 4, equipments: [dominion_core], travelling: true, source: joined}
   - {name: mountain, index: 1, position: {x: 245, y: -115}, level: 6, exp: 0/200/18556, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: -50, y: -175}}
@@ -28,7 +28,7 @@ red:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: hacker, index: 0, position: {x: 85, y: -255}, level: 2, exp: 631/1262/1262, equipment: [anti_interference_module]}
+  - {name: hacker, index: 0, position: {x: 85, y: -255}, level: 2, exp: 631/1262/1262, equipments: [anti_interference_module]}
   - {name: phantom_ray, index: 1, position: {x: -195, y: -170}, level: 5, exp: 0/1680/5210, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: -185, y: -125}, retained: false}

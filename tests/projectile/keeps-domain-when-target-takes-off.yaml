@@ -17,7 +17,7 @@ blue:
   energy_tower_skills: [high_mobility]
   units:
   - {name: fire_badger, index: 0, position: {x: 275, y: -150}, exp: 0/190/1400, source: delivered}
-  - {name: void_eye, index: 1, position: {x: -320, y: 260}, level: 3, exp: 0/2315/2315, equipment: [anti_interference_module], travelling: true, source: joined}
+  - {name: void_eye, index: 1, position: {x: -320, y: 260}, level: 3, exp: 0/2315/2315, equipments: [anti_interference_module], travelling: true, source: joined}
   - {name: fire_badger, index: 2, position: {x: 225, y: -40}, level: 6, exp: 0/90/8118, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
@@ -33,7 +33,7 @@ red:
     stormcaller: [high_explosive_ammo, incendiary_bomb, electromagnetic_explosion, range_enhancement, launcher_overload, heavy_missile]
   tower_strengthen_levels: [1, 2]
   units:
-  - {name: stormcaller, index: 0, position: {x: 135, y: -230}, level: 6, exp: 3189/3249/6379, equipment: [secondary_heavy_armor]}
+  - {name: stormcaller, index: 0, position: {x: 135, y: -230}, level: 6, exp: 3189/3249/6379, equipments: [secondary_heavy_armor]}
   - {name: sabertooth, index: 1, position: {x: 5, y: -175}, exp: 0/200/1300, source: delivered}
   - {name: hacker, index: 2, position: {x: 85, y: -215}, level: 3, source: joined}
   constructions:

@@ -2681,7 +2681,7 @@ mod tests {
         // checks the refusal for an unsupported underground approach.
         let configs = crate::rules::SimulationConfig::load().unwrap();
         let (_, layout) = crate::layout::compile_with_seed(
-                b"kind: layout\nround: 1\nblue:\n  units:\n  - {name: sandworm, index: 0, position: {x: 0, y: -120}}\nred:\n  units:\n  - {name: vulcan, index: 0, position: {x: 0, y: -120}, equipment: [barrier]}\n",
+                b"kind: layout\nround: 1\nblue:\n  units:\n  - {name: sandworm, index: 0, position: {x: 0, y: -120}}\nred:\n  units:\n  - {name: vulcan, index: 0, position: {x: 0, y: -120}, equipments: [barrier]}\n",
                 &configs.units,
             ).unwrap();
         let mut simulation = super::super::Simulation::new(

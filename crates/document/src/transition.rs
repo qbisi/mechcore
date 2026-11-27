@@ -18,8 +18,7 @@ use crate::economy::{CardKind, Economy, OpeningKind};
 use crate::layout::{ContraptionPlacement, Experience, Position, Region, StaticPlacement};
 use crate::ledger::Purse;
 use crate::r#match::{
-    Action, EquipmentFitting, Offers, PanelSkill, ReinforceChoice, Release, SideState, SkillTarget,
-    StateEquipment, StateUnit,
+    Action, Offers, PanelSkill, ReinforceChoice, Release, SideState, SkillTarget, StateUnit,
 };
 use crate::opening::Stream;
 
@@ -258,10 +257,10 @@ pub fn step_placing(
                     next.officers.sort_unstable();
                 }
                 Some(CardKind::CommanderSkill) => panel_add(&mut next, *card),
-                Some(CardKind::Equipment) => next.equipment.push(StateEquipment {
-                    id: *card,
-                    fitted: None,
-                }),
+                Some(CardKind::Equipment) => {
+                    next.equipments.push(*card);
+                    next.equipments.sort_unstable();
+                }
                 _ => {}
             }
             if let Some(reinforcement) = economy.unit_reinforcement(*card) {
@@ -276,7 +275,6 @@ pub fn step_placing(
                     placement,
                 )?;
             }
-            next.equipment.sort();
         }
         Action::ChooseAdvanceTeam { id, specialist, .. } => {
             next.supply -= economy.card(*id).ok_or(Unsettled::Unpriced("opening"))?;
@@ -355,10 +353,10 @@ pub fn step_placing(
             formation.exp = Experience::at_level(0, &formation.type_name, level + 1);
             // A discount can exceed the price, and an upgrade is never paid
             // backwards.
-            let worn: i32 = next
-                .worn_equipment(*index)
-                .into_iter()
-                .map(|id| economy.equipment_upgrade_supply(id))
+            let worn: i32 = formation
+                .equipments
+                .iter()
+                .map(|&id| economy.equipment_upgrade_supply(id))
                 .sum();
             next.supply -= purse
                 .upgrade_wearing(unit, worn)
@@ -470,20 +468,19 @@ pub fn step_placing(
         // wears as many as its side's officers give it slots, one without any.
         Action::UseEquipment { equipment, index } => {
             let position = next
-                .equipment
+                .equipments
                 .iter()
-                .position(|item| item.id == *equipment && item.fitted.is_none())
+                .position(|id| *id == *equipment)
                 .ok_or(Unsettled::Missing("equipment"))?;
             let slots = economy.equipment_slots(&next.officers);
-            formation_mut(&mut next, *index)?;
-            let slot = next.worn_equipment(*index).len();
-            if slot >= slots {
+            let formation = formation_mut(&mut next, *index)?;
+            if formation.equipments.len() >= slots {
                 return Err(Unsettled::Refused(
                     "equipment on a formation with no free slot",
                 ));
             }
-            next.equipment[position].fitted = Some(EquipmentFitting { unit: *index, slot });
-            next.equipment.sort_unstable();
+            formation.equipments.push(*equipment);
+            next.equipments.remove(position);
         }
         Action::MoveUnit {
             index,
@@ -698,13 +695,10 @@ fn recover_formation(economy: &Economy, next: &mut SideState, index: i32) -> Res
     let unit = unit_id_from_type(&entry.type_name).ok_or(Unsettled::Unpriced("unit"))?;
     let upgrade = purse.upgrade(unit).ok_or(Unsettled::Unpriced("upgrade"))?;
     next.supply += entry.value.unwrap_or(0) + (entry.level.unwrap_or(1) - 1) * upgrade;
+    let returned = std::mem::take(&mut entry.equipments);
     entry.mark_recovered();
-    for item in &mut next.equipment {
-        if item.fitted.is_some_and(|fitted| fitted.unit == index) {
-            item.fitted = None;
-        }
-    }
-    next.equipment.sort_unstable();
+    next.equipments.extend(returned);
+    next.equipments.sort_unstable();
     Ok(())
 }
 
@@ -755,6 +749,7 @@ fn place(
         level: Some(level).filter(|level| *level != 1),
         exp: Experience::at_level(0, type_name, level),
         rotated: None,
+        equipments: Vec::new(),
         travelling: None,
         source: crate::layout::UnitSource::Joined,
         recovered: false,
@@ -1038,11 +1033,8 @@ fn hand_out_round(
     } else {
         &officer.equipment[..]
     };
-    next.equipment.extend(items.iter().map(|id| StateEquipment {
-        id: *id,
-        fitted: None,
-    }));
-    next.equipment.sort();
+    next.equipments.extend_from_slice(items);
+    next.equipments.sort_unstable();
     Ok(())
 }
 
@@ -1119,10 +1111,9 @@ fn reset(
             .owed;
     }
     let worn: i32 = next
-        .equipment
-        .iter()
-        .filter(|item| item.fitted.is_some())
-        .map(|item| economy.equipment_round_supply(item.id))
+        .active_units()
+        .flat_map(|unit| unit.equipments.iter().copied())
+        .map(|id| economy.equipment_round_supply(id))
         .sum();
     let income =
         crate::ledger::round_income(economy, round, &next.officers, economy.round_supply());
@@ -1384,16 +1375,8 @@ mod tests {
     use crate::economy::Economy;
     use crate::layout::{Experience, Position};
     use crate::r#match::{
-        Action, EquipmentFitting, Offers, PanelSkill, ReinforceChoice, Release, SideState,
-        SkillTarget, StateEquipment, StateUnit,
+        Action, Offers, PanelSkill, ReinforceChoice, Release, SideState, SkillTarget, StateUnit,
     };
-
-    fn fitted(id: i32, unit: i32, slot: usize) -> StateEquipment {
-        StateEquipment {
-            id,
-            fitted: Some(EquipmentFitting { unit, slot }),
-        }
-    }
 
     /// [`super::step`] without a reinforcement deal.
     fn step(economy: &Economy, state: &SideState, action: &Action) -> Result<SideState, Unsettled> {
@@ -1467,6 +1450,7 @@ mod tests {
                     level: None,
                     exp: Experience::at_level(0, "marksman", 1),
                     rotated: None,
+                    equipments: Vec::new(),
                     travelling: None,
                     source: crate::layout::UnitSource::Joined,
                     recovered: false,
@@ -1488,6 +1472,7 @@ mod tests {
             level: None,
             exp,
             rotated: None,
+            equipments: Vec::new(),
             travelling: None,
             source: crate::layout::UnitSource::Joined,
             recovered: false,
@@ -1763,9 +1748,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
                 current: maximum,
                 maximum,
             });
-            state.equipment = (0..modules)
-                .map(|slot| fitted(13_030_004, 0, slot))
-                .collect();
+            state.units[0].equipments = vec![13_030_004; modules];
             let before = state.supply;
             let next = step_placing(
                 economy,
@@ -1894,13 +1877,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             id: crate::r#match::ReinforceChoice::Card(13_030_001),
         }];
         let next = fold(economy, &solvent(), &taken).unwrap();
-        assert_eq!(
-            next.equipment,
-            vec![crate::r#match::StateEquipment {
-                id: 13_030_001,
-                fitted: None,
-            }]
-        );
+        assert_eq!(next.equipments, vec![13_030_001]);
     }
 
     /// Fitting the card taken in the same round leaves the stock where it was.
@@ -1923,7 +1900,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         ];
         let state = side_holding(&[(4, Position { x: 0, y: -160 })]);
         let next = fold(economy, &state, &taken).unwrap();
-        assert_eq!(next.equipment, [fitted(13_030_001, 4, 0)]);
+        assert!(next.equipments.is_empty());
         assert_eq!(next.worn_equipment(4), [13_030_001]);
     }
 
@@ -2012,14 +1989,16 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             level: None,
             exp: None,
             rotated: None,
+            equipments: Vec::new(),
             travelling: None,
             source: crate::layout::UnitSource::Joined,
             recovered: false,
             value: Some(100),
         };
+        let mut units = vec![formation(0), formation(1)];
+        units[1].equipments = vec![crate::mobility::DEPLOYMENT_MODULE];
         let state = SideState {
-            units: vec![formation(0), formation(1)],
-            equipment: vec![fitted(crate::mobility::DEPLOYMENT_MODULE, 1, 0)],
+            units,
             ..SideState::default()
         };
         let movable = |round| {
@@ -2119,18 +2098,21 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             level: None,
             exp: None,
             rotated: None,
+            equipments: Vec::new(),
             travelling: None,
             source: crate::layout::UnitSource::Joined,
             recovered: false,
             value: Some(100),
         };
+        let mut units = vec![worn(0), worn(1)];
+        // Command Core pays 50 a round to the side wearing it.
+        units[0].equipments = vec![13_030_010];
+        units[1].equipments = vec![13_030_010];
         let state = SideState {
             supply: 10,
             // Supply Specialist adds 50 a round.
             officers: vec![10002],
-            units: vec![worn(0), worn(1)],
-            // Command Core pays 50 a round to the side wearing it.
-            equipment: vec![fitted(13_030_010, 0, 0), fitted(13_030_010, 1, 0)],
+            units,
             // Rapid Supply and one skill that owes nothing.
             energy_tower_skills: vec![1, 3],
             ..SideState::default()
@@ -2196,6 +2178,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             level: None,
             exp: None,
             rotated: None,
+            equipments: Vec::new(),
             travelling: Some(true),
             source: crate::layout::UnitSource::Joined,
             recovered: false,
@@ -2248,14 +2231,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         ];
         let next = fold(economy, &state, &taken).unwrap();
         assert_eq!(next.officers, vec![10_524]);
-        assert_eq!(
-            next.equipment
-                .iter()
-                .filter(|item| item.fitted.is_none())
-                .map(|item| item.id)
-                .collect::<Vec<_>>(),
-            vec![13_030_521; 2]
-        );
+        assert_eq!(next.equipments, vec![13_030_521; 2]);
         assert_eq!(next.worn_equipment(0), [13_030_521]);
     }
 
@@ -2274,10 +2250,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let handed = |stream: Stream, round| {
             super::open_round(economy, &state, round, &mut |_, _| None, Some(stream))
                 .unwrap()
-                .equipment
-                .iter()
-                .map(|item| item.id)
-                .collect::<Vec<_>>()
+                .equipments
         };
         assert_eq!(handed(stream, 1), vec![13_030_009]);
         assert_eq!(super::player_draws(economy, &state.officers, 1), 1);
@@ -2296,14 +2269,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let continued = Stream::from_state(checkpoint.random_state).unwrap();
         let second =
             super::open_round(economy, &checkpoint, 2, &mut |_, _| None, Some(continued)).unwrap();
-        assert_eq!(
-            second
-                .equipment
-                .iter()
-                .map(|item| item.id)
-                .collect::<Vec<_>>(),
-            vec![13_030_009, 13_030_522]
-        );
+        assert_eq!(second.equipments, vec![13_030_009, 13_030_522]);
         stream.skip(1);
         assert_eq!(second.random_state, stream.state());
         assert!(super::open_round(economy, &state, 1, &mut |_, _| None, None).is_err());
@@ -2314,13 +2280,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
     fn fitting_takes_one_copy_out_of_a_stack() {
         let economy = Economy::embedded().unwrap();
         let state = SideState {
-            equipment: vec![
-                StateEquipment {
-                    id: 13_030_521,
-                    fitted: None,
-                };
-                3
-            ],
+            equipments: vec![13_030_521; 3],
             ..side_holding(&[(0, Position { x: 0, y: -160 })])
         };
         let actions = [Action::UseEquipment {
@@ -2328,14 +2288,8 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             index: 0,
         }];
         let next = fold(economy, &state, &actions).unwrap();
-        assert_eq!(next.equipment.len(), 3);
-        assert_eq!(
-            next.equipment
-                .iter()
-                .filter(|item| item.fitted.is_none())
-                .count(),
-            2
-        );
+        assert_eq!(next.equipments, [13_030_521; 2]);
+        assert_eq!(next.units[0].equipments, [13_030_521]);
     }
 
     /// Recovering a formation hands back what it wore, in time to re-fit it.
@@ -2364,12 +2318,12 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
                 level: None,
                 exp: None,
                 rotated: None,
+                equipments: vec![13_030_004],
                 travelling: None,
                 source: crate::layout::UnitSource::Joined,
                 recovered: false,
                 value: Some(100),
             }],
-            equipment: vec![fitted(13_030_004, 5, 0)],
             ..SideState::default()
         };
         let mut state = state;
@@ -2382,12 +2336,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             target: crate::r#match::SkillTarget::Unit(5),
         }];
         assert_eq!(
-            fold(economy, &state, &recovered)
-                .unwrap()
-                .equipment
-                .iter()
-                .map(|item| item.id)
-                .collect::<Vec<_>>(),
+            fold(economy, &state, &recovered).unwrap().equipments,
             vec![13_030_004]
         );
         let refitted = [
@@ -2409,7 +2358,8 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
                 .collect::<Vec<_>>(),
             [7]
         );
-        assert_eq!(next.equipment, [fitted(13_030_004, 7, 0)]);
+        assert!(next.equipments.is_empty());
+        assert_eq!(next.units[1].equipments, [13_030_004]);
     }
 
     /// A fit with nothing to take is refused rather than clamped away.
@@ -2792,7 +2742,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         state.units[0].value = Some(400);
         state.units[0].source = crate::layout::UnitSource::Delivered;
         state.units[0].exp = Experience::of(40, "marksman", 1).unwrap();
-        state.equipment = vec![fitted(13_030_004, 5, 0)];
+        state.units[0].equipments = vec![13_030_004];
         let released = Action::ReleaseCommanderSkill {
             index: 0,
             id: 900_001,
@@ -2800,15 +2750,10 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         };
         let next = step(economy, &state, &released).unwrap();
         assert!(next.units[0].recovered);
+        assert!(next.units[0].equipments.is_empty());
         assert_eq!(next.units[0].position, None);
         assert_eq!(next.supply, state.supply + 400);
-        assert_eq!(
-            next.equipment,
-            vec![StateEquipment {
-                id: 13_030_004,
-                fitted: None,
-            }]
-        );
+        assert_eq!(next.equipments, vec![13_030_004]);
         assert!(next.battle_skills[0].release.is_some());
         assert_eq!(next.units[0].exp, None);
         assert_eq!(next.units[0].value, Some(400));
@@ -2935,10 +2880,7 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
 
         // A Deployment Module frees the formation that wears it.
         let mut worn = fixed.clone();
-        worn.equipment = vec![StateEquipment {
-            id: crate::mobility::DEPLOYMENT_MODULE,
-            fitted: None,
-        }];
+        worn.equipments = vec![crate::mobility::DEPLOYMENT_MODULE];
         let fitted = step(
             economy,
             &worn,

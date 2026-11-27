@@ -35,8 +35,8 @@ blue:
   - {name: crawler, index: 18, position: {x: -250, y: -285}, exp: 140/199/450, rotated: true}
   - {name: vortex, index: 19, position: {x: -90, y: -170}, level: 2, exp: 225/370/1690}
   - {name: marksman, index: 20, position: {x: -110, y: -190}, level: 4, exp: 1448/1491/2919}
-  - {name: overlord, index: 22, position: {x: -15, y: -85}, level: 3, exp: 0/942/6233, equipment: [absorption_module]}
-  - {name: overlord, index: 23, position: {x: 35, y: -85}, level: 3, exp: 2081/6233/6233, equipment: [super_heavy_armor]}
+  - {name: overlord, index: 22, position: {x: -15, y: -85}, level: 3, exp: 0/942/6233, equipments: [absorption_module]}
+  - {name: overlord, index: 23, position: {x: 35, y: -85}, level: 3, exp: 2081/6233/6233, equipments: [super_heavy_armor]}
   - {name: mustang, index: 24, position: {x: -95, y: -240}, exp: 359/562/1200}
   - {name: mustang, index: 25, position: {x: -275, y: -230}, exp: 486/539/1200}
   - {name: crawler, index: 26, position: {x: -290, y: -135}, exp: 107/114/450, rotated: true}

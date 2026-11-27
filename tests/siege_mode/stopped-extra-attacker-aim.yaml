@@ -17,7 +17,7 @@ blue:
     typhoon: [field_reassembly, field_entrenchment, reactive_armor, maintenance_array, wreckage_detonation, range_enhancement, air_defense_mark]
   units:
   - {name: sabertooth, index: 0, position: {x: 275, y: -255}, source: delivered}
-  - {name: typhoon, index: 1, position: {x: -340, y: 150}, level: 7, exp: 0/5804/12278, rotated: true, equipment: [laser_sights], travelling: true, source: joined}
+  - {name: typhoon, index: 1, position: {x: -340, y: 150}, level: 7, exp: 0/5804/12278, rotated: true, equipments: [laser_sights], travelling: true, source: joined}
   - {name: sandworm, index: 2, position: {x: -60, y: -280}, level: 3, exp: 0/200/7124, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
@@ -32,7 +32,7 @@ red:
   blueprints: [defense_enhancement_ii]
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: overlord, index: 0, position: {x: 125, y: -275}, level: 6, exp: 10148/10148/10148, equipment: [deployment_module]}
+  - {name: overlord, index: 0, position: {x: 125, y: -275}, level: 6, exp: 10148/10148/10148, equipments: [deployment_module]}
   - {name: wraith, index: 1, position: {x: 145, y: -195}, level: 5, exp: 0/3900/11724, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
