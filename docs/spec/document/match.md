@@ -529,7 +529,7 @@ The result is a whole position, board included, not a selection of fields.
 Checking a round is comparing it against the next state leaf by leaf, which
 the next section defines. The rules the function applies beyond the decisions
 themselves are the ones no action states, and
-[`action.md`](action.md#rules-no-action-states) carries them.
+[`action.md`](action.md#单步可定义性与隐式转移规则) carries them.
 
 Both allocators are predicted even though the fight destroys what they hand
 out. An index is never reissued, so an allocator records how many objects a

@@ -684,7 +684,7 @@ file is written. Reading a document and ordinary canonical serialization
 preserve its SQL string; this rewrite belongs to `format` alone.
 
 Match formatting reconstructs each deployment's standard actions from its
-opening and closing states, as [action.md](../document/action.md#settling-a-round)
+opening and closing states, as [action.md](../document/action.md#3-标准-12-阶段规范化convert-与-format)
 defines. Historical action sequences remain readable; formatting rewrites them
 only after the new sequence reproduces the deployment endpoint. It does not
 rewrite the recorded states or run a fight.
