@@ -16,7 +16,7 @@ blue:
   blueprints: [defense_enhancement_ii]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: mustang, index: 0, position: {x: 265, y: -270}, level: 7, exp: 7556/7556/7556, equipment: [absorption_module]}
+  - {name: mustang, index: 0, position: {x: 265, y: -270}, level: 7, exp: 7556/7556/7556, equipments: [absorption_module]}
   - {name: sabertooth, index: 1, position: {x: 105, y: -275}, exp: 0/1300/1300, source: delivered}
   - {name: steel_ball, index: 2, position: {x: -255, y: -110}, level: 4, exp: 0/112/4490, source: joined}
   contraptions:
@@ -32,7 +32,7 @@ red:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: stormcaller, index: 0, position: {x: 280, y: -155}, level: 8, exp: 0/7400/7400, rotated: true, equipment: [enhancement_module]}
+  - {name: stormcaller, index: 0, position: {x: 280, y: -155}, level: 8, exp: 0/7400/7400, rotated: true, equipments: [enhancement_module]}
   - {name: crawler, index: 1, position: {x: 235, y: -200}, exp: 0/450/450, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: -50, y: -270}}

@@ -43,7 +43,7 @@ blue:
   - {name: sabertooth, index: 25, position: {x: 75, y: -145}, exp: 474/675/1300}
   - {name: wasp, index: 26, position: {x: 250, y: -285}, level: 2, exp: 0/1558/2028, rotated: true}
   - {name: crawler, index: 27, position: {x: 240, y: -135}, exp: 199/406/450, rotated: true}
-  - {name: melting_point, index: 28, position: {x: -140, y: -100}, exp: 0/1400/1400, equipment: [absorption_module], source: joined}
+  - {name: melting_point, index: 28, position: {x: -140, y: -100}, exp: 0/1400/1400, equipments: [absorption_module], source: joined}
   - {name: wasp, index: 29, position: {x: 0, y: -285}, exp: 0/154/900, rotated: true, source: joined}
   - {name: fang, index: 30, position: {x: -140, y: -225}, exp: 0/201/600, rotated: true, source: joined}
   battle_skills:

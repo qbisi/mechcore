@@ -12,6 +12,6 @@ blue:
 red:
   core_damage: 500
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -100}, equipment: [barrier], source: joined}
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, equipments: [barrier], source: joined}
 ticks: 377
 hash: 27:d6fcbfd12f5cd7cbc3d7d1714293776918de56dfbabb4a6fb7283b21cac49c09

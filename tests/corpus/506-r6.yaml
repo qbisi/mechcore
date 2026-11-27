@@ -57,22 +57,22 @@ red:
   - {name: hound, index: 0, position: {x: -120, y: -190}, level: 2, exp: 0/374/1690}
   - {name: hound, index: 1, position: {x: 0, y: -190}, exp: 258/325/750}
   - {name: hound, index: 2, position: {x: 120, y: -190}, level: 2, exp: 0/706/1690}
-  - {name: sledgehammer, index: 3, position: {x: -65, y: -150}, level: 2, exp: 0/608/2929, equipment: [secondary_laser_sight]}
-  - {name: sledgehammer, index: 4, position: {x: 65, y: -150}, exp: 1139/1300/1300, equipment: [secondary_laser_sight]}
+  - {name: sledgehammer, index: 3, position: {x: -65, y: -150}, level: 2, exp: 0/608/2929, equipments: [secondary_laser_sight]}
+  - {name: sledgehammer, index: 4, position: {x: 65, y: -150}, exp: 1139/1300/1300, equipments: [secondary_laser_sight]}
   - {name: marksman, index: 5, position: {x: -150, y: -190}, level: 3, exp: 403/2315/2315}
   - {name: marksman, index: 6, position: {x: 150, y: -190}, level: 3, exp: 360/1853/2315}
   - {name: fang, index: 7, position: {x: -65, y: -100}, exp: 24/24/600}
   - {name: fang, index: 8, position: {x: 65, y: -100}, exp: 60/60/600}
   - {name: marksman, index: 9, position: {x: -90, y: -190}, level: 2, exp: 128/719/1465}
   - {name: marksman, index: 10, position: {x: 90, y: -190}, level: 2, exp: 0/679/1465}
-  - {name: marksman, index: 11, position: {x: 0, y: -210}, level: 3, exp: 0/2315/2315, equipment: [secondary_laser_sight]}
-  - {name: tarantula, index: 12, position: {x: -145, y: -215}, exp: 510/1500/1500, equipment: [small_amplifying_core]}
+  - {name: marksman, index: 11, position: {x: 0, y: -210}, level: 3, exp: 0/2315/2315, equipments: [secondary_laser_sight]}
+  - {name: tarantula, index: 12, position: {x: -145, y: -215}, exp: 510/1500/1500, equipments: [small_amplifying_core]}
   - {name: tarantula, index: 13, position: {x: 145, y: -215}, exp: 598/883/1500}
   - {name: marksman, index: 14, position: {x: 210, y: -190}, level: 2, exp: 789/1077/1465}
   - {name: tarantula, index: 15, position: {x: -85, y: -215}, exp: 491/718/1500}
   - {name: tarantula, index: 16, position: {x: 85, y: -215}, exp: 208/405/1500}
   - {name: crawler, index: 17, position: {x: 145, y: -240}, level: 4, exp: 267/403/2021}
-  - {name: crawler, index: 18, position: {x: -145, y: -240}, level: 4, exp: 55/151/2021, equipment: [secondary_fire_control_system]}
+  - {name: crawler, index: 18, position: {x: -145, y: -240}, level: 4, exp: 55/151/2021, equipments: [secondary_fire_control_system]}
   - {name: tarantula, index: 19, position: {x: -205, y: -215}, exp: 468/828/1500}
   - {name: tarantula, index: 20, position: {x: 205, y: -215}, exp: 224/589/1500}
   - {name: hound, index: 21, position: {x: -60, y: -190}, exp: 0/130/750, source: joined}

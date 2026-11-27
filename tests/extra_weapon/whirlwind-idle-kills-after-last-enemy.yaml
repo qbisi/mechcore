@@ -16,7 +16,7 @@ blue:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: rhino, index: 0, position: {x: -265, y: -45}, level: 2, exp: 2591/2591/2591, equipment: [anti_interference_module]}
+  - {name: rhino, index: 0, position: {x: -265, y: -45}, level: 2, exp: 2591/2591/2591, equipments: [anti_interference_module]}
   - {name: marksman, index: 1, position: {x: -290, y: -60}, level: 3, exp: 0/1904/2315, source: delivered}
   - {name: centurion, index: 2, position: {x: 225, y: -285}, level: 3, exp: 0/6865/8014, source: joined}
   constructions:
@@ -31,7 +31,7 @@ red:
   tower_strengthen_levels: [2, 3]
   units:
   - {name: marksman, index: 0, position: {x: -140, y: -190}, level: 3, source: delivered}
-  - {name: wasp, index: 1, position: {x: 335, y: 150}, level: 2, exp: 0/1000/2028, rotated: true, equipment: [improved_firepower_control_system], travelling: true, source: joined}
+  - {name: wasp, index: 1, position: {x: 335, y: 150}, level: 2, exp: 0/1000/2028, rotated: true, equipments: [improved_firepower_control_system], travelling: true, source: joined}
   - {name: stormcaller, index: 2, position: {x: -125, y: -30}, level: 9, source: joined}
   battle_skills:
   - {name: photon_emission, positions: [{x: -195, y: 75}]}

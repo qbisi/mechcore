@@ -16,7 +16,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: fang, index: 0, position: {x: 210, y: -285}, exp: 600/600/600, rotated: true, equipment: [small_amplifying_core]}
+  - {name: fang, index: 0, position: {x: 210, y: -285}, exp: 600/600/600, rotated: true, equipments: [small_amplifying_core]}
   - {name: marksman, index: 1, position: {x: -20, y: -70}, level: 3, source: delivered}
   - {name: hacker, index: 2, position: {x: 65, y: -195}, level: 8, exp: 0/3767/3767, source: joined}
   constructions:

@@ -12,7 +12,7 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/200/1150, equipment: [anti_interference_module], source: joined}
+  - {name: rhino, index: 0, position: {x: 5, y: -45}, exp: 0/200/1150, equipments: [anti_interference_module], source: joined}
 red:
   core_damage: 200
   units:

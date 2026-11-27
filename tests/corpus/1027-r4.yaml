@@ -16,15 +16,15 @@ blue:
   - {name: void_eye, index: 0, position: {x: -180, y: -170}, exp: 426/502/650}
   - {name: void_eye, index: 1, position: {x: -90, y: -170}, exp: 604/650/650}
   - {name: void_eye, index: 2, position: {x: 30, y: -170}, level: 2, exp: 125/299/1465}
-  - {name: tarantula, index: 3, position: {x: -245, y: -145}, exp: 844/1064/1500, equipment: [secondary_fire_control_system]}
-  - {name: tarantula, index: 4, position: {x: 135, y: -145}, exp: 520/596/1500, equipment: [secondary_heavy_armor]}
+  - {name: tarantula, index: 3, position: {x: -245, y: -145}, exp: 844/1064/1500, equipments: [secondary_fire_control_system]}
+  - {name: tarantula, index: 4, position: {x: 135, y: -145}, exp: 520/596/1500, equipments: [secondary_heavy_armor]}
   - {name: void_eye, index: 5, position: {x: 100, y: -170}, exp: 613/649/650}
   - {name: void_eye, index: 6, position: {x: 200, y: -170}, exp: 393/426/650}
   - {name: fang, index: 7, position: {x: -140, y: -135}, exp: 444/520/600, rotated: true}
   - {name: scorpion, index: 8, position: {x: -45, y: -165}, exp: 526/1384/1500}
-  - {name: fire_badger, index: 9, position: {x: -75, y: -20}, exp: 275/306/1400, equipment: [secondary_heavy_armor]}
+  - {name: fire_badger, index: 9, position: {x: -75, y: -20}, exp: 275/306/1400, equipments: [secondary_heavy_armor]}
   - {name: fire_badger, index: 10, position: {x: -215, y: -20}, exp: 299/330/1400}
-  - {name: scorpion, index: 11, position: {x: 165, y: -165}, exp: 0/1056/1500, equipment: [secondary_fire_control_system], source: joined}
+  - {name: scorpion, index: 11, position: {x: 165, y: -165}, exp: 0/1056/1500, equipments: [secondary_fire_control_system], source: joined}
   - {name: fang, index: 12, position: {x: 145, y: -110}, exp: 0/22/600, source: joined}
   - {name: tarantula, index: 13, position: {x: -5, y: -145}, exp: 0/288/1500, source: joined}
   constructions:
@@ -42,7 +42,7 @@ red:
   - {name: fang, index: 1, position: {x: 115, y: -70}, exp: 164/600/600}
   - {name: fang, index: 2, position: {x: 140, y: -135}, exp: 600/600/600, rotated: true}
   - {name: sabertooth, index: 3, position: {x: 115, y: -95}, exp: 566/1295/1300}
-  - {name: sabertooth, index: 4, position: {x: 165, y: -95}, level: 2, exp: 1902/2929/2929, equipment: [photon_coating]}
+  - {name: sabertooth, index: 4, position: {x: 165, y: -95}, level: 2, exp: 1902/2929/2929, equipments: [photon_coating]}
   - {name: crawler, index: 5, position: {x: 120, y: -275}, exp: 125/180/450, rotated: true}
   - {name: crawler, index: 6, position: {x: 160, y: -275}, exp: 350/405/450, rotated: true}
   - {name: fang, index: 7, position: {x: 65, y: -70}, exp: 40/252/600}

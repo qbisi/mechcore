@@ -14,7 +14,7 @@ blue:
   blueprints: [attack_enhancement]
   tower_strengthen_levels: [2, 4]
   units:
-  - {name: wasp, index: 0, position: {x: -205, y: -40}, level: 5, exp: 2344/4689/4689, equipment: [small_amplifying_core]}
+  - {name: wasp, index: 0, position: {x: -205, y: -40}, level: 5, exp: 2344/4689/4689, equipments: [small_amplifying_core]}
   - {name: sabertooth, index: 1, position: {x: 285, y: -95}, source: delivered}
   - {name: overlord, index: 2, position: {x: -55, y: -135}, level: 7, exp: 0/10150/11019, source: joined}
   constructions:
@@ -32,7 +32,7 @@ red:
   blueprints: [defense_enhancement]
   tower_strengthen_levels: [2, 3]
   units:
-  - {name: sandworm, index: 0, position: {x: 280, y: -170}, level: 7, exp: 12593/12593/12593, rotated: true, equipment: [mustang_production_line]}
+  - {name: sandworm, index: 0, position: {x: 280, y: -170}, level: 7, exp: 12593/12593/12593, rotated: true, equipments: [mustang_production_line]}
   - {name: centurion, index: 1, position: {x: -275, y: -245}, level: 3, exp: 0/568/8014, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: 100, y: -60}, retained: false}

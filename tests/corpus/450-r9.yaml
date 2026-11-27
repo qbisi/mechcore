@@ -20,17 +20,17 @@ blue:
   - {name: fang, index: 2, position: {x: 260, y: -125}, exp: 600/600/600, rotated: true}
   - {name: sledgehammer, index: 3, position: {x: 75, y: -150}, exp: 1300/1300/1300}
   - {name: sledgehammer, index: 4, position: {x: 205, y: -150}, exp: 1300/1300/1300}
-  - {name: void_eye, index: 5, position: {x: 70, y: -170}, level: 3, exp: 1817/2315/2315, equipment: [secondary_laser_sight]}
-  - {name: void_eye, index: 6, position: {x: 210, y: -170}, level: 4, exp: 0/460/2919, equipment: [secondary_laser_sight]}
-  - {name: rhino, index: 7, position: {x: 335, y: 295}, level: 2, exp: 460/656/2591, equipment: [secondary_heavy_armor]}
-  - {name: rhino, index: 8, position: {x: -335, y: 295}, exp: 625/944/1150, equipment: [secondary_heavy_armor]}
-  - {name: rhino, index: 9, position: {x: 335, y: 195}, level: 2, exp: 316/714/2591, equipment: [secondary_heavy_armor]}
+  - {name: void_eye, index: 5, position: {x: 70, y: -170}, level: 3, exp: 1817/2315/2315, equipments: [secondary_laser_sight]}
+  - {name: void_eye, index: 6, position: {x: 210, y: -170}, level: 4, exp: 0/460/2919, equipments: [secondary_laser_sight]}
+  - {name: rhino, index: 7, position: {x: 335, y: 295}, level: 2, exp: 460/656/2591, equipments: [secondary_heavy_armor]}
+  - {name: rhino, index: 8, position: {x: -335, y: 295}, exp: 625/944/1150, equipments: [secondary_heavy_armor]}
+  - {name: rhino, index: 9, position: {x: 335, y: 195}, level: 2, exp: 316/714/2591, equipments: [secondary_heavy_armor]}
   - {name: crawler, index: 10, position: {x: 310, y: 205}, exp: 93/99/450}
   - {name: crawler, index: 11, position: {x: -325, y: 260}, exp: 26/26/450, rotated: true}
-  - {name: void_eye, index: 12, position: {x: 110, y: -170}, level: 3, exp: 1795/2315/2315, equipment: [secondary_fire_control_system]}
-  - {name: phantom_ray, index: 13, position: {x: -195, y: -20}, level: 4, exp: 1621/1707/4490, equipment: [secondary_fire_control_system]}
+  - {name: void_eye, index: 12, position: {x: 110, y: -170}, level: 3, exp: 1795/2315/2315, equipments: [secondary_fire_control_system]}
+  - {name: phantom_ray, index: 13, position: {x: -195, y: -20}, level: 4, exp: 1621/1707/4490, equipments: [secondary_fire_control_system]}
   - {name: crawler, index: 14, position: {x: -290, y: -285}, exp: 450/450/450, rotated: true}
-  - {name: void_eye, index: 15, position: {x: 170, y: -170}, level: 3, exp: 587/903/2315, equipment: [secondary_fire_control_system]}
+  - {name: void_eye, index: 15, position: {x: 170, y: -170}, level: 3, exp: 587/903/2315, equipments: [secondary_fire_control_system]}
   - {name: crawler, index: 16, position: {x: 140, y: -215}, exp: 450/450/450, rotated: true}
   - {name: crawler, index: 17, position: {x: -150, y: -35}, exp: 323/334/450, rotated: true}
   - {name: crawler, index: 18, position: {x: -150, y: -205}, exp: 273/332/450, rotated: true}
@@ -38,7 +38,7 @@ blue:
   - {name: void_eye, index: 20, position: {x: 260, y: -160}, level: 3, exp: 0/1330/2315}
   - {name: void_eye, index: 21, position: {x: -180, y: -170}, exp: 489/650/650}
   - {name: mustang, index: 24, position: {x: -195, y: -220}, level: 2, exp: 0/2704/2704}
-  - {name: mustang, index: 25, position: {x: 215, y: -220}, level: 3, exp: 0/1210/4274, equipment: [small_amplifying_core]}
+  - {name: mustang, index: 25, position: {x: 215, y: -220}, level: 3, exp: 0/1210/4274, equipments: [small_amplifying_core]}
   - {name: mustang, index: 26, position: {x: 85, y: -220}, exp: 769/1200/1200}
   - {name: mustang, index: 27, position: {x: -350, y: 215}, exp: 0/1200/1200}
   - {name: mustang, index: 28, position: {x: 275, y: -220}, level: 2, exp: 0/1337/2704}

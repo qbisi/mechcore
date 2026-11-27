@@ -14,7 +14,7 @@ blue:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: fortress, index: 0, position: {x: 320, y: 250}, rotated: true, equipment: [portable_shield], travelling: true, source: joined}
+  - {name: fortress, index: 0, position: {x: 320, y: 250}, rotated: true, equipments: [portable_shield], travelling: true, source: joined}
   - {name: wraith, index: 1, position: {x: -45, y: -45}, level: 8, exp: 0/1002/15137, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
@@ -29,7 +29,7 @@ red:
   energy_tower_skills: [enhanced_range]
   units:
   - {name: fire_badger, index: 0, position: {x: 265, y: -140}, source: delivered}
-  - {name: marksman, index: 1, position: {x: -190, y: -300}, level: 8, exp: 0/4373/4373, rotated: true, equipment: [laser_sights], source: joined}
+  - {name: marksman, index: 1, position: {x: -190, y: -300}, level: 8, exp: 0/4373/4373, rotated: true, equipments: [laser_sights], source: joined}
   - {name: farseer, index: 2, position: {x: -175, y: -35}, level: 9, exp: 0/120/12109, source: joined}
   constructions:
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}

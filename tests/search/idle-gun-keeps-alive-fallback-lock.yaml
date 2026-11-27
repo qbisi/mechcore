@@ -15,7 +15,7 @@ blue:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: raiden, index: 0, position: {x: -150, y: -120}, exp: 1200/2400/2400, rotated: true, equipment: [heavy_armor]}
+  - {name: raiden, index: 0, position: {x: -150, y: -120}, exp: 1200/2400/2400, rotated: true, equipments: [heavy_armor]}
   - {name: arclight, index: 1, position: {x: 210, y: -50}, level: 7, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}

@@ -35,7 +35,7 @@ red:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: phantom_ray, index: 0, position: {x: -290, y: -185}, level: 7, exp: 6296/6296/6296, rotated: true, equipment: [secondary_fire_control_system]}
+  - {name: phantom_ray, index: 0, position: {x: -290, y: -185}, level: 7, exp: 6296/6296/6296, rotated: true, equipments: [secondary_fire_control_system]}
   - {name: mountain, index: 1, position: {x: -245, y: -135}, level: 4, exp: 0/134/14369, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: 35, y: -255}}

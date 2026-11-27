@@ -20,7 +20,7 @@ blue:
   tower_strengthen_levels: [3, 3]
   units:
   - {name: rhino, index: 0, position: {x: 225, y: -155}, level: 2, exp: 0/251/2591, source: delivered}
-  - {name: sledgehammer, index: 1, position: {x: 195, y: -30}, level: 7, exp: 0/671/8185, equipment: [explosive_ammo], source: joined}
+  - {name: sledgehammer, index: 1, position: {x: 195, y: -30}, level: 7, exp: 0/671/8185, equipments: [explosive_ammo], source: joined}
   - {name: hacker, index: 2, position: {x: -245, y: -285}, level: 4, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
@@ -37,7 +37,7 @@ red:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: wraith, index: 0, position: {x: 255, y: -65}, level: 8, exp: 7568/11768/15137, equipment: [absorption_module]}
+  - {name: wraith, index: 0, position: {x: 255, y: -65}, level: 8, exp: 7568/11768/15137, equipments: [absorption_module]}
   - {name: fire_badger, index: 1, position: {x: -145, y: -280}, source: joined}
   constructions:
   - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}

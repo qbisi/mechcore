@@ -112,7 +112,7 @@ fn added(id: i32, index: i32, level: i32, source: UnitSource) -> Result<UnitPlac
         level: Some(level).filter(|level| *level != 1),
         exp: None,
         rotated: None,
-        equipment: Vec::new(),
+        equipments: Vec::new(),
         travelling: None,
         source,
     })
@@ -155,7 +155,7 @@ fn restore_action(
         }
         "PAD_UseEquipment" => {
             unit(side, action.unit_index)?
-                .equipment
+                .equipments
                 .push(field(action.equipment_id, "equipment ID")?);
         }
         "PAD_ActiveEnergyTowerSkill" => side

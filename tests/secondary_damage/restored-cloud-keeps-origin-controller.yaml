@@ -15,7 +15,7 @@ blue:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: farseer, index: 0, position: {x: 165, y: -115}, level: 9, exp: 12109/12109/12109, equipment: [heavy_armor]}
+  - {name: farseer, index: 0, position: {x: 165, y: -115}, level: 9, exp: 12109/12109/12109, equipments: [heavy_armor]}
   - {name: fortress, index: 1, position: {x: -150, y: -120}, level: 3, exp: 0/3400/5699, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: 60, y: -55}}
@@ -28,7 +28,7 @@ red:
     vortex: [grid_integration, field_maintenance, electromagnetic_cloud, machine_learning, range_enhancement, electromagnetic_twin, mobile_power_station, accumulator_shield, emergency_armor]
   tower_strengthen_levels: [3, 4]
   units:
-  - {name: vortex, index: 0, position: {x: 40, y: -220}, level: 8, exp: 5046/5046/5046, rotated: true, equipment: [small_amplifying_core]}
+  - {name: vortex, index: 0, position: {x: 40, y: -220}, level: 8, exp: 5046/5046/5046, rotated: true, equipments: [small_amplifying_core]}
   - {name: hound, index: 1, position: {x: 160, y: -200}, level: 9, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: -225, y: -45}, retained: false}

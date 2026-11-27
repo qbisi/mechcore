@@ -453,10 +453,9 @@ fn undo_reset(
         .map(|skill| skill.owed)
         .sum();
     let worn: i32 = snapshot
-        .equipment
-        .iter()
-        .filter(|item| item.fitted.is_some())
-        .map(|item| economy.equipment_round_supply(item.id))
+        .active_units()
+        .flat_map(|unit| unit.equipments.iter().copied())
+        .map(|id| economy.equipment_round_supply(id))
         .sum();
     let income =
         crate::ledger::round_income(economy, round, &snapshot.officers, economy.round_supply());
@@ -466,13 +465,13 @@ fn undo_reset(
 
 fn take_item(snapshot: &mut SideState, item: i32, officer: i32) -> Result<(), String> {
     let at = snapshot
-        .equipment
+        .equipments
         .iter()
-        .rposition(|held| held.id == item && held.fitted.is_none())
+        .rposition(|held| *held == item)
         .ok_or_else(|| {
             format!("officer {officer} delivers item {item}, which the side does not hold")
         })?;
-    snapshot.equipment.remove(at);
+    snapshot.equipments.remove(at);
     Ok(())
 }
 
@@ -535,7 +534,7 @@ fn write_units(xml: &mut String, side: &SideState, sign: i32) -> Result<(), Stri
         let position = unit
             .position
             .ok_or_else(|| format!("formation {} has no position", unit.index))?;
-        let equipment = side.worn_equipment(unit.index);
+        let equipment = &unit.equipments;
         let type_id = crate::catalog::unit_id_from_type(&unit.type_name)
             .ok_or_else(|| format!("unit type {:?} has no ID", unit.type_name))?;
         let _ = write!(
@@ -567,16 +566,21 @@ fn write_units(xml: &mut String, side: &SideState, sign: i32) -> Result<(), Stri
 
 /// The inventory: every item the side owns, the fitted ones among them.
 fn write_inventory(xml: &mut String, side: &SideState) {
-    if side.equipment.is_empty() {
+    let mut items: Vec<i32> = side
+        .active_units()
+        .flat_map(|unit| unit.equipments.iter().copied())
+        .chain(side.equipments.iter().copied())
+        .collect();
+    if items.is_empty() {
         xml.push_str("<equipmentDatas />");
         return;
     }
+    items.sort_unstable();
     xml.push_str("<equipmentDatas>");
-    for item in &side.equipment {
+    for id in items {
         let _ = write!(
             xml,
-            "<EquipmentData><id>{}</id><durability>-1</durability></EquipmentData>",
-            item.id
+            "<EquipmentData><id>{id}</id><durability>-1</durability></EquipmentData>"
         );
     }
     xml.push_str("</equipmentDatas>");
@@ -1020,26 +1024,12 @@ mod tests {
 
     #[test]
     fn snapshot_writes_every_copy_and_preserves_the_units_fitting_order() {
-        use crate::r#match::{EquipmentFitting, StateEquipment};
+        let mut unit: crate::r#match::StateUnit =
+            serde_yaml::from_str("{name: crawler, index: 0, position: {x: 0, y: -160}}").unwrap();
+        unit.equipments = vec![13_030_002, 13_030_001];
         let side = SideState {
-            units: vec![
-                serde_yaml::from_str("{name: crawler, index: 0, position: {x: 0, y: -160}}")
-                    .unwrap(),
-            ],
-            equipment: vec![
-                StateEquipment {
-                    id: 13_030_001,
-                    fitted: None,
-                },
-                StateEquipment {
-                    id: 13_030_001,
-                    fitted: Some(EquipmentFitting { unit: 0, slot: 1 }),
-                },
-                StateEquipment {
-                    id: 13_030_002,
-                    fitted: Some(EquipmentFitting { unit: 0, slot: 0 }),
-                },
-            ],
+            units: vec![unit],
+            equipments: vec![13_030_001],
             ..Default::default()
         };
         let mut xml = String::new();

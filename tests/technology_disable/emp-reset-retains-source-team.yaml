@@ -16,7 +16,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [3, 4]
   units:
-  - {name: stormcaller, index: 0, position: {x: 60, y: -245}, level: 6, exp: 0/6150/6379, rotated: true, equipment: [nano_repair_kit], source: joined}
+  - {name: stormcaller, index: 0, position: {x: 60, y: -245}, level: 6, exp: 0/6150/6379, rotated: true, equipments: [nano_repair_kit], source: joined}
   - {name: phoenix, index: 1, position: {x: -90, y: -70}, level: 3, exp: 0/1350/4630, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
@@ -32,7 +32,7 @@ red:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [2, 1]
   units:
-  - {name: hacker, index: 0, position: {x: -215, y: -125}, level: 8, exp: 1883/2457/3767, rotated: true, equipment: [secondary_heavy_armor]}
+  - {name: hacker, index: 0, position: {x: -215, y: -125}, level: 8, exp: 1883/2457/3767, rotated: true, equipments: [secondary_heavy_armor]}
   - {name: hacker, index: 1, position: {x: -155, y: -105}, level: 2, exp: 0/586/1262, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: -245, y: -75}, retained: false}

@@ -33,7 +33,7 @@ red:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [3, 1]
   units:
-  - {name: phoenix, index: 0, position: {x: -120, y: -140}, level: 4, exp: 0/5837/5837, rotated: true, equipment: [laser_sights]}
+  - {name: phoenix, index: 0, position: {x: -120, y: -140}, level: 4, exp: 0/5837/5837, rotated: true, equipments: [laser_sights]}
   - {name: fire_badger, index: 1, position: {x: -235, y: -50}, exp: 0/50/1400, source: delivered}
   - {name: void_eye, index: 2, position: {x: -130, y: -50}, level: 6, source: joined}
   contraptions:

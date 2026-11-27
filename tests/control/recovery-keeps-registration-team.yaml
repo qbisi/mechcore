@@ -12,7 +12,7 @@ blue:
   blueprints: [defense_enhancement_ii]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: sledgehammer, index: 0, position: {x: 155, y: -60}, level: 9, exp: 0/2300/8746, equipment: [nano_repair_kit], source: joined}
+  - {name: sledgehammer, index: 0, position: {x: 155, y: -60}, level: 9, exp: 0/2300/8746, equipments: [nano_repair_kit], source: joined}
   - {name: steel_ball, index: 1, position: {x: -205, y: -120}, exp: 0/200/1000, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: -135, y: -35}, retained: false}
@@ -25,7 +25,7 @@ red:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: hacker, index: 0, position: {x: 195, y: -175}, level: 8, exp: 1883/3767/3767, rotated: true, equipment: [dominion_core]}
+  - {name: hacker, index: 0, position: {x: 195, y: -175}, level: 8, exp: 1883/3767/3767, rotated: true, equipments: [dominion_core]}
   - {name: marksman, index: 1, position: {x: -160, y: -220}, level: 3, source: delivered}
   - {name: rhino, index: 2, position: {x: -55, y: -185}, source: joined}
   contraptions:

@@ -16,7 +16,7 @@ blue:
   blueprints: [defense_enhancement]
   energy_tower_skills: [enhanced_range]
   units:
-  - {name: fortress, index: 0, position: {x: -260, y: -200}, exp: 1600/1600/1600, equipment: [heavy_armor]}
+  - {name: fortress, index: 0, position: {x: -260, y: -200}, exp: 1600/1600/1600, equipments: [heavy_armor]}
   - {name: sabertooth, index: 1, position: {x: 265, y: -105}, exp: 0/68/1300, source: delivered}
   - {name: mountain, index: 2, position: {x: 165, y: -125}, level: 8, exp: 0/3740/21528, source: joined}
   contraptions:
@@ -31,7 +31,7 @@ red:
   blueprints: [attack_enhancement]
   units:
   - {name: fire_badger, index: 0, position: {x: 55, y: -80}, source: delivered}
-  - {name: vulcan, index: 1, position: {x: -250, y: -260}, level: 9, exp: 0/16280/16280, equipment: [mustang_production_line], source: joined}
+  - {name: vulcan, index: 1, position: {x: -250, y: -260}, level: 9, exp: 0/16280/16280, equipments: [mustang_production_line], source: joined}
   - {name: rhino, index: 2, position: {x: 185, y: -145}, level: 3, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: 255, y: -50}}

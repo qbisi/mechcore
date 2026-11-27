@@ -15,7 +15,7 @@ blue:
 red:
   core_damage: 261
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -30}, equipment: [heavy_armor], source: joined}
+  - {name: marksman, index: 0, position: {x: 0, y: -30}, equipments: [heavy_armor], source: joined}
   - {name: steel_ball, index: 1, position: {x: 105, y: -50}, exp: 0/100/1000, source: joined}
 asserts:
 - sql: |-

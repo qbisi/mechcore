@@ -16,7 +16,7 @@ blue:
   blueprints: [defense_enhancement_ii]
   energy_tower_skills: [high_mobility]
   units:
-  - {name: void_eye, index: 0, position: {x: -10, y: -60}, level: 3, exp: 2315/2315/2315, rotated: true, equipment: [secondary_heavy_armor]}
+  - {name: void_eye, index: 0, position: {x: -10, y: -60}, level: 3, exp: 2315/2315/2315, rotated: true, equipments: [secondary_heavy_armor]}
   - {name: war_factory, index: 1, position: {x: 25, y: -215}, level: 7, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: 155, y: -160}, retained: false}
@@ -32,7 +32,7 @@ red:
   tower_strengthen_levels: [1, 1]
   units:
   - {name: sabertooth, index: 0, position: {x: 65, y: -195}, source: delivered}
-  - {name: wasp, index: 1, position: {x: 290, y: -45}, level: 2, exp: 0/2028/2028, rotated: true, equipment: [small_amplifying_core], source: joined}
+  - {name: wasp, index: 1, position: {x: 290, y: -45}, level: 2, exp: 0/2028/2028, rotated: true, equipments: [small_amplifying_core], source: joined}
   - {name: phantom_ray, index: 2, position: {x: -275, y: -130}, level: 4, exp: 0/4490/4490, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: 140, y: -220}}

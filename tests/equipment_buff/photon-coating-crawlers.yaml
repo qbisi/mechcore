@@ -11,7 +11,7 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/200/450, equipment: [photon_coating], source: joined}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/200/450, equipments: [photon_coating], source: joined}
 red:
   core_damage: 84
   units:

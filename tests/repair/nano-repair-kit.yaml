@@ -12,7 +12,7 @@ round: 1
 blue:
   core_damage: 100
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [nano_repair_kit], source: joined}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, equipments: [nano_repair_kit], source: joined}
 red:
   core_damage: 0
   units:

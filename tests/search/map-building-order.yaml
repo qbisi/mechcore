@@ -35,7 +35,7 @@ red:
   blueprints: [attack_enhancement]
   units:
   - {name: sabertooth, index: 0, position: {x: 205, y: -105}, source: delivered}
-  - {name: stormcaller, index: 1, position: {x: 35, y: -250}, equipment: [explosive_ammo], source: joined}
+  - {name: stormcaller, index: 1, position: {x: 35, y: -250}, equipments: [explosive_ammo], source: joined}
   - {name: melting_point, index: 2, position: {x: -210, y: -230}, level: 4, exp: 0/12/6286, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}

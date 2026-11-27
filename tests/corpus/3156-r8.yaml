@@ -29,7 +29,7 @@ blue:
   - {name: arclight, index: 9, position: {x: 260, y: -200}, level: 3, exp: 0/2671/2671}
   - {name: arclight, index: 10, position: {x: 0, y: -150}, level: 3, exp: 0/1383/2671}
   - {name: arclight, index: 11, position: {x: -260, y: -210}, level: 3, exp: 1512/2625/2671}
-  - {name: crawler, index: 13, position: {x: 0, y: -185}, recordPosition: {x: -310, y: 255}, recordRotated: false, exp: 0/120/450, rotated: true, equipment: [deployment_module]}
+  - {name: crawler, index: 13, position: {x: 0, y: -185}, recordPosition: {x: -310, y: 255}, recordRotated: false, exp: 0/120/450, rotated: true, equipments: [deployment_module]}
   - {name: marksman, index: 14, position: {x: -150, y: -210}, level: 2, exp: 1176/1465/1465}
   - {name: marksman, index: 15, position: {x: 160, y: -210}, level: 2, exp: 1465/1465/1465}
   - {name: mountain, index: 16, position: {x: -235, y: -165}, exp: 2552/3200/3200}
@@ -69,7 +69,7 @@ red:
   - {name: crawler, index: 9, position: {x: -10, y: -35}, level: 2, exp: 23/32/1014, rotated: true}
   - {name: crawler, index: 10, position: {x: 140, y: -205}, level: 2, exp: 352/362/1014, rotated: true}
   - {name: crawler, index: 11, position: {x: -140, y: -205}, level: 2, exp: 63/134/1014, rotated: true}
-  - {name: sandworm, index: 13, position: {x: 240, y: -260}, level: 4, exp: 3107/6179/8981, rotated: true, equipment: [portable_shield]}
+  - {name: sandworm, index: 13, position: {x: 240, y: -260}, level: 4, exp: 3107/6179/8981, rotated: true, equipments: [portable_shield]}
   - {name: crawler, index: 14, position: {x: 0, y: -285}, level: 2, exp: 115/162/1014, rotated: true}
   - {name: arclight, index: 15, position: {x: -350, y: 300}, level: 2, exp: 410/482/1690}
   - {name: crawler, index: 16, position: {x: -310, y: 215}, level: 2, exp: 22/22/1014}

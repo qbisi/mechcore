@@ -15,7 +15,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: sandworm, index: 0, position: {x: -320, y: 230}, level: 3, exp: 0/1100/7124, equipment: [barrier], travelling: true, source: joined}
+  - {name: sandworm, index: 0, position: {x: -320, y: 230}, level: 3, exp: 0/1100/7124, equipments: [barrier], travelling: true, source: joined}
   - {name: mustang, index: 1, position: {x: -125, y: -20}, level: 9, exp: 0/3500/8073, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
@@ -32,7 +32,7 @@ red:
   blueprints: [attack_enhancement]
   tower_strengthen_levels: [4, 3]
   units:
-  - {name: centurion, index: 0, position: {x: -335, y: 225}, level: 8, exp: 7568/15137/15137, equipment: [nano_repair_kit]}
+  - {name: centurion, index: 0, position: {x: -335, y: 225}, level: 8, exp: 7568/15137/15137, equipments: [nano_repair_kit]}
   - {name: typhoon, index: 1, position: {x: 110, y: -250}, exp: 0/1156/1950, source: delivered}
   - {name: phoenix, index: 2, position: {x: 180, y: -60}, level: 3, source: joined}
   contraptions:

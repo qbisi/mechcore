@@ -11,7 +11,7 @@ round: 1
 blue:
   core_damage: 64
   units:
-  - {name: hacker, index: 0, position: {x: -5, y: -105}, exp: 0/56/560, equipment: [explosive_ammo], source: joined}
+  - {name: hacker, index: 0, position: {x: -5, y: -105}, exp: 0/56/560, equipments: [explosive_ammo], source: joined}
 red:
   core_damage: 0
   units:

@@ -14,7 +14,7 @@ blue:
     farseer: [burst_mode, electromagnetic_explosion, aerial_specialization, missile_interceptor, range_enhancement, photon_emission, scanning_radar]
   blueprints: [attack_enhancement]
   units:
-  - {name: farseer, index: 0, position: {x: 255, y: -55}, level: 4, exp: 4041/4041/8083, rotated: true, equipment: [deployment_module]}
+  - {name: farseer, index: 0, position: {x: 255, y: -55}, level: 4, exp: 4041/4041/8083, rotated: true, equipments: [deployment_module]}
   contraptions:
   - {name: shield, index: 0, position: {x: -80, y: -105}}
   battle_skills:
@@ -27,7 +27,7 @@ red:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: wasp, index: 0, position: {x: -250, y: -35}, level: 9, exp: 0/4200/6055, rotated: true, equipment: [deployment_module], source: joined}
+  - {name: wasp, index: 0, position: {x: -250, y: -35}, level: 9, exp: 0/4200/6055, rotated: true, equipments: [deployment_module], source: joined}
   - {name: typhoon, index: 1, position: {x: -180, y: -200}, level: 3, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}

@@ -12,7 +12,7 @@ round: 1
 blue:
   core_damage: 150
   units:
-  - {name: fang, index: 0, position: {x: 145, y: -300}, exp: 0/100/600, equipment: [anti_interference_module], source: joined}
+  - {name: fang, index: 0, position: {x: 145, y: -300}, exp: 0/100/600, equipments: [anti_interference_module], source: joined}
 red:
   core_damage: 0
   units:

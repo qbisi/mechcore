@@ -22,7 +22,7 @@ blue:
   tower_strengthen_levels: [2, 3]
   units:
   - {name: typhoon, index: 0, position: {x: -100, y: -110}, source: delivered}
-  - {name: void_eye, index: 1, position: {x: -210, y: -220}, exp: 0/520/650, rotated: true, equipment: [amplifying_core], source: joined}
+  - {name: void_eye, index: 1, position: {x: -210, y: -220}, exp: 0/520/650, rotated: true, equipments: [amplifying_core], source: joined}
   - {name: sledgehammer, index: 2, position: {x: 185, y: -60}, exp: 0/36/1300, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
@@ -39,7 +39,7 @@ red:
   blueprints: [defense_enhancement_ii]
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: centurion, index: 0, position: {x: 205, y: -25}, level: 7, exp: 0/1062/14167, equipment: [laser_sights], source: joined}
+  - {name: centurion, index: 0, position: {x: 205, y: -25}, level: 7, exp: 0/1062/14167, equipments: [laser_sights], source: joined}
   - {name: wraith, index: 1, position: {x: -25, y: -175}, level: 7, exp: 0/360/14167, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}

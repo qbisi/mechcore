@@ -27,7 +27,7 @@ blue:
   - {name: fang, index: 7, position: {x: 160, y: -175}, exp: 352/352/600, rotated: true}
   - {name: fang, index: 8, position: {x: -160, y: -175}, exp: 0/227/600, rotated: true}
   - {name: fang, index: 9, position: {x: -140, y: -35}, exp: 326/371/600, rotated: true}
-  - {name: rhino, index: 10, position: {x: -165, y: -95}, exp: 1068/1150/1150, equipment: [haste_module]}
+  - {name: rhino, index: 10, position: {x: -165, y: -95}, exp: 1068/1150/1150, equipments: [haste_module]}
   - {name: rhino, index: 11, position: {x: -45, y: -95}, exp: 58/187/1150}
   - {name: fire_badger, index: 12, position: {x: 5, y: -160}, exp: 113/276/1400}
   - {name: fang, index: 13, position: {x: -20, y: -35}, exp: 193/441/600, rotated: true}

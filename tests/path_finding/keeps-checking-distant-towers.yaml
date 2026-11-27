@@ -17,7 +17,7 @@ blue:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 3]
   units:
-  - {name: fortress, index: 0, position: {x: -180, y: -220}, level: 9, exp: 5382/10764/10764, rotated: true, equipment: [absorption_module]}
+  - {name: fortress, index: 0, position: {x: -180, y: -220}, level: 9, exp: 5382/10764/10764, rotated: true, equipments: [absorption_module]}
 red:
   core_damage: 350
   officers: [quick_teleport, advanced_power_system, fortified_specialist, improved_overlord]

@@ -16,7 +16,7 @@ blue:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [1, 4]
   units:
-  - {name: rhino, index: 0, position: {x: 65, y: -165}, level: 9, exp: 7736/7736/7736, rotated: true, equipment: [portable_shield]}
+  - {name: rhino, index: 0, position: {x: 65, y: -165}, level: 9, exp: 7736/7736/7736, rotated: true, equipments: [portable_shield]}
   - {name: sabertooth, index: 1, position: {x: -75, y: -235}, source: delivered}
   - {name: mountain, index: 2, position: {x: 15, y: -135}, level: 6, exp: 0/402/18556, source: joined}
   constructions:
@@ -33,7 +33,7 @@ red:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 2]
   units:
-  - {name: overlord, index: 0, position: {x: 335, y: 35}, level: 9, exp: 0/11773/11773, rotated: true, equipment: [deployment_module]}
+  - {name: overlord, index: 0, position: {x: 335, y: 35}, level: 9, exp: 0/11773/11773, rotated: true, equipments: [deployment_module]}
   - {name: fire_badger, index: 1, position: {x: 75, y: -150}, source: delivered}
   - {name: fang, index: 2, position: {x: -175, y: -110}, level: 7, source: joined}
   contraptions:

@@ -18,7 +18,7 @@ blue:
   tower_strengthen_levels: [4, 4]
   units:
   - {name: fire_badger, index: 0, position: {x: 25, y: -130}, exp: 0/33/1400, source: delivered}
-  - {name: void_eye, index: 1, position: {x: 320, y: 210}, level: 8, exp: 0/3120/4373, rotated: true, equipment: [dominion_core], travelling: true, source: joined}
+  - {name: void_eye, index: 1, position: {x: 320, y: 210}, level: 8, exp: 0/3120/4373, rotated: true, equipments: [dominion_core], travelling: true, source: joined}
   - {name: sabertooth, index: 2, position: {x: -115, y: -115}, level: 3, exp: 0/3446/4630, source: joined}
   battle_skills:
   - {name: ion_blast, positions: [{x: 45, y: -15}, {x: -175, y: -25}]}
@@ -30,7 +30,7 @@ red:
   blueprints: [attack_enhancement]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: arclight, index: 0, position: {x: 350, y: 190}, level: 7, exp: 0/2400/4722, equipment: [deployment_module], travelling: true, source: joined}
+  - {name: arclight, index: 0, position: {x: 350, y: 190}, level: 7, exp: 0/2400/4722, equipments: [deployment_module], travelling: true, source: joined}
   - {name: hacker, index: 1, position: {x: 15, y: -175}, level: 4, exp: 0/268/2515, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}

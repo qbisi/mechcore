@@ -18,7 +18,7 @@ blue:
   blueprints: [defense_enhancement]
   energy_tower_skills: [enhanced_range]
   units:
-  - {name: phantom_ray, index: 0, position: {x: -320, y: 55}, level: 7, exp: 0/4750/6296, equipment: [secondary_laser_sight], travelling: true, source: joined}
+  - {name: phantom_ray, index: 0, position: {x: -320, y: 55}, level: 7, exp: 0/4750/6296, equipments: [secondary_laser_sight], travelling: true, source: joined}
   - {name: raiden, index: 1, position: {x: -100, y: -70}, level: 9, exp: 0/1850/16146, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
@@ -36,7 +36,7 @@ red:
   tower_strengthen_levels: [3, 3]
   units:
   - {name: rhino, index: 0, position: {x: -205, y: -265}, level: 2, exp: 0/50/2591, source: delivered}
-  - {name: rhino, index: 1, position: {x: -315, y: 145}, exp: 0/350/1150, rotated: true, equipment: [absorption_module], travelling: true, source: joined}
+  - {name: rhino, index: 1, position: {x: -315, y: 145}, exp: 0/350/1150, rotated: true, equipments: [absorption_module], travelling: true, source: joined}
   - {name: sabertooth, index: 2, position: {x: 105, y: -165}, level: 7, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: 65, y: -175}}

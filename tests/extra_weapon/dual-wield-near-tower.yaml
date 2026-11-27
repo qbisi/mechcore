@@ -15,7 +15,7 @@ blue:
   blueprints: [attack_enhancement_ii]
   tower_strengthen_levels: [3, 2]
   units:
-  - {name: fortress, index: 0, position: {x: -20, y: -60}, level: 2, exp: 3605/3605/3605, rotated: true, equipment: [deployment_module]}
+  - {name: fortress, index: 0, position: {x: -20, y: -60}, level: 2, exp: 3605/3605/3605, rotated: true, equipments: [deployment_module]}
   - {name: rhino, index: 1, position: {x: 65, y: -265}, level: 7, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: 5, y: -205}}
@@ -30,7 +30,7 @@ red:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [2, 4]
   units:
-  - {name: centurion, index: 0, position: {x: -165, y: -35}, level: 7, exp: 7083/14167/14167, equipment: [nano_repair_kit]}
+  - {name: centurion, index: 0, position: {x: -165, y: -35}, level: 7, exp: 7083/14167/14167, equipments: [nano_repair_kit]}
   - {name: steel_ball, index: 1, position: {x: 225, y: -20}, exp: 0/200/1000, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: 55, y: -100}}

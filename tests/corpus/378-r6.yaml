@@ -62,12 +62,12 @@ red:
   - {name: fire_badger, index: 11, position: {x: -270, y: -55}, exp: 905/1400/1400, rotated: true}
   - {name: marksman, index: 12, position: {x: -270, y: -90}, level: 2, exp: 171/1465/1465}
   - {name: marksman, index: 13, position: {x: -120, y: -100}, level: 2, exp: 0/1044/1465}
-  - {name: fortress, index: 14, position: {x: -210, y: -90}, exp: 560/924/1600, equipment: [barrier]}
+  - {name: fortress, index: 14, position: {x: -210, y: -90}, exp: 560/924/1600, equipments: [barrier]}
   - {name: crawler, index: 15, position: {x: 260, y: -265}, exp: 304/324/450, rotated: true}
   - {name: crawler, index: 16, position: {x: -260, y: -265}, exp: 296/450/450, rotated: true}
   - {name: marksman, index: 18, position: {x: 110, y: -170}, exp: 175/650/650}
   - {name: mustang, index: 19, position: {x: -255, y: -130}, exp: 542/1200/1200}
-  - {name: fortress, index: 20, position: {x: 200, y: -110}, exp: 0/157/1600, equipment: [barrier], source: joined}
+  - {name: fortress, index: 20, position: {x: 200, y: -110}, exp: 0/157/1600, equipments: [barrier], source: joined}
   - {name: mustang, index: 21, position: {x: -55, y: -170}, exp: 0/1200/1200, source: joined}
   - {name: mustang, index: 22, position: {x: 195, y: -150}, exp: 0/511/1200, source: joined}
   contraptions:

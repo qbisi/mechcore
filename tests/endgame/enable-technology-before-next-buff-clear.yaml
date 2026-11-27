@@ -11,7 +11,7 @@ blue:
   blueprints: [attack_enhancement_ii]
   energy_tower_skills: [high_mobility]
   units:
-  - {name: rhino, index: 0, position: {x: -335, y: 135}, level: 2, exp: 0/2591/2591, equipment: [enhancement_module], travelling: true, source: joined}
+  - {name: rhino, index: 0, position: {x: -335, y: 135}, level: 2, exp: 0/2591/2591, equipments: [enhancement_module], travelling: true, source: joined}
   - {name: mustang, index: 1, position: {x: -165, y: -300}, level: 2, exp: 0/1725/2704, source: joined}
   battle_skills:
   - {name: electromagnetic_impact, positions: [{x: 260, y: 265}]}
@@ -23,7 +23,7 @@ red:
   blueprints: [defense_enhancement]
   energy_tower_skills: [high_mobility]
   units:
-  - {name: farseer, index: 0, position: {x: -115, y: -275}, level: 5, exp: 0/200/9379, rotated: true, equipment: [laser_sights], source: joined}
+  - {name: farseer, index: 0, position: {x: -115, y: -275}, level: 5, exp: 0/200/9379, rotated: true, equipments: [laser_sights], source: joined}
   - {name: steel_ball, index: 1, position: {x: 55, y: -190}, level: 2, exp: 0/612/2253, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}

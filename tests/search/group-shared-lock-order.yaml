@@ -13,7 +13,7 @@ blue:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: sandworm, index: 0, position: {x: 230, y: -80}, level: 4, exp: 4490/4740/8981, equipment: [tank_production_line]}
+  - {name: sandworm, index: 0, position: {x: 230, y: -80}, level: 4, exp: 4490/4740/8981, equipments: [tank_production_line]}
   - {name: fire_badger, index: 1, position: {x: 145, y: -30}, exp: 0/50/1400, source: delivered}
   - {name: sabertooth, index: 2, position: {x: -155, y: -235}, level: 3, exp: 0/2200/4630, source: joined}
   constructions:
@@ -29,7 +29,7 @@ red:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: wraith, index: 0, position: {x: 265, y: -25}, level: 4, exp: 5051/10103/10103, equipment: [nano_repair_kit]}
+  - {name: wraith, index: 0, position: {x: 265, y: -25}, level: 4, exp: 5051/10103/10103, equipments: [nano_repair_kit]}
   - {name: sabertooth, index: 1, position: {x: 195, y: -55}, source: delivered}
   - {name: marksman, index: 2, position: {x: 170, y: -30}, level: 5, source: joined}
   contraptions:

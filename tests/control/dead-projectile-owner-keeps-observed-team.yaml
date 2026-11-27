@@ -18,7 +18,7 @@ blue:
     fang: [ignite]
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: fang, index: 0, position: {x: -215, y: -30}, level: 6, exp: 1739/3479/3479, equipment: [dominion_core]}
+  - {name: fang, index: 0, position: {x: -215, y: -30}, level: 6, exp: 1739/3479/3479, equipments: [dominion_core]}
   - {name: typhoon, index: 1, position: {x: 60, y: -170}, exp: 0/400/1950, source: delivered}
   - {name: mustang, index: 2, position: {x: -25, y: -70}, level: 7, exp: 0/7556/7556, source: joined}
   constructions:
@@ -35,7 +35,7 @@ red:
     sabertooth: [missile_interceptor]
   blueprints: [defense_enhancement]
   units:
-  - {name: sabertooth, index: 0, position: {x: 125, y: -275}, level: 9, exp: 8746/8746/8746, rotated: true, equipment: [deployment_module]}
+  - {name: sabertooth, index: 0, position: {x: 125, y: -275}, level: 9, exp: 8746/8746/8746, rotated: true, equipments: [deployment_module]}
   - {name: rhino, index: 1, position: {x: 285, y: -145}, level: 2, exp: 0/528/2591, source: delivered}
   - {name: hacker, index: 2, position: {x: 105, y: -75}, level: 9, exp: 0/396/3767, source: joined}
   battle_skills:

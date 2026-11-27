@@ -35,7 +35,7 @@ blue:
   - {name: phantom_ray, index: 17, position: {x: 175, y: -300}, exp: 727/727/1000}
   - {name: phantom_ray, index: 18, position: {x: 105, y: -300}, exp: 357/357/1000}
   - {name: fang, index: 19, position: {x: 180, y: -95}, exp: 44/44/600, rotated: true}
-  - {name: hacker, index: 20, position: {x: 195, y: -195}, level: 3, exp: 0/1995/1995, equipment: [laser_sights]}
+  - {name: hacker, index: 20, position: {x: 195, y: -195}, level: 3, exp: 0/1995/1995, equipments: [laser_sights]}
   - {name: fang, index: 21, position: {x: 140, y: -285}, exp: 63/373/600, rotated: true}
   - {name: fang, index: 22, position: {x: -140, y: -205}, exp: 0/600/600, rotated: true}
   - {name: hacker, index: 23, position: {x: 65, y: -215}, exp: 344/459/560}
@@ -65,7 +65,7 @@ red:
   - {name: void_eye, index: 0, position: {x: -250, y: -100}, level: 3, exp: 1148/1631/2315}
   - {name: void_eye, index: 1, position: {x: -140, y: -100}, level: 3, exp: 1138/1975/2315}
   - {name: void_eye, index: 2, position: {x: -30, y: -100}, level: 3, exp: 0/1151/2315}
-  - {name: mustang, index: 3, position: {x: -215, y: -170}, level: 3, exp: 0/1399/4274, equipment: [improved_firepower_control_system]}
+  - {name: mustang, index: 3, position: {x: -215, y: -170}, level: 3, exp: 0/1399/4274, equipments: [improved_firepower_control_system]}
   - {name: mustang, index: 4, position: {x: -85, y: -170}, level: 3, exp: 0/1269/4274}
   - {name: crawler, index: 5, position: {x: -140, y: -135}, exp: 450/450/450, rotated: true}
   - {name: crawler, index: 6, position: {x: -30, y: -145}, exp: 266/266/450, rotated: true}

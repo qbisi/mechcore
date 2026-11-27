@@ -23,7 +23,7 @@ blue:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [1, 1]
   units:
-  - {name: rhino, index: 0, position: {x: -265, y: -205}, level: 7, exp: 3620/6810/7241, equipment: [absorption_module]}
+  - {name: rhino, index: 0, position: {x: -265, y: -205}, level: 7, exp: 3620/6810/7241, equipments: [absorption_module]}
   - {name: fire_badger, index: 1, position: {x: 215, y: -50}, source: delivered}
   - {name: crawler, index: 2, position: {x: -225, y: -150}, level: 3, exp: 0/1090/1603, source: joined}
   constructions:
@@ -39,7 +39,7 @@ red:
   techs:
     hacker: [multi_control]
   units:
-  - {name: hacker, index: 0, position: {x: 255, y: -215}, level: 5, exp: 2918/2918/2918, rotated: true, equipment: [dominion_core]}
+  - {name: hacker, index: 0, position: {x: 255, y: -215}, level: 5, exp: 2918/2918/2918, rotated: true, equipments: [dominion_core]}
   - {name: sabertooth, index: 1, position: {x: 65, y: -45}, exp: 0/20/1300, source: delivered}
   - {name: raiden, index: 2, position: {x: -60, y: -180}, level: 6, exp: 0/462/13917, source: joined}
   battle_skills:

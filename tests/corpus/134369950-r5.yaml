@@ -48,9 +48,9 @@ red:
   - {name: stormcaller, index: 7, position: {x: 85, y: -170}, level: 2, exp: 0/784/2479}
   - {name: stormcaller, index: 8, position: {x: -105, y: -170}, exp: 977/1100/1100}
   - {name: hound, index: 9, position: {x: 10, y: -230}, exp: 393/431/750}
-  - {name: fortress, index: 10, position: {x: 110, y: -120}, level: 2, exp: 0/392/3605, equipment: [nano_repair_kit]}
+  - {name: fortress, index: 10, position: {x: 110, y: -120}, level: 2, exp: 0/392/3605, equipments: [nano_repair_kit]}
   - {name: hound, index: 11, position: {x: -40, y: -230}, exp: 241/369/750}
-  - {name: fortress, index: 12, position: {x: -100, y: -120}, exp: 299/456/1600, equipment: [barrier]}
+  - {name: fortress, index: 12, position: {x: -100, y: -120}, exp: 299/456/1600, equipments: [barrier]}
   - {name: stormcaller, index: 13, position: {x: -35, y: -170}, exp: 369/407/1100}
   - {name: phoenix, index: 14, position: {x: 210, y: -210}, level: 3, exp: 0/305/4630, rotated: true, source: joined}
   - {name: melting_point, index: 15, position: {x: 170, y: -200}, exp: 0/78/1400, source: joined}

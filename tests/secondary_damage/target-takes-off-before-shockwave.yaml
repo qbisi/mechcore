@@ -17,7 +17,7 @@ blue:
     arclight: [electromagnetic_shot, armor_enhancement, anti_aircraft_ammunition, shockwave, range_enhancement, elite_marksman, charged_shot]
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: arclight, index: 0, position: {x: 330, y: 150}, level: 9, exp: 0/5046/5046, equipment: [super_heavy_armor], travelling: true, source: joined}
+  - {name: arclight, index: 0, position: {x: 330, y: 150}, level: 9, exp: 0/5046/5046, equipments: [super_heavy_armor], travelling: true, source: joined}
   - {name: wasp, index: 1, position: {x: 145, y: -250}, level: 8, exp: 0/50/6055, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}

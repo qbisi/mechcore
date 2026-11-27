@@ -23,7 +23,7 @@ blue:
   - {name: fang, index: 1, position: {x: 140, y: -225}, exp: 600/600/600, rotated: true}
   - {name: fang, index: 2, position: {x: 120, y: -115}, exp: 600/600/600, rotated: true}
   - {name: tarantula, index: 3, position: {x: 75, y: -145}, level: 2, exp: 1341/1769/3380}
-  - {name: tarantula, index: 4, position: {x: 185, y: -145}, level: 4, exp: 6735/6735/6735, equipment: [super_heavy_armor]}
+  - {name: tarantula, index: 4, position: {x: 185, y: -145}, level: 4, exp: 6735/6735/6735, equipments: [super_heavy_armor]}
   - {name: marksman, index: 5, position: {x: 50, y: -190}, level: 3, exp: 2006/2315/2315}
   - {name: marksman, index: 6, position: {x: 210, y: -190}, level: 4, exp: 0/2919/2919}
   - {name: crawler, index: 7, position: {x: -125, y: -190}, exp: 450/450/450}
@@ -52,7 +52,7 @@ blue:
   - {name: crawler, index: 30, position: {x: -210, y: -225}, exp: 173/234/450, rotated: true}
   - {name: crawler, index: 31, position: {x: 290, y: -165}, exp: 110/208/450, rotated: true}
   - {name: crawler, index: 32, position: {x: 230, y: -235}, exp: 359/450/450, rotated: true}
-  - {name: phantom_ray, index: 33, position: {x: -270, y: -235}, level: 4, exp: 0/1209/4490, rotated: true, equipment: [explosive_ammo]}
+  - {name: phantom_ray, index: 33, position: {x: -270, y: -235}, level: 4, exp: 0/1209/4490, rotated: true, equipments: [explosive_ammo]}
   - {name: phantom_ray, index: 34, position: {x: 270, y: -235}, level: 4, exp: 0/808/4490, rotated: true}
   - {name: tarantula, index: 35, position: {x: 265, y: -145}, exp: 116/671/1500}
   - {name: phantom_ray, index: 36, position: {x: -75, y: -200}, exp: 348/812/1000}
@@ -84,13 +84,13 @@ red:
   - {name: void_eye, index: 2, position: {x: 90, y: -150}, level: 4, exp: 0/380/2919}
   - {name: mustang, index: 3, position: {x: 195, y: -260}, level: 4, exp: 5388/5388/5388}
   - {name: mustang, index: 4, position: {x: -195, y: -260}, level: 3, exp: 1043/2994/4274}
-  - {name: steel_ball, index: 5, position: {x: -85, y: -300}, level: 3, exp: 0/1267/3562, equipment: [secondary_heavy_armor]}
-  - {name: steel_ball, index: 6, position: {x: 85, y: -300}, level: 5, exp: 0/3687/5210, equipment: [secondary_heavy_armor]}
+  - {name: steel_ball, index: 5, position: {x: -85, y: -300}, level: 3, exp: 0/1267/3562, equipments: [secondary_heavy_armor]}
+  - {name: steel_ball, index: 6, position: {x: 85, y: -300}, level: 5, exp: 0/3687/5210, equipments: [secondary_heavy_armor]}
   - {name: crawler, index: 7, position: {x: -140, y: -205}, exp: 269/358/450, rotated: true}
   - {name: crawler, index: 8, position: {x: 140, y: -205}, exp: 414/450/450, rotated: true}
-  - {name: mustang, index: 9, position: {x: -85, y: -260}, level: 4, exp: 5388/5388/5388, equipment: [haste_module]}
+  - {name: mustang, index: 9, position: {x: -85, y: -260}, level: 4, exp: 5388/5388/5388, equipments: [haste_module]}
   - {name: crawler, index: 10, position: {x: -290, y: -285}, exp: 450/450/450, rotated: true}
-  - {name: steel_ball, index: 11, position: {x: 195, y: -300}, level: 3, exp: 1998/3562/3562, equipment: [secondary_heavy_armor]}
+  - {name: steel_ball, index: 11, position: {x: 195, y: -300}, level: 3, exp: 1998/3562/3562, equipments: [secondary_heavy_armor]}
   - {name: crawler, index: 12, position: {x: -140, y: -285}, exp: 406/450/450, rotated: true}
   - {name: mustang, index: 13, position: {x: 85, y: -260}, level: 3, exp: 4274/4274/4274}
   - {name: crawler, index: 14, position: {x: 290, y: -285}, exp: 416/450/450, rotated: true}
@@ -113,7 +113,7 @@ red:
   - {name: mustang, index: 31, position: {x: -255, y: -230}, exp: 1200/1200/1200}
   - {name: vulcan, index: 32, position: {x: -40, y: -140}, exp: 2200/2200/2200}
   - {name: vulcan, index: 33, position: {x: 50, y: -140}, exp: 2200/2200/2200}
-  - {name: vulcan, index: 34, position: {x: 220, y: -120}, exp: 2200/2200/2200, equipment: [explosive_ammo]}
+  - {name: vulcan, index: 34, position: {x: 220, y: -120}, exp: 2200/2200/2200, equipments: [explosive_ammo]}
   - {name: vulcan, index: 35, position: {x: -230, y: -120}, exp: 1269/2200/2200}
   - {name: fang, index: 36, position: {x: -220, y: -75}, exp: 0/89/600, rotated: true}
   - {name: fang, index: 37, position: {x: 230, y: -75}, exp: 42/177/600, rotated: true}

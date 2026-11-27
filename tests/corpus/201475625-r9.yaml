@@ -27,8 +27,8 @@ blue:
   - {name: arclight, index: 0, position: {x: 120, y: -170}, level: 2, exp: 1257/1571/1690}
   - {name: arclight, index: 1, position: {x: -120, y: -170}, level: 2, exp: 1678/1690/1690}
   - {name: arclight, index: 2, position: {x: -60, y: -170}, level: 3, exp: 2140/2671/2671}
-  - {name: sledgehammer, index: 3, position: {x: -90, y: -135}, level: 2, exp: 274/500/2929, rotated: true, equipment: [photon_coating]}
-  - {name: sledgehammer, index: 4, position: {x: -30, y: -135}, level: 2, exp: 534/858/2929, rotated: true, equipment: [heavy_armor]}
+  - {name: sledgehammer, index: 3, position: {x: -90, y: -135}, level: 2, exp: 274/500/2929, rotated: true, equipments: [photon_coating]}
+  - {name: sledgehammer, index: 4, position: {x: -30, y: -135}, level: 2, exp: 534/858/2929, rotated: true, equipments: [heavy_armor]}
   - {name: crawler, index: 5, position: {x: -90, y: -205}, level: 2, exp: 45/149/1014, rotated: true}
   - {name: crawler, index: 6, position: {x: -30, y: -205}, level: 2, exp: 0/99/1014, rotated: true}
   - {name: arclight, index: 7, position: {x: -250, y: -180}, level: 2, exp: 1315/1690/1690}
@@ -94,7 +94,7 @@ red:
   - {name: crawler, index: 22, position: {x: 325, y: 160}, exp: 418/450/450, rotated: true}
   - {name: crawler, index: 23, position: {x: -325, y: 170}, exp: 201/246/450, rotated: true}
   - {name: crawler, index: 24, position: {x: 0, y: -285}, exp: 232/391/450, rotated: true}
-  - {name: phoenix, index: 25, position: {x: -60, y: -260}, level: 3, exp: 0/2323/4630, equipment: [laser_sights]}
+  - {name: phoenix, index: 25, position: {x: -60, y: -260}, level: 3, exp: 0/2323/4630, equipments: [laser_sights]}
   - {name: phoenix, index: 26, position: {x: 80, y: -250}, level: 2, exp: 2004/2929/2929}
   - {name: phoenix, index: 27, position: {x: -190, y: -260}, level: 2, exp: 1659/2929/2929}
   - {name: hound, index: 28, position: {x: -180, y: -180}, exp: 179/421/750}

@@ -16,7 +16,7 @@ blue:
   tower_strengthen_levels: [4, 4]
   units:
   - {name: sabertooth, index: 0, position: {x: 275, y: -25}, source: delivered}
-  - {name: sledgehammer, index: 1, position: {x: -310, y: 205}, exp: 0/100/1300, equipment: [haste_module], travelling: true, source: joined}
+  - {name: sledgehammer, index: 1, position: {x: -310, y: 205}, exp: 0/100/1300, equipments: [haste_module], travelling: true, source: joined}
   - {name: hound, index: 2, position: {x: 60, y: -70}, level: 8, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
@@ -30,7 +30,7 @@ red:
   blueprints: [defense_enhancement_ii]
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: raiden, index: 0, position: {x: -320, y: 180}, level: 8, exp: 0/62/16146, equipment: [laser_sights], travelling: true, source: joined}
+  - {name: raiden, index: 0, position: {x: -320, y: 180}, level: 8, exp: 0/62/16146, equipments: [laser_sights], travelling: true, source: joined}
   - {name: scorpion, index: 1, position: {x: -215, y: -135}, level: 6, exp: 0/4362/8698, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}

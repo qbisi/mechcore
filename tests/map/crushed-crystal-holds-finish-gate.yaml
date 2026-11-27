@@ -15,7 +15,7 @@ blue:
     fortress: [range_enhancement]
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: fortress, index: 0, position: {x: -220, y: -50}, level: 6, exp: 9278/9278/9278, equipment: [secondary_fire_control_system]}
+  - {name: fortress, index: 0, position: {x: -220, y: -50}, level: 6, exp: 9278/9278/9278, equipments: [secondary_fire_control_system]}
   - {name: fire_badger, index: 1, position: {x: -265, y: -230}, exp: 0/850/1400, source: delivered}
   - {name: abyss, index: 2, position: {x: -215, y: -155}, level: 7, exp: 0/2550/30223, source: joined}
   constructions:
@@ -32,7 +32,7 @@ red:
   tower_strengthen_levels: [4, 4]
   units:
   - {name: sabertooth, index: 0, position: {x: 195, y: -105}, source: delivered}
-  - {name: hound, index: 1, position: {x: 310, y: 200}, level: 9, exp: 0/134/5046, equipment: [haste_module], travelling: true, source: joined}
+  - {name: hound, index: 1, position: {x: 310, y: 200}, level: 9, exp: 0/134/5046, equipments: [haste_module], travelling: true, source: joined}
   - {name: typhoon, index: 2, position: {x: 270, y: -150}, level: 5, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: 45, y: -275}}

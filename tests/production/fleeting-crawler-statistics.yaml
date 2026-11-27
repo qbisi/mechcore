@@ -19,7 +19,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: rhino, index: 0, position: {x: 245, y: -45}, level: 3, exp: 4096/4096/4096, equipment: [nano_repair_kit]}
+  - {name: rhino, index: 0, position: {x: 245, y: -45}, level: 3, exp: 4096/4096/4096, equipments: [nano_repair_kit]}
   - {name: hound, index: 1, position: {x: -70, y: -130}, level: 3, exp: 0/253/2671, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: -155, y: -75}, retained: false}
@@ -34,7 +34,7 @@ red:
   tower_strengthen_levels: [1, 2]
   units:
   - {name: sabertooth, index: 0, position: {x: 5, y: -215}, exp: 0/400/1300, source: delivered}
-  - {name: melting_point, index: 1, position: {x: 320, y: 230}, level: 8, exp: 0/2800/9418, rotated: true, equipment: [secondary_fire_control_system], travelling: true, source: joined}
+  - {name: melting_point, index: 1, position: {x: 320, y: 230}, level: 8, exp: 0/2800/9418, rotated: true, equipments: [secondary_fire_control_system], travelling: true, source: joined}
   - {name: centurion, index: 2, position: {x: -265, y: -95}, level: 6, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}

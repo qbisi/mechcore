@@ -14,7 +14,7 @@ blue:
   blueprints: [attack_enhancement_ii]
   energy_tower_skills: [enhanced_range]
   units:
-  - {name: marksman, index: 0, position: {x: 320, y: 200}, level: 6, exp: 0/3769/3769, equipment: [explosive_ammo], travelling: true, source: joined}
+  - {name: marksman, index: 0, position: {x: 320, y: 200}, level: 6, exp: 0/3769/3769, equipments: [explosive_ammo], travelling: true, source: joined}
   - {name: hacker, index: 1, position: {x: 135, y: -25}, level: 3, exp: 0/1995/1995, source: joined}
   battle_skills:
   - {name: underground_threat, positions: [{x: 225, y: -260}]}
@@ -23,7 +23,7 @@ red:
   officers: [advanced_shield_device, marksman_specialist, fortified_hacker]
   energy_tower_skills: [high_mobility]
   units:
-  - {name: hacker, index: 0, position: {x: -55, y: -295}, level: 9, exp: 1883/2633/3767, equipment: [improved_firepower_control_system]}
+  - {name: hacker, index: 0, position: {x: -55, y: -295}, level: 9, exp: 1883/2633/3767, equipments: [improved_firepower_control_system]}
   - {name: marksman, index: 1, position: {x: 290, y: -120}, level: 3, exp: 0/224/2315, source: delivered}
   - {name: stormcaller, index: 2, position: {x: -85, y: -170}, level: 2, exp: 0/150/2479, source: joined}
   constructions:

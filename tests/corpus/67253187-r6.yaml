@@ -27,7 +27,7 @@ blue:
   - {name: arclight, index: 6, position: {x: -60, y: -180}, level: 2, exp: 614/1690/1690}
   - {name: arclight, index: 7, position: {x: -350, y: 270}, level: 2, exp: 614/714/1690}
   - {name: arclight, index: 8, position: {x: -350, y: 190}, level: 2, exp: 497/540/1690}
-  - {name: sabertooth, index: 9, position: {x: -315, y: 235}, exp: 483/522/1300, equipment: [portable_shield]}
+  - {name: sabertooth, index: 9, position: {x: -315, y: 235}, exp: 483/522/1300, equipments: [portable_shield]}
   - {name: marksman, index: 10, position: {x: 10, y: -180}, level: 2, exp: 1237/1465/1465}
   - {name: marksman, index: 11, position: {x: -350, y: 220}, level: 2, exp: 643/666/1465}
   - {name: marksman, index: 12, position: {x: -350, y: 300}, level: 2, exp: 743/786/1465}
@@ -69,7 +69,7 @@ red:
   - {name: phantom_ray, index: 8, position: {x: -65, y: -230}, exp: 400/466/1000}
   - {name: phantom_ray, index: 9, position: {x: 260, y: -235}, level: 2, exp: 2060/2253/2253, rotated: true}
   - {name: crawler, index: 10, position: {x: 290, y: -235}, exp: 207/365/450, rotated: true}
-  - {name: wasp, index: 11, position: {x: 245, y: -280}, level: 4, exp: 2588/4041/4041, equipment: [portable_shield]}
+  - {name: wasp, index: 11, position: {x: 245, y: -280}, level: 4, exp: 2588/4041/4041, equipments: [portable_shield]}
   - {name: wasp, index: 12, position: {x: 255, y: -200}, level: 2, exp: 1675/2028/2028}
   - {name: crawler, index: 13, position: {x: -290, y: -285}, rotated: true}
   - {name: crawler, index: 14, position: {x: 290, y: -145}, exp: 138/232/450, rotated: true}

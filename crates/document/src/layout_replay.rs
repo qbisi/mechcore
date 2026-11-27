@@ -1576,7 +1576,7 @@ mod tests {
             json!({
                 "kind": "layout", "seed": 4242, "round": 3,
                 "blue": {"units": [
-                    {"name": "wasp", "index": 0, "travelling": true, "equipment": equipment, "position": {"x": 330, "y": 285}, "source": "legacy"},
+                    {"name": "wasp", "index": 0, "travelling": true, "equipments": equipment, "position": {"x": 330, "y": 285}, "source": "legacy"},
                 ]},
                 "red": {"units": [{"name": "arclight", "index": 0, "position": {"x": 0, "y": -50}, "source": "legacy"}]},
             })

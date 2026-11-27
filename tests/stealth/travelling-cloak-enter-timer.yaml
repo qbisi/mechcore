@@ -15,7 +15,7 @@ blue:
     overlord: [launcher_overload]
   tower_strengthen_levels: [3, 3]
   units:
-  - {name: overlord, index: 0, position: {x: 265, y: -165}, level: 5, exp: 4559/9118/9118, equipment: [tank_production_line]}
+  - {name: overlord, index: 0, position: {x: 265, y: -165}, level: 5, exp: 4559/9118/9118, equipments: [tank_production_line]}
   - {name: hound, index: 1, position: {x: 240, y: -250}, level: 8, source: joined}
   battle_skills:
   - {name: mobilize_battleship, positions: [{x: -245, y: -70}]}
@@ -28,7 +28,7 @@ red:
   tower_strengthen_levels: [4, 4]
   units:
   - {name: rhino, index: 0, position: {x: -205, y: -65}, level: 2, source: delivered}
-  - {name: phantom_ray, index: 1, position: {x: 340, y: 155}, level: 7, exp: 0/4140/6296, equipment: [small_amplifying_core], travelling: true, source: joined}
+  - {name: phantom_ray, index: 1, position: {x: 340, y: 155}, level: 7, exp: 0/4140/6296, equipments: [small_amplifying_core], travelling: true, source: joined}
   - {name: arclight, index: 2, position: {x: 100, y: -120}, level: 7, exp: 0/500/4722, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: 100, y: -230}}

@@ -18,7 +18,7 @@ blue:
     hacker: [barrier, enhanced_control, electromagnetic_interference, range_enhancement, multi_control]
   blueprints: [defense_enhancement_ii]
   units:
-  - {name: hacker, index: 0, position: {x: -65, y: -215}, level: 6, exp: 3247/3247/3247, equipment: [secondary_fire_control_system]}
+  - {name: hacker, index: 0, position: {x: -65, y: -215}, level: 6, exp: 3247/3247/3247, equipments: [secondary_fire_control_system]}
   - {name: fire_badger, index: 1, position: {x: 215, y: -260}, source: delivered}
   - {name: phantom_ray, index: 2, position: {x: 35, y: -20}, level: 5, exp: 0/5210/5210, source: joined}
   constructions:
@@ -34,7 +34,7 @@ red:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: sandworm, index: 0, position: {x: 170, y: -180}, level: 9, exp: 6727/11339/13455, rotated: true, equipment: [barrier]}
+  - {name: sandworm, index: 0, position: {x: 170, y: -180}, level: 9, exp: 6727/11339/13455, rotated: true, equipments: [barrier]}
   - {name: fire_badger, index: 1, position: {x: -165, y: -20}, source: delivered}
   - {name: sandworm, index: 2, position: {x: -220, y: -30}, level: 3, exp: 0/734/7124, source: joined}
   constructions:

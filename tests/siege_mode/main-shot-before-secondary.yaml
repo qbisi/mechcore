@@ -22,7 +22,7 @@ red:
   techs:
     sabertooth: [doubleshot, field_entrenchment, field_maintenance, secondary_armament]
   units:
-  - {name: sabertooth, index: 0, position: {x: -85, y: -55}, level: 2, equipment: [super_heavy_armor]}
+  - {name: sabertooth, index: 0, position: {x: -85, y: -55}, level: 2, equipments: [super_heavy_armor]}
 asserts:
 - sql: |-
     SELECT ordinal,source__kind,source__id,target__kind,target__id,skill_slot,weapon_index FROM events WHERE tick=189 AND type='projectile_released' AND source__id=2 ORDER BY ordinal

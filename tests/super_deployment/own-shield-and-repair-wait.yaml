@@ -20,7 +20,7 @@ blue:
     phoenix: [energy_shield]
   units:
   - {name: marksman, index: 0, position: {x: 0, y: -150}}
-  - {name: phoenix, index: 1, position: {x: -330, y: 200}, exp: 0/400/1300, equipment: [nano_repair_kit], travelling: true, source: joined}
+  - {name: phoenix, index: 1, position: {x: -330, y: 200}, exp: 0/400/1300, equipments: [nano_repair_kit], travelling: true, source: joined}
 red:
   core_damage: 200
   units:

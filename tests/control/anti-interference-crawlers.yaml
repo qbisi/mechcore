@@ -15,6 +15,6 @@ blue:
 red:
   core_damage: 0
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/400/450, equipment: [anti_interference_module], source: joined}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/400/450, equipments: [anti_interference_module], source: joined}
 ticks: 241
 hash: 27:2804fd80b2319b1aeb9e34a0ba58ea5efd6024d4c3282c66df2dc4cd8844d2a4

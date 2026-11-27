@@ -19,7 +19,7 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/200/650, equipment: [laser_sights], source: joined}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, exp: 0/200/650, equipments: [laser_sights], source: joined}
 red:
   core_damage: 100
   units:

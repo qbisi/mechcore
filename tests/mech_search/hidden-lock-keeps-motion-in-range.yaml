@@ -16,7 +16,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: sandworm, index: 0, position: {x: 340, y: 170}, level: 4, exp: 8981/8981/8981, rotated: true, equipment: [secondary_fire_control_system]}
+  - {name: sandworm, index: 0, position: {x: 340, y: 170}, level: 4, exp: 8981/8981/8981, rotated: true, equipments: [secondary_fire_control_system]}
   - {name: typhoon, index: 1, position: {x: -280, y: -100}, exp: 0/120/1950, source: delivered}
   - {name: sandworm, index: 2, position: {x: 150, y: -230}, level: 3, exp: 0/1300/7124, source: joined}
   constructions:

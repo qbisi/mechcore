@@ -16,7 +16,7 @@ blue:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: steel_ball, index: 0, position: {x: 220, y: -275}, level: 4, exp: 4490/4490/4490, rotated: true, equipment: [laser_sights]}
+  - {name: steel_ball, index: 0, position: {x: 220, y: -275}, level: 4, exp: 4490/4490/4490, rotated: true, equipments: [laser_sights]}
   - {name: vortex, index: 1, position: {x: -150, y: -280}, level: 8, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
@@ -34,7 +34,7 @@ red:
   energy_tower_skills: [high_mobility]
   units:
   - {name: typhoon, index: 0, position: {x: -230, y: -140}, source: delivered}
-  - {name: centurion, index: 1, position: {x: -175, y: -215}, equipment: [laser_sights], source: joined}
+  - {name: centurion, index: 1, position: {x: -175, y: -215}, equipments: [laser_sights], source: joined}
   - {name: phantom_ray, index: 2, position: {x: -245, y: -110}, level: 5, exp: 0/5210/5210, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: 135, y: -120}, retained: false}

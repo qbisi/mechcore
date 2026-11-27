@@ -15,7 +15,7 @@ blue:
     wasp: [energy_shield, high_explosive_ammo, ground_specialization, jump_drive, electromagnetic_shot, aerial_specialization, range_enhancement, armor_piercing_bullets, elite_marksman, ignite]
   energy_tower_skills: [enhanced_range]
   units:
-  - {name: wasp, index: 0, position: {x: 65, y: -90}, level: 2, exp: 1014/2028/2028, equipment: [laser_sights]}
+  - {name: wasp, index: 0, position: {x: 65, y: -90}, level: 2, exp: 1014/2028/2028, equipments: [laser_sights]}
   - {name: fire_badger, index: 1, position: {x: -255, y: -160}, exp: 0/524/1400, source: delivered}
   - {name: mustang, index: 2, position: {x: -5, y: -260}, level: 4, exp: 0/586/5388, source: joined}
   constructions:
@@ -32,7 +32,7 @@ red:
   blueprints: [attack_enhancement]
   units:
   - {name: fire_badger, index: 0, position: {x: 35, y: -260}, exp: 0/40/1400, source: delivered}
-  - {name: centurion, index: 1, position: {x: -335, y: 75}, exp: 0/420/2250, equipment: [secondary_laser_sight], travelling: true, source: joined}
+  - {name: centurion, index: 1, position: {x: -335, y: 75}, exp: 0/420/2250, equipments: [secondary_laser_sight], travelling: true, source: joined}
   - {name: rhino, index: 2, position: {x: 125, y: -205}, level: 3, exp: 0/56/4096, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}

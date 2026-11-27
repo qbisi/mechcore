@@ -18,7 +18,7 @@ round: 1
 blue:
   core_damage: 612
   units:
-  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/200/1600, equipment: [barrier], source: joined}
+  - {name: fortress, index: 0, position: {x: 0, y: -100}, exp: 0/200/1600, equipments: [barrier], source: joined}
 red:
   core_damage: 0
   units:

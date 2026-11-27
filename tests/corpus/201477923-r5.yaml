@@ -23,7 +23,7 @@ blue:
   - {name: fang, index: 1, position: {x: 65, y: -80}, level: 2, exp: 0/612/1352}
   - {name: fang, index: 2, position: {x: 155, y: -80}, level: 2, exp: 1015/1352/1352}
   - {name: sabertooth, index: 3, position: {x: 115, y: -85}, exp: 1234/1300/1300}
-  - {name: sabertooth, index: 4, position: {x: 285, y: -25}, level: 3, exp: 0/2129/4630, equipment: [haste_module]}
+  - {name: sabertooth, index: 4, position: {x: 285, y: -25}, level: 3, exp: 0/2129/4630, equipments: [haste_module]}
   - {name: fang, index: 5, position: {x: -140, y: -205}, exp: 321/343/600, rotated: true}
   - {name: fang, index: 6, position: {x: 140, y: -205}, level: 2, exp: 0/727/1352, rotated: true}
   - {name: phantom_ray, index: 8, position: {x: 215, y: -170}, level: 2, exp: 0/1127/2253}
@@ -47,7 +47,7 @@ red:
   - {name: vortex, index: 0, position: {x: 140, y: -70}, level: 2, exp: 393/1089/1690}
   - {name: vortex, index: 1, position: {x: 230, y: -70}, level: 2, exp: 150/346/1690}
   - {name: vortex, index: 2, position: {x: 50, y: -70}, exp: 463/750/750}
-  - {name: tarantula, index: 3, position: {x: 185, y: -65}, level: 2, exp: 0/616/3380, equipment: [haste_module]}
+  - {name: tarantula, index: 3, position: {x: 185, y: -65}, level: 2, exp: 0/616/3380, equipments: [haste_module]}
   - {name: crawler, index: 5, position: {x: 230, y: -105}, exp: 450/450/450, rotated: true}
   - {name: crawler, index: 6, position: {x: 50, y: -105}, exp: 229/253/450, rotated: true}
   - {name: vortex, index: 8, position: {x: 310, y: 20}, level: 2, exp: 128/267/1690}

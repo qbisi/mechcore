@@ -67,7 +67,7 @@ group each action touches.
 
 | Group | Fields |
 | --- | --- |
-| Settled | `reinforce_choice`, `next_index.unit`, `next_index.contraption`, `unlocked_units`, `techs`, `officers`, `blueprints`, `tower_strengthen_levels`, `battle_skills` less each slot's `standing`, `equipment` |
+| Settled | `reinforce_choice`, `next_index.unit`, `next_index.contraption`, `unlocked_units`, `techs`, `officers`, `blueprints`, `tower_strengthen_levels`, `battle_skills` less each slot's `standing`, `equipments`, `units[].equipments` |
 | Supply | `supply` |
 | Board | `units`, `constructions`, `contraptions`, `battle_skills.standing` |
 
@@ -139,7 +139,7 @@ the segment that holds it.
 
 A taken item grants the thing it names, and which thing that is decides
 the effect: an officer joins `officers`, a commander skill joins
-`battle_skills`, an equipment joins `equipment`, and a unit card hands out
+`battle_skills`, an equipment joins `equipments`, and a unit card hands out
 squads. Squads advance `next_index.unit` and their unit type joins
 `unlocked_units`. The decline writes none of those.
 
@@ -291,11 +291,10 @@ oppositely, so nothing may read a tower's identity out of its position.
 ```
 
 Fits the item `name` to the unit at `index`, as `upgrade_unit` and
-`move_unit` name one. An unfitted copy in the side's `equipment` gains a
-`fitted` assignment at the end of the unit's fitting order. A unit wears at
-most as many items as it has slots, which is the
-same count [`layout.md`](layout.md#unit) gives a placement; fitting a full
-unit is refused.
+`move_unit` name one. The item leaves the side's `equipments` stock and joins
+the end of that unit's `equipments` list. A unit wears at most as many items as
+it has slots, which is the same count [`layout.md`](layout.md#unit) gives a
+placement; fitting a full unit is refused.
 
 Fitting is free, because the item was paid for when it was taken. What it can
 change is later: an item may discount every upgrade of its unit, or pay its
@@ -392,9 +391,9 @@ JSON reader takes a match as it is.
 
 What a release writes depends on the skill. It may put a construction on the
 board, leave a shield or an area standing on its panel slot, or take one of the side's own
-units or constructions away. Recovering a unit keeps its tombstone in
-`units` and returns its fitted items to stock, where they can be fitted again
-in the same round. Releasing is free, except a skill that
+units or constructions away. Recovering a unit keeps its tombstone in `units` and returns its worn
+items from `units[].equipments` to the side's `equipments` stock, where they
+can be fitted again in the same round. Releasing is free, except a skill that
 recovers an object, which pays back what that object cost: for a unit, its
 purchase price at the prices its side's officers made at the time, plus one
 upgrade for every level above the first; for a construction, a fixed amount that

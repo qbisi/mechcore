@@ -16,7 +16,7 @@ blue:
   blueprints: [attack_enhancement_ii]
   tower_strengthen_levels: [1, 1]
   units:
-  - {name: centurion, index: 0, position: {x: 205, y: -135}, level: 2, exp: 2535/3485/5070, rotated: true, equipment: [explosive_ammo]}
+  - {name: centurion, index: 0, position: {x: 205, y: -135}, level: 2, exp: 2535/3485/5070, rotated: true, equipments: [explosive_ammo]}
   - {name: fire_badger, index: 1, position: {x: 105, y: -180}, exp: 0/700/1400, source: delivered}
   - {name: mountain, index: 2, position: {x: -25, y: -275}, level: 3, exp: 0/2100/11398, source: joined}
   contraptions:
@@ -32,7 +32,7 @@ red:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: fire_badger, index: 0, position: {x: -210, y: -225}, level: 4, exp: 6286/6286/6286, rotated: true, equipment: [small_amplifying_core]}
+  - {name: fire_badger, index: 0, position: {x: -210, y: -225}, level: 4, exp: 6286/6286/6286, rotated: true, equipments: [small_amplifying_core]}
   - {name: hacker, index: 1, position: {x: 115, y: -35}, level: 4, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}

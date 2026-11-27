@@ -19,7 +19,7 @@ blue:
     hacker: [barrier, enhanced_control, electromagnetic_interference, range_enhancement, multi_control]
   energy_tower_skills: [enhanced_range]
   units:
-  - {name: hacker, index: 0, position: {x: 65, y: -195}, level: 5, exp: 0/28/2918, rotated: true, equipment: [secondary_heavy_armor], source: joined}
+  - {name: hacker, index: 0, position: {x: 65, y: -195}, level: 5, exp: 0/28/2918, rotated: true, equipments: [secondary_heavy_armor], source: joined}
   - {name: hacker, index: 1, position: {x: 215, y: -135}, level: 6, exp: 0/614/3247, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: 20, y: -220}, retained: false}
@@ -32,7 +32,7 @@ red:
     melting_point: [energy_absorption, electromagnetic_barrage, energy_diffraction, crawler_production, armor_enhancement, range_enhancement]
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: melting_point, index: 0, position: {x: -70, y: -30}, level: 8, exp: 4709/9418/9418, rotated: true, equipment: [barrier]}
+  - {name: melting_point, index: 0, position: {x: -70, y: -30}, level: 8, exp: 4709/9418/9418, rotated: true, equipments: [barrier]}
   - {name: mustang, index: 1, position: {x: -225, y: -190}, level: 9, exp: 0/2178/8073, source: joined}
   constructions:
   - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}

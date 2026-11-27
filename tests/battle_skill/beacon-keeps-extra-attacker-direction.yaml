@@ -14,7 +14,7 @@ blue:
   blueprints: [defense_enhancement]
   energy_tower_skills: [enhanced_range]
   units:
-  - {name: marksman, index: 0, position: {x: -180, y: -260}, level: 4, exp: 1459/1471/2919, rotated: true, equipment: [secondary_heavy_armor]}
+  - {name: marksman, index: 0, position: {x: -180, y: -260}, level: 4, exp: 1459/1471/2919, rotated: true, equipments: [secondary_heavy_armor]}
   - {name: typhoon, index: 1, position: {x: -30, y: -250}, source: delivered}
   - {name: war_factory, index: 2, position: {x: -25, y: -155}, level: 6, exp: 0/96/18556, source: joined}
   constructions:
@@ -30,7 +30,7 @@ red:
   blueprints: [defense_enhancement]
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: fortress, index: 0, position: {x: -280, y: -150}, level: 6, exp: 4639/9278/9278, rotated: true, equipment: [explosive_ammo]}
+  - {name: fortress, index: 0, position: {x: -280, y: -150}, level: 6, exp: 4639/9278/9278, rotated: true, equipments: [explosive_ammo]}
   - {name: fortress, index: 1, position: {x: -70, y: -40}, level: 2, exp: 0/3605/3605, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: -205, y: -195}}

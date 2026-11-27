@@ -11,7 +11,7 @@ blue:
   blueprints: [attack_enhancement]
   energy_tower_skills: [high_mobility]
   units:
-  - {name: melting_point, index: 0, position: {x: 50, y: -250}, level: 4, exp: 6286/6286/6286, equipment: [heavy_armor]}
+  - {name: melting_point, index: 0, position: {x: 50, y: -250}, level: 4, exp: 6286/6286/6286, equipments: [heavy_armor]}
   - {name: melting_point, index: 1, position: {x: -40, y: -210}, level: 6, exp: 0/2224/8118, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
@@ -27,7 +27,7 @@ red:
   blueprints: [defense_enhancement]
   energy_tower_skills: [enhanced_range]
   units:
-  - {name: fortress, index: 0, position: {x: 220, y: -240}, level: 5, exp: 4168/8337/8337, rotated: true, equipment: [heavy_armor]}
+  - {name: fortress, index: 0, position: {x: 220, y: -240}, level: 5, exp: 4168/8337/8337, rotated: true, equipments: [heavy_armor]}
   - {name: marksman, index: 1, position: {x: -50, y: -20}, level: 3, exp: 0/16/2315, source: delivered}
   - {name: wasp, index: 2, position: {x: 245, y: -120}, level: 2, exp: 0/200/2028, source: joined}
   constructions:

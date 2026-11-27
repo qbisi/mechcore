@@ -17,7 +17,7 @@ blue:
   energy_tower_skills: [high_mobility]
   units:
   - {name: fire_badger, index: 0, position: {x: -165, y: -20}, exp: 0/338/1400, source: delivered}
-  - {name: steel_ball, index: 1, position: {x: 200, y: -275}, level: 2, exp: 0/289/2253, rotated: true, equipment: [haste_module], source: joined}
+  - {name: steel_ball, index: 1, position: {x: 200, y: -275}, level: 2, exp: 0/289/2253, rotated: true, equipments: [haste_module], source: joined}
   - {name: steel_ball, index: 2, position: {x: 45, y: -130}, level: 8, exp: 0/4141/6727, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: -55, y: -130}}
@@ -28,7 +28,7 @@ red:
   officers: [quick_teleport, cost_control_specialist, fortified_overlord]
   blueprints: [attack_enhancement]
   units:
-  - {name: overlord, index: 0, position: {x: -335, y: 185}, level: 6, exp: 0/7534/10148, rotated: true, equipment: [mustang_production_line], travelling: true, source: joined}
+  - {name: overlord, index: 0, position: {x: -335, y: 185}, level: 6, exp: 0/7534/10148, rotated: true, equipments: [mustang_production_line], travelling: true, source: joined}
   - {name: marksman, index: 1, position: {x: -50, y: -70}, level: 9, source: joined}
   battle_skills:
   - {name: underground_threat, positions: [{x: 275, y: -70}]}

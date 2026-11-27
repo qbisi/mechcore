@@ -15,7 +15,7 @@ blue:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [3, 1]
   units:
-  - {name: sandworm, index: 0, position: {x: -50, y: -270}, level: 3, exp: 7124/7124/7124, rotated: true, equipment: [barrier]}
+  - {name: sandworm, index: 0, position: {x: -50, y: -270}, level: 3, exp: 7124/7124/7124, rotated: true, equipments: [barrier]}
   - {name: marksman, index: 1, position: {x: 170, y: -270}, level: 3, exp: 0/34/2315, source: delivered}
   - {name: scorpion, index: 2, position: {x: -45, y: -165}, level: 6, exp: 0/3170/8698, source: joined}
   contraptions:
@@ -31,7 +31,7 @@ red:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 1]
   units:
-  - {name: sandworm, index: 0, position: {x: -260, y: -40}, level: 7, exp: 12593/12593/12593, rotated: true, equipment: [mustang_production_line]}
+  - {name: sandworm, index: 0, position: {x: -260, y: -40}, level: 7, exp: 12593/12593/12593, rotated: true, equipments: [mustang_production_line]}
   - {name: marksman, index: 1, position: {x: -130, y: -70}, level: 3, exp: 0/1700/2315, source: delivered}
   - {name: hound, index: 2, position: {x: 10, y: -200}, level: 8, source: joined}
   contraptions:

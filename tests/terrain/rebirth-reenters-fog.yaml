@@ -16,7 +16,7 @@ blue:
     steel_ball: [energy_absorption]
   blueprints: [defense_enhancement_ii]
   units:
-  - {name: steel_ball, index: 0, position: {x: 350, y: 85}, level: 9, exp: 0/4427/6727, equipment: [laser_sights], travelling: true, source: joined}
+  - {name: steel_ball, index: 0, position: {x: 350, y: 85}, level: 9, exp: 0/4427/6727, equipments: [laser_sights], travelling: true, source: joined}
   - {name: scorpion, index: 1, position: {x: 235, y: -185}, level: 8, exp: 0/2125/10091, source: joined}
   battle_skills:
   - {name: rhino_assault, positions: [{x: -215, y: -80}]}
@@ -29,7 +29,7 @@ red:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: typhoon, index: 0, position: {x: 100, y: -60}, level: 3, exp: 3473/4323/6946, rotated: true, equipment: [laser_sights]}
+  - {name: typhoon, index: 0, position: {x: 100, y: -60}, level: 3, exp: 3473/4323/6946, rotated: true, equipments: [laser_sights]}
   - {name: fire_badger, index: 1, position: {x: -265, y: -130}, source: delivered}
   - {name: overlord, index: 2, position: {x: -265, y: -195}, exp: 0/1750/1750, source: joined}
   battle_skills:

@@ -17,7 +17,7 @@ blue:
   blueprints: [defense_enhancement]
   energy_tower_skills: [enhanced_range]
   units:
-  - {name: fang, index: 0, position: {x: -335, y: 160}, level: 9, exp: 2018/2242/4036, rotated: true, equipment: [dominion_core]}
+  - {name: fang, index: 0, position: {x: -335, y: 160}, level: 9, exp: 2018/2242/4036, rotated: true, equipments: [dominion_core]}
   - {name: raiden, index: 1, position: {x: 100, y: -30}, level: 6, exp: 0/2032/13917, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: -295, y: -250}}
@@ -31,7 +31,7 @@ red:
   blueprints: [attack_enhancement_ii]
   units:
   - {name: fire_badger, index: 0, position: {x: -255, y: -20}, source: delivered}
-  - {name: wasp, index: 1, position: {x: -350, y: 85}, level: 3, exp: 0/3206/3206, equipment: [deployment_module], travelling: true, source: joined}
+  - {name: wasp, index: 1, position: {x: -350, y: 85}, level: 3, exp: 0/3206/3206, equipments: [deployment_module], travelling: true, source: joined}
   - {name: vortex, index: 2, position: {x: 70, y: -80}, level: 9, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}

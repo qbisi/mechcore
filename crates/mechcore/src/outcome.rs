@@ -339,7 +339,7 @@ fn fight_side(side: mechcore_document::Side, read: SideReading) -> Result<FightS
                     level: unit.level,
                     exp: Some(exp.ok_or_else(answered)?),
                     rotated: unit.rotated,
-                    equipment: unit.equipment,
+                    equipments: unit.equipments,
                     travelling: unit.travelling,
                     source: unit.source,
                 })

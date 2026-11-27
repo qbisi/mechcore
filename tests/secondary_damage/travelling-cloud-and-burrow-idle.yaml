@@ -22,7 +22,7 @@ blue:
   blueprints: [attack_enhancement_ii]
   energy_tower_skills: [enhanced_range]
   units:
-  - {name: vortex, index: 0, position: {x: 350, y: 210}, level: 9, exp: 0/3400/5046, rotated: true, equipment: [heavy_armor], travelling: true, source: joined}
+  - {name: vortex, index: 0, position: {x: 350, y: 210}, level: 9, exp: 0/3400/5046, rotated: true, equipments: [heavy_armor], travelling: true, source: joined}
   - {name: tarantula, index: 1, position: {x: 5, y: -225}, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: -65, y: -290}}
@@ -37,7 +37,7 @@ red:
   tower_strengthen_levels: [4, 3]
   units:
   - {name: marksman, index: 0, position: {x: 130, y: -60}, level: 3, exp: 0/150/2315, source: delivered}
-  - {name: sandworm, index: 1, position: {x: 160, y: -40}, level: 8, exp: 0/2450/13455, equipment: [barrier], source: joined}
+  - {name: sandworm, index: 1, position: {x: 160, y: -40}, level: 8, exp: 0/2450/13455, equipments: [barrier], source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
   contraptions:

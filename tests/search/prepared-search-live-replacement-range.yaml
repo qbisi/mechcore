@@ -13,7 +13,7 @@ blue:
     wasp: [range_enhancement]
   blueprints: [defense_enhancement]
   units:
-  - {name: wasp, index: 0, position: {x: 35, y: -20}, level: 8, exp: 3027/3214/6055, equipment: [portable_shield]}
+  - {name: wasp, index: 0, position: {x: 35, y: -20}, level: 8, exp: 3027/3214/6055, equipments: [portable_shield]}
   - {name: rhino, index: 1, position: {x: 125, y: -125}, level: 2, source: delivered}
   - {name: sledgehammer, index: 2, position: {x: 65, y: -160}, level: 9, source: joined}
   contraptions:
@@ -29,7 +29,7 @@ red:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: sandworm, index: 0, position: {x: -220, y: -190}, level: 4, exp: 8981/8981/8981, equipment: [mustang_production_line]}
+  - {name: sandworm, index: 0, position: {x: -220, y: -190}, level: 4, exp: 8981/8981/8981, equipments: [mustang_production_line]}
   - {name: centurion, index: 1, position: {x: -15, y: -215}, level: 7, exp: 0/4335/14167, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: 60, y: -10}, retained: false}

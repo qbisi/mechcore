@@ -17,7 +17,7 @@ blue:
   blueprints: [defense_enhancement_ii]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: centurion, index: 0, position: {x: 265, y: -85}, level: 4, exp: 5051/10103/10103, rotated: true, equipment: [heavy_armor]}
+  - {name: centurion, index: 0, position: {x: 265, y: -85}, level: 4, exp: 5051/10103/10103, rotated: true, equipments: [heavy_armor]}
   - {name: sabertooth, index: 1, position: {x: 95, y: -85}, source: delivered}
   - {name: wraith, index: 2, position: {x: -45, y: -245}, level: 4, exp: 0/1500/10103, source: joined}
   contraptions:
@@ -33,7 +33,7 @@ red:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: sandworm, index: 0, position: {x: 90, y: -60}, level: 8, exp: 13455/13455/13455, equipment: [barrier]}
+  - {name: sandworm, index: 0, position: {x: 90, y: -60}, level: 8, exp: 13455/13455/13455, equipments: [barrier]}
   - {name: raiden, index: 1, position: {x: -270, y: -250}, level: 2, exp: 0/560/5408, source: joined}
   battle_skills:
   - {name: lightning_storm, positions: [{x: 50, y: -290}]}

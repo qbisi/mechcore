@@ -17,7 +17,7 @@ blue:
   blueprints: [attack_enhancement_ii]
   energy_tower_skills: [enhanced_range]
   units:
-  - {name: fortress, index: 0, position: {x: -340, y: 290}, exp: 1600/1600/1600, rotated: true, equipment: [dominion_core]}
+  - {name: fortress, index: 0, position: {x: -340, y: 290}, exp: 1600/1600/1600, rotated: true, equipments: [dominion_core]}
   - {name: sabertooth, index: 1, position: {x: 255, y: -285}, source: delivered}
   - {name: arclight, index: 2, position: {x: 0, y: -70}, level: 8, source: joined}
   contraptions:
@@ -30,7 +30,7 @@ red:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: arclight, index: 0, position: {x: -290, y: -260}, level: 4, exp: 1684/1684/3368, rotated: true, equipment: [secondary_heavy_armor]}
+  - {name: arclight, index: 0, position: {x: -290, y: -260}, level: 4, exp: 1684/1684/3368, rotated: true, equipments: [secondary_heavy_armor]}
   - {name: raiden, index: 1, position: {x: -180, y: -100}, level: 9, exp: 0/4828/16146, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}

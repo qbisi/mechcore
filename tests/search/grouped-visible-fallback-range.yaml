@@ -14,7 +14,7 @@ blue:
   blueprints: [attack_enhancement]
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: mustang, index: 0, position: {x: -180, y: -255}, level: 5, exp: 0/68/6253, rotated: true, equipment: [deployment_module], source: joined}
+  - {name: mustang, index: 0, position: {x: -180, y: -255}, level: 5, exp: 0/68/6253, rotated: true, equipments: [deployment_module], source: joined}
   - {name: mountain, index: 1, position: {x: -55, y: -115}, level: 9, exp: 0/136/21528, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: -175, y: -110}}
@@ -29,7 +29,7 @@ red:
   energy_tower_skills: [enhanced_range]
   units:
   - {name: rhino, index: 0, position: {x: 125, y: -205}, level: 2, exp: 0/841/2591, source: delivered}
-  - {name: sandworm, index: 1, position: {x: 150, y: -30}, level: 7, exp: 0/12593/12593, equipment: [mustang_production_line], source: joined}
+  - {name: sandworm, index: 1, position: {x: 150, y: -30}, level: 7, exp: 0/12593/12593, equipments: [mustang_production_line], source: joined}
   - {name: typhoon, index: 2, position: {x: -100, y: -20}, level: 6, exp: 0/7000/11308, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}

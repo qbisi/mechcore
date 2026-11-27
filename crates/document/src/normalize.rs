@@ -576,9 +576,9 @@ impl Builder<'_> {
         let free = slots.saturating_sub(worn.len());
         let in_stock = self
             .position
-            .equipment
+            .equipments
             .iter()
-            .filter(|item| item.id == ENHANCEMENT_MODULE && item.fitted.is_none())
+            .filter(|id| **id == ENHANCEMENT_MODULE)
             .count();
         let mut discount = worn
             .into_iter()
@@ -916,7 +916,7 @@ fn step_aside(
 mod tests {
     use super::*;
     use crate::layout::{Position, UnitSource};
-    use crate::r#match::{Allowances, NextIndex, PanelSkill, StateEquipment};
+    use crate::r#match::{Allowances, NextIndex, PanelSkill};
 
     fn side() -> SideState {
         SideState {
@@ -945,6 +945,7 @@ mod tests {
                     level: None,
                     exp: None,
                     rotated: None,
+                    equipments: Vec::new(),
                     travelling: None,
                     source: UnitSource::Joined,
                     recovered: false,
@@ -1203,10 +1204,7 @@ mod tests {
         let mut opened = side();
         opened.units[0].type_name = "melting_point".into();
         opened.units[0].level = Some(4);
-        opened.equipment.push(StateEquipment {
-            id: ENHANCEMENT_MODULE,
-            fitted: None,
-        });
+        opened.equipments.push(ENHANCEMENT_MODULE);
         fill_bar(&mut opened.units[0]);
         let train = add_training(&mut opened, 0);
         let upgrade = Action::UpgradeUnit { index: 0 };
@@ -1263,13 +1261,7 @@ mod tests {
         let mut opened = side();
         opened.units[0].type_name = "melting_point".into();
         opened.officers.push(10540);
-        opened.equipment = vec![
-            StateEquipment {
-                id: ENHANCEMENT_MODULE,
-                fitted: None
-            };
-            2
-        ];
+        opened.equipments = vec![ENHANCEMENT_MODULE; 2];
         fill_bar(&mut opened.units[0]);
         let train_first = add_training(&mut opened, 0);
         let train_second = add_training(&mut opened, 0);
@@ -1373,10 +1365,7 @@ mod tests {
         let mut opened = side();
         opened.units[0].type_name = "wasp".into();
         opened.units[0].source = UnitSource::Legacy;
-        opened.equipment.push(StateEquipment {
-            id: crate::mobility::DEPLOYMENT_MODULE,
-            fitted: None,
-        });
+        opened.equipments.push(crate::mobility::DEPLOYMENT_MODULE);
         let research = Action::UpgradeTechnology {
             unit: 6,
             tech: 1606,
@@ -1466,10 +1455,7 @@ mod tests {
     fn recovery_uses_the_module_only_if_an_upgrade_benefits() {
         let mut opened = side();
         opened.battle_skills.push(slot(900_001));
-        opened.equipment.push(StateEquipment {
-            id: ENHANCEMENT_MODULE,
-            fitted: None,
-        });
+        opened.equipments.push(ENHANCEMENT_MODULE);
         fill_bar(&mut opened.units[0]);
         let recover = Action::ReleaseCommanderSkill {
             index: 0,
@@ -1527,10 +1513,7 @@ mod tests {
     fn elite_recruitment_uses_the_economic_cut_for_a_recovered_purchase() {
         let mut opened = side();
         opened.battle_skills.push(slot(900_001));
-        opened.equipment.push(StateEquipment {
-            id: ENHANCEMENT_MODULE,
-            fitted: None,
-        });
+        opened.equipments.push(ENHANCEMENT_MODULE);
         let train = add_training(&mut opened, 3);
         let taken = [
             default_purchase(1),
@@ -1642,10 +1625,7 @@ mod tests {
     fn recovery_restores_continuous_training_and_existing_module_refunds() {
         let mut opened = side();
         opened.units[0].exp = Experience::of(1, "marksman", 1).unwrap();
-        opened.equipment.push(StateEquipment {
-            id: ENHANCEMENT_MODULE,
-            fitted: Some(crate::r#match::EquipmentFitting { unit: 0, slot: 0 }),
-        });
+        opened.units[0].equipments.push(ENHANCEMENT_MODULE);
         opened.battle_skills = vec![
             slot(900_001),
             PanelSkill {

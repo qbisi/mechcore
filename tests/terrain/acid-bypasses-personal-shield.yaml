@@ -18,7 +18,7 @@ red:
   core_damage: 200
   blueprints: [defense_enhancement]
   units:
-  - {name: centurion, index: 0, position: {x: -225, y: -45}, level: 5, exp: 5862/5862/11724, rotated: true, equipment: [portable_shield]}
+  - {name: centurion, index: 0, position: {x: -225, y: -45}, level: 5, exp: 5862/5862/11724, rotated: true, equipments: [portable_shield]}
 asserts:
 - sql: |
     SELECT tick, life__current, personal_shield__energy__current FROM units

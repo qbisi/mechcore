@@ -17,7 +17,7 @@ blue:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: raiden, index: 0, position: {x: 240, y: -40}, level: 4, exp: 10777/10777/10777, rotated: true, equipment: [tank_production_line]}
+  - {name: raiden, index: 0, position: {x: 240, y: -40}, level: 4, exp: 10777/10777/10777, rotated: true, equipments: [tank_production_line]}
   - {name: typhoon, index: 1, position: {x: -40, y: -80}, exp: 0/300/1950, source: delivered}
   - {name: wasp, index: 2, position: {x: 225, y: -220}, level: 3, exp: 0/600/3206, source: joined}
   constructions:

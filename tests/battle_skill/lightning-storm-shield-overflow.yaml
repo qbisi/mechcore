@@ -19,7 +19,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: fortress, index: 0, position: {x: -320, y: 50}, level: 5, exp: 4168/5903/8337, rotated: true, equipment: [small_amplifying_core]}
+  - {name: fortress, index: 0, position: {x: -320, y: 50}, level: 5, exp: 4168/5903/8337, rotated: true, equipments: [small_amplifying_core]}
   - {name: rhino, index: 1, position: {x: -45, y: -105}, level: 2, exp: 0/1233/2591, source: delivered}
   - {name: fire_badger, index: 2, position: {x: 265, y: -260}, level: 9, exp: 0/1959/9418, source: joined}
   battle_skills:
@@ -33,7 +33,7 @@ red:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: fortress, index: 0, position: {x: -170, y: -200}, exp: 800/1600/1600, rotated: true, equipment: [steel_ball_production_line]}
+  - {name: fortress, index: 0, position: {x: -170, y: -200}, exp: 800/1600/1600, rotated: true, equipments: [steel_ball_production_line]}
   - {name: rhino, index: 1, position: {x: 135, y: -25}, level: 2, source: delivered}
   - {name: void_eye, index: 2, position: {x: -70, y: -80}, level: 6, exp: 0/1200/3769, source: joined}
   contraptions:

@@ -396,8 +396,13 @@ pub struct SideState {
     #[schemars(with = "Vec<String>")]
     pub energy_tower_skills: Vec<i32>,
     pub tower_strengthen_levels: Vec<i32>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub equipment: Vec<StateEquipment>,
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        with = "crate::names::equipment::many"
+    )]
+    #[schemars(with = "Vec<String>")]
+    pub equipments: Vec<i32>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub battle_skills: Vec<PanelSkill>,
     pub next_index: NextIndex,
@@ -458,6 +463,13 @@ pub struct StateUnit {
     pub exp: Option<Experience>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub rotated: Option<bool>,
+    #[serde(
+        default,
+        skip_serializing_if = "Vec::is_empty",
+        with = "crate::names::equipment::many"
+    )]
+    #[schemars(with = "Vec<String>")]
+    pub equipments: Vec<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub travelling: Option<bool>,
     #[serde(rename = "recordPosition", skip_serializing_if = "Option::is_none")]
@@ -484,7 +496,7 @@ impl<'de> Deserialize<'de> for StateUnit {
 
 impl StateUnit {
     /// The layout pose and experience of a standing formation, with its fitted items.
-    pub(crate) fn placement(&self, side: &SideState) -> Result<UnitPlacement, String> {
+    pub(crate) fn placement(&self) -> Result<UnitPlacement, String> {
         Ok(UnitPlacement {
             type_name: self.type_name.clone(),
             index: self.index,
@@ -496,7 +508,7 @@ impl StateUnit {
             level: self.level,
             exp: self.exp.filter(|bar| bar.current != 0),
             rotated: self.rotated,
-            equipment: side.worn_equipment(self.index),
+            equipments: self.equipments.clone(),
             travelling: self.travelling,
             source: self.source,
         })
@@ -523,33 +535,11 @@ impl StateUnit {
         self.position = None;
         self.exp = None;
         self.rotated = None;
+        self.equipments.clear();
         self.travelling = None;
         self.record_position = None;
         self.record_rotated = None;
     }
-}
-
-/// A copy of an owned item, either in stock or fitted at a formation's slot.
-#[derive(
-    Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq, PartialOrd, Ord,
-)]
-#[serde(deny_unknown_fields)]
-pub struct StateEquipment {
-    #[serde(rename = "name", with = "crate::names::equipment::one")]
-    #[schemars(with = "String")]
-    pub id: i32,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub fitted: Option<EquipmentFitting>,
-}
-
-#[derive(
-    Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq, PartialOrd, Ord,
-)]
-#[serde(deny_unknown_fields)]
-pub struct EquipmentFitting {
-    pub unit: i32,
-    /// Zero-based order in which this formation fitted its items.
-    pub slot: usize,
 }
 
 impl SideState {
@@ -560,21 +550,14 @@ impl SideState {
     /// What a formation wears, in fitting order, including duplicate items.
     #[must_use]
     pub fn worn_equipment(&self, index: i32) -> Vec<i32> {
-        let mut fitted: Vec<_> = self
-            .equipment
-            .iter()
-            .filter_map(|item| {
-                let fitted = item.fitted?;
-                (fitted.unit == index).then_some((fitted.slot, item.id))
-            })
-            .collect();
-        fitted.sort_unstable_by_key(|(slot, _)| *slot);
-        fitted.into_iter().map(|(_, id)| id).collect()
+        self.active_units()
+            .find(|unit| unit.index == index)
+            .map(|unit| unit.equipments.clone())
+            .unwrap_or_default()
     }
 
     pub(crate) fn check_board(&self, opening: bool) -> Result<(), String> {
         let mut indices = BTreeSet::new();
-        let mut active = BTreeSet::new();
         let spent: BTreeSet<_> = self
             .battle_skills
             .iter()
@@ -597,6 +580,7 @@ impl SideState {
                     || unit.position.is_some()
                     || unit.rotated.is_some()
                     || unit.exp.is_some()
+                    || !unit.equipments.is_empty()
                     || unit.travelling.is_some()
                     || unit.record_position.is_some()
                     || unit.record_rotated.is_some()
@@ -611,34 +595,10 @@ impl SideState {
                     "formation {} has an invalid on-board state",
                     unit.index
                 ));
-            } else {
-                active.insert(unit.index);
             }
         }
         if let Some(index) = spent.iter().find(|index| !indices.contains(index)) {
             return Err(format!("recovery of formation {index} has no tombstone"));
-        }
-        let mut slots = BTreeMap::<i32, BTreeSet<usize>>::new();
-        for fitted in self.equipment.iter().filter_map(|item| item.fitted) {
-            if !active.contains(&fitted.unit) {
-                return Err(format!(
-                    "equipment is fitted to absent formation {}",
-                    fitted.unit
-                ));
-            }
-            if !slots.entry(fitted.unit).or_default().insert(fitted.slot) {
-                return Err(format!(
-                    "formation {} repeats equipment slot {}",
-                    fitted.unit, fitted.slot
-                ));
-            }
-        }
-        for (index, slots) in slots {
-            if slots.iter().copied().ne(0..slots.len()) {
-                return Err(format!(
-                    "formation {index} has a gap in its equipment slots"
-                ));
-            }
         }
         Ok(())
     }
@@ -2102,30 +2062,61 @@ mod tests {
     }
 
     #[test]
-    fn a_state_refuses_equipment_slots_with_gaps_or_absent_units() {
-        use super::{EquipmentFitting, SideState, StateEquipment, StateUnit};
+    fn equipments_spell_inline_and_tombstones_refuse_worn_items() {
+        use super::{PanelSkill, Release, SideState, SkillTarget, StateUnit};
 
-        let unit: StateUnit =
-            serde_yaml::from_str("{name: crawler, index: 0, position: {x: 0, y: -160}}").unwrap();
-        let mut side = SideState {
+        let unit: StateUnit = serde_yaml::from_str(
+            "{name: crawler, index: 0, position: {x: 0, y: -160}, equipments: [heavy_armor, laser_sights]}",
+        )
+        .unwrap();
+        assert_eq!(unit.equipments, [13_030_002, 13_030_001]);
+
+        let side = SideState {
+            equipments: vec![13_030_001, 13_030_001],
             units: vec![unit],
             ..Default::default()
         };
-        for (unit, slot, expected) in [
-            (0, 0, None),
-            (3, 0, Some("absent formation")),
-            (0, 2, Some("gap")),
-        ] {
-            side.equipment = vec![StateEquipment {
-                id: 13_030_001,
-                fitted: Some(EquipmentFitting { unit, slot }),
-            }];
-            let error = side.check_board(false).err();
-            assert_eq!(error.is_none(), expected.is_none());
-            if let Some(expected) = expected {
-                assert!(error.unwrap().contains(expected));
-            }
-        }
+        side.check_board(false).unwrap();
+        let written = crate::spelling::document(&serde_yaml::to_value(&side).unwrap()).unwrap();
+        assert!(
+            written.contains("equipments: [laser_sights, laser_sights]\n"),
+            "{written}"
+        );
+        assert!(
+            written.contains(
+                "- {name: crawler, index: 0, position: {x: 0, y: -160}, equipments: [heavy_armor, laser_sights]}\n"
+            ),
+            "{written}"
+        );
+        let restored: SideState = serde_yaml::from_str(&written).unwrap();
+        assert_eq!(restored, side);
+
+        let tombstone = StateUnit {
+            recovered: true,
+            position: None,
+            equipments: vec![13_030_001],
+            ..restored.units.into_iter().next().unwrap()
+        };
+        let invalid = SideState {
+            battle_skills: vec![PanelSkill {
+                index: 0,
+                id: crate::ledger::RECOVERY_SKILLS[0],
+                cooldown: 0,
+                standing: Vec::new(),
+                release: Some(Release {
+                    order: None,
+                    target: SkillTarget::Unit(0),
+                }),
+            }],
+            units: vec![tombstone],
+            ..Default::default()
+        };
+        assert!(
+            invalid
+                .check_board(false)
+                .unwrap_err()
+                .contains("recovery tombstone")
+        );
     }
 
     use super::segments;

@@ -17,7 +17,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: sabertooth, index: 0, position: {x: 85, y: -45}, level: 9, exp: 0/4531/8746, equipment: [photon_coating], source: joined}
+  - {name: sabertooth, index: 0, position: {x: 85, y: -45}, level: 9, exp: 0/4531/8746, equipments: [photon_coating], source: joined}
   - {name: mountain, index: 1, position: {x: -245, y: -65}, level: 8, exp: 0/10476/21528, source: joined}
   constructions:
   - {name: anti_armor_turret, index: 1, position: {x: 140, y: -100}}
@@ -34,7 +34,7 @@ red:
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
   - {name: sabertooth, index: 0, position: {x: -225, y: -155}, source: delivered}
-  - {name: typhoon, index: 1, position: {x: -330, y: 280}, level: 2, equipment: [nano_repair_kit], travelling: true, source: joined}
+  - {name: typhoon, index: 1, position: {x: -330, y: 280}, level: 2, equipments: [nano_repair_kit], travelling: true, source: joined}
   - {name: farseer, index: 2, position: {x: 85, y: -255}, level: 9, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: -70, y: -105}, retained: false}

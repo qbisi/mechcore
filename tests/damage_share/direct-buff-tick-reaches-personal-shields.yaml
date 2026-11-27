@@ -15,7 +15,7 @@ blue:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [3, 2]
   units:
-  - {name: steel_ball, index: 0, position: {x: -220, y: -35}, exp: 0/1000/1000, rotated: true, equipment: [portable_shield], source: joined}
+  - {name: steel_ball, index: 0, position: {x: -220, y: -35}, exp: 0/1000/1000, rotated: true, equipments: [portable_shield], source: joined}
   - {name: hacker, index: 1, position: {x: -45, y: -85}, exp: 0/560/560, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
@@ -30,7 +30,7 @@ red:
   tower_strengthen_levels: [4, 4]
   units:
   - {name: marksman, index: 0, position: {x: -250, y: -70}, level: 3, exp: 0/1020/2315, source: delivered}
-  - {name: centurion, index: 1, position: {x: -345, y: 225}, level: 2, exp: 0/1500/5070, rotated: true, equipment: [secondary_heavy_armor], travelling: true, source: joined}
+  - {name: centurion, index: 1, position: {x: -345, y: 225}, level: 2, exp: 0/1500/5070, rotated: true, equipments: [secondary_heavy_armor], travelling: true, source: joined}
   - {name: arclight, index: 2, position: {x: 80, y: -190}, level: 4, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}

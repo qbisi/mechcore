@@ -15,7 +15,7 @@ blue:
   energy_tower_skills: [high_mobility]
   units:
   - {name: fire_badger, index: 0, position: {x: -105, y: -240}, source: delivered}
-  - {name: crawler, index: 1, position: {x: -280, y: -185}, level: 6, exp: 0/1025/2609, rotated: true, equipment: [absorption_module], source: joined}
+  - {name: crawler, index: 1, position: {x: -280, y: -185}, level: 6, exp: 0/1025/2609, rotated: true, equipments: [absorption_module], source: joined}
   - {name: wasp, index: 2, position: {x: -25, y: -300}, level: 8, exp: 0/714/6055, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: -290, y: -295}}
@@ -28,7 +28,7 @@ red:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [2, 3]
   units:
-  - {name: void_eye, index: 0, position: {x: 210, y: -280}, level: 3, exp: 2315/2315/2315, rotated: true, equipment: [anti_interference_module]}
+  - {name: void_eye, index: 0, position: {x: 210, y: -280}, level: 3, exp: 2315/2315/2315, rotated: true, equipments: [anti_interference_module]}
   - {name: mustang, index: 1, position: {x: -45, y: -30}, level: 4, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: -5, y: -90}, retained: false}

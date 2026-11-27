@@ -16,6 +16,6 @@ blue:
 red:
   core_damage: 0
   units:
-  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/450/450, equipment: [portable_shield], source: joined}
+  - {name: crawler, index: 0, position: {x: 5, y: -100}, exp: 0/450/450, equipments: [portable_shield], source: joined}
 ticks: 439
 hash: 27:4e895f6320c351440974520d17ad19ea955cbbed3f573aaf4e9224c540649166

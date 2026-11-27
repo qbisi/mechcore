@@ -23,8 +23,8 @@ blue:
   - {name: crawler, index: 9, position: {x: 270, y: -285}, exp: 21/68/450, rotated: true}
   - {name: arclight, index: 10, position: {x: -100, y: -160}, level: 2, exp: 400/490/1690}
   - {name: arclight, index: 11, position: {x: -200, y: -160}, level: 2, exp: 516/582/1690}
-  - {name: centurion, index: 12, position: {x: 105, y: -165}, exp: 209/1326/2250, equipment: [haste_module]}
-  - {name: centurion, index: 13, position: {x: 215, y: -165}, exp: 330/1289/2250, equipment: [explosive_ammo]}
+  - {name: centurion, index: 12, position: {x: 105, y: -165}, exp: 209/1326/2250, equipments: [haste_module]}
+  - {name: centurion, index: 13, position: {x: 215, y: -165}, exp: 330/1289/2250, equipments: [explosive_ammo]}
   - {name: stormcaller, index: 14, position: {x: 80, y: -105}, exp: 0/1032/1100, rotated: true, source: joined}
   - {name: stormcaller, index: 15, position: {x: 190, y: -105}, exp: 0/1042/1100, rotated: true, source: joined}
   - {name: crawler, index: 16, position: {x: 135, y: -300}, exp: 0/59/450, source: joined}

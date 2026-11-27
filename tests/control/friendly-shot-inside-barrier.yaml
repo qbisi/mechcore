@@ -11,7 +11,7 @@ blue:
   blueprints: [attack_enhancement]
   energy_tower_skills: [enhanced_range]
   units:
-  - {name: rhino, index: 0, position: {x: -335, y: 35}, level: 8, exp: 0/1537/7736, equipment: [heavy_armor], travelling: true, source: joined}
+  - {name: rhino, index: 0, position: {x: -335, y: 35}, level: 8, exp: 0/1537/7736, equipments: [heavy_armor], travelling: true, source: joined}
   - {name: void_eye, index: 1, position: {x: -120, y: -270}, level: 3, exp: 0/17/2315, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: -105, y: -165}, retained: false}
@@ -25,7 +25,7 @@ red:
   blueprints: [attack_enhancement_ii]
   tower_strengthen_levels: [3, 4]
   units:
-  - {name: hacker, index: 0, position: {x: -325, y: 215}, level: 8, exp: 1883/3767/3767, rotated: true, equipment: [secondary_heavy_armor]}
+  - {name: hacker, index: 0, position: {x: -325, y: 215}, level: 8, exp: 1883/3767/3767, rotated: true, equipments: [secondary_heavy_armor]}
   - {name: rhino, index: 1, position: {x: 45, y: -55}, level: 2, exp: 0/925/2591, source: delivered}
   - {name: fortress, index: 2, position: {x: -70, y: -220}, level: 6, exp: 0/3000/9278, source: joined}
   constructions:

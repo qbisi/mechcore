@@ -19,7 +19,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [2, 1]
   units:
-  - {name: crawler, index: 0, position: {x: 340, y: 195}, exp: 450/450/450, equipment: [explosive_ammo]}
+  - {name: crawler, index: 0, position: {x: 340, y: 195}, exp: 450/450/450, equipments: [explosive_ammo]}
   - {name: fire_badger, index: 1, position: {x: 145, y: -230}, exp: 0/1400/1400, source: delivered}
   - {name: hacker, index: 2, position: {x: 275, y: -35}, level: 3, exp: 0/1995/1995, source: joined}
   constructions:
@@ -33,7 +33,7 @@ red:
   core_damage: 499
   officers: [advanced_defensive_tactics, advanced_defensive_tactics, extended_range_sabertooth]
   units:
-  - {name: sabertooth, index: 0, position: {x: -95, y: -295}, level: 3, exp: 2315/2371/4630, rotated: true, equipment: [heavy_armor]}
+  - {name: sabertooth, index: 0, position: {x: -95, y: -295}, level: 3, exp: 2315/2371/4630, rotated: true, equipments: [heavy_armor]}
   - {name: centurion, index: 1, position: {x: 285, y: -205}, level: 8, exp: 0/112/15137, source: joined}
   contraptions:
   - {name: interceptor, index: 0, position: {x: 135, y: -265}, retained: false}

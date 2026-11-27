@@ -16,7 +16,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
   - {name: marksman, index: 0, position: {x: 60, y: -30}, level: 3, exp: 0/320/2315, source: delivered}
-  - {name: fortress, index: 1, position: {x: -330, y: 280}, level: 9, exp: 0/200/10764, equipment: [amplifying_core], travelling: true, source: joined}
+  - {name: fortress, index: 1, position: {x: -330, y: 280}, level: 9, exp: 0/200/10764, equipments: [amplifying_core], travelling: true, source: joined}
   - {name: wasp, index: 2, position: {x: 105, y: -130}, level: 9, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
@@ -29,7 +29,7 @@ red:
   tower_strengthen_levels: [2, 4]
   units:
   - {name: marksman, index: 0, position: {x: 240, y: -100}, level: 3, source: delivered}
-  - {name: arclight, index: 1, position: {x: 30, y: -70}, equipment: [dominion_core], source: joined}
+  - {name: arclight, index: 1, position: {x: 30, y: -70}, equipments: [dominion_core], source: joined}
   - {name: scorpion, index: 2, position: {x: 75, y: -255}, level: 9, source: joined}
   constructions:
   - {name: anti_armor_turret, index: 1, position: {x: -140, y: -100}}

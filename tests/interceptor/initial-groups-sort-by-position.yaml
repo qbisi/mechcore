@@ -15,7 +15,7 @@ blue:
   blueprints: [defense_enhancement_ii]
   energy_tower_skills: [high_mobility]
   units:
-  - {name: melting_point, index: 0, position: {x: -330, y: 250}, level: 7, exp: 0/8815/8815, rotated: true, equipment: [mustang_production_line], travelling: true, source: joined}
+  - {name: melting_point, index: 0, position: {x: -330, y: 250}, level: 7, exp: 0/8815/8815, rotated: true, equipments: [mustang_production_line], travelling: true, source: joined}
   - {name: arclight, index: 1, position: {x: 110, y: -200}, level: 9, exp: 0/402/5046, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: 135, y: -125}, retained: false}
@@ -30,7 +30,7 @@ red:
   energy_tower_skills: [high_mobility]
   units:
   - {name: fire_badger, index: 0, position: {x: -155, y: -90}, source: delivered}
-  - {name: mustang, index: 1, position: {x: -75, y: -30}, level: 6, exp: 0/2828/6959, equipment: [explosive_ammo], source: joined}
+  - {name: mustang, index: 1, position: {x: -75, y: -30}, level: 6, exp: 0/2828/6959, equipments: [explosive_ammo], source: joined}
   - {name: fortress, index: 2, position: {x: -90, y: -80}, level: 4, exp: 0/2550/7184, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}

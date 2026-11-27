@@ -14,7 +14,7 @@ blue:
   blueprints: [attack_enhancement]
   energy_tower_skills: [enhanced_range]
   units:
-  - {name: raiden, index: 0, position: {x: 210, y: -40}, level: 3, exp: 0/4598/8548, equipment: [mustang_production_line], source: joined}
+  - {name: raiden, index: 0, position: {x: 210, y: -40}, level: 3, exp: 0/4598/8548, equipments: [mustang_production_line], source: joined}
   - {name: hacker, index: 1, position: {x: 15, y: -195}, level: 2, exp: 0/400/1262, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: -10, y: -245}, retained: false}
@@ -26,7 +26,7 @@ red:
   blueprints: [attack_enhancement_ii]
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: void_eye, index: 0, position: {x: 230, y: -220}, level: 6, exp: 0/2140/3769, equipment: [portable_shield], source: joined}
+  - {name: void_eye, index: 0, position: {x: 230, y: -220}, level: 6, exp: 0/2140/3769, equipments: [portable_shield], source: joined}
   - {name: wraith, index: 1, position: {x: -255, y: -165}, level: 4, exp: 0/136/10103, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}

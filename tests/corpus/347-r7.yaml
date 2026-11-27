@@ -26,7 +26,7 @@ blue:
   - {name: crawler, index: 8, position: {x: 240, y: -55}, exp: 302/346/450, rotated: true}
   - {name: tarantula, index: 9, position: {x: 265, y: -25}, exp: 323/434/1500}
   - {name: tarantula, index: 10, position: {x: -115, y: -165}, exp: 712/805/1500}
-  - {name: rhino, index: 11, position: {x: 75, y: -135}, level: 2, exp: 171/208/2591, equipment: [heavy_armor]}
+  - {name: rhino, index: 11, position: {x: 75, y: -135}, level: 2, exp: 171/208/2591, equipments: [heavy_armor]}
   - {name: stormcaller, index: 12, position: {x: -75, y: -160}, level: 2, exp: 1349/1564/2479}
   - {name: stormcaller, index: 13, position: {x: -165, y: -150}, level: 2, exp: 1451/2178/2479}
   - {name: crawler, index: 14, position: {x: -90, y: -245}, exp: 450/450/450, rotated: true}
@@ -65,24 +65,24 @@ red:
   tower_strengthen_levels: [1, 0]
   units:
   - {name: hound, index: 0, position: {x: 190, y: -90}, exp: 701/750/750}
-  - {name: hound, index: 1, position: {x: -110, y: -90}, level: 2, exp: 370/1165/1690, equipment: [secondary_heavy_armor]}
-  - {name: hound, index: 2, position: {x: 120, y: -90}, exp: 425/634/750, equipment: [secondary_fire_control_system]}
-  - {name: sabertooth, index: 4, position: {x: -145, y: -75}, level: 2, exp: 2798/2929/2929, equipment: [secondary_fire_control_system]}
+  - {name: hound, index: 1, position: {x: -110, y: -90}, level: 2, exp: 370/1165/1690, equipments: [secondary_heavy_armor]}
+  - {name: hound, index: 2, position: {x: 120, y: -90}, exp: 425/634/750, equipments: [secondary_fire_control_system]}
+  - {name: sabertooth, index: 4, position: {x: -145, y: -75}, level: 2, exp: 2798/2929/2929, equipments: [secondary_fire_control_system]}
   - {name: crawler, index: 5, position: {x: 160, y: -115}, exp: 450/450/450, rotated: true}
   - {name: crawler, index: 6, position: {x: -110, y: -125}, exp: 338/389/450, rotated: true}
   - {name: fang, index: 7, position: {x: -170, y: -85}, exp: 600/600/600, rotated: true}
   - {name: fang, index: 8, position: {x: -140, y: -205}, exp: 600/600/600, rotated: true}
   - {name: crawler, index: 9, position: {x: -145, y: -20}, exp: 321/321/450}
-  - {name: phoenix, index: 10, position: {x: 200, y: -270}, exp: 1033/1049/1300, rotated: true, equipment: [secondary_laser_sight]}
-  - {name: phoenix, index: 11, position: {x: -190, y: -270}, level: 3, exp: 2599/3780/4630, rotated: true, equipment: [secondary_laser_sight]}
-  - {name: fortress, index: 12, position: {x: -260, y: -80}, level: 2, exp: 1211/1853/3605, equipment: [secondary_heavy_armor]}
-  - {name: fortress, index: 13, position: {x: -70, y: -80}, level: 2, exp: 946/1887/3605, equipment: [secondary_heavy_armor]}
-  - {name: hound, index: 14, position: {x: -200, y: -110}, level: 2, exp: 0/795/1690, equipment: [secondary_heavy_armor]}
-  - {name: hound, index: 15, position: {x: -270, y: -110}, level: 2, exp: 0/1052/1690, equipment: [secondary_heavy_armor]}
-  - {name: centurion, index: 16, position: {x: -75, y: -115}, exp: 345/2250/2250, equipment: [secondary_fire_control_system]}
-  - {name: centurion, index: 17, position: {x: -145, y: -105}, exp: 617/2250/2250, equipment: [secondary_heavy_armor]}
-  - {name: centurion, index: 18, position: {x: -235, y: -115}, exp: 728/2250/2250, equipment: [secondary_fire_control_system]}
-  - {name: centurion, index: 19, position: {x: -15, y: -115}, exp: 273/2250/2250, equipment: [secondary_fire_control_system]}
+  - {name: phoenix, index: 10, position: {x: 200, y: -270}, exp: 1033/1049/1300, rotated: true, equipments: [secondary_laser_sight]}
+  - {name: phoenix, index: 11, position: {x: -190, y: -270}, level: 3, exp: 2599/3780/4630, rotated: true, equipments: [secondary_laser_sight]}
+  - {name: fortress, index: 12, position: {x: -260, y: -80}, level: 2, exp: 1211/1853/3605, equipments: [secondary_heavy_armor]}
+  - {name: fortress, index: 13, position: {x: -70, y: -80}, level: 2, exp: 946/1887/3605, equipments: [secondary_heavy_armor]}
+  - {name: hound, index: 14, position: {x: -200, y: -110}, level: 2, exp: 0/795/1690, equipments: [secondary_heavy_armor]}
+  - {name: hound, index: 15, position: {x: -270, y: -110}, level: 2, exp: 0/1052/1690, equipments: [secondary_heavy_armor]}
+  - {name: centurion, index: 16, position: {x: -75, y: -115}, exp: 345/2250/2250, equipments: [secondary_fire_control_system]}
+  - {name: centurion, index: 17, position: {x: -145, y: -105}, exp: 617/2250/2250, equipments: [secondary_heavy_armor]}
+  - {name: centurion, index: 18, position: {x: -235, y: -115}, exp: 728/2250/2250, equipments: [secondary_fire_control_system]}
+  - {name: centurion, index: 19, position: {x: -15, y: -115}, exp: 273/2250/2250, equipments: [secondary_fire_control_system]}
   - {name: crawler, index: 20, position: {x: 155, y: -20}, source: joined}
   - {name: crawler, index: 21, position: {x: -290, y: -35}, exp: 0/216/450, rotated: true, source: joined}
   constructions:

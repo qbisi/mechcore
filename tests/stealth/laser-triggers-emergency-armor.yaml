@@ -18,7 +18,7 @@ blue:
     vortex: [grid_integration, field_maintenance, electromagnetic_cloud, machine_learning, range_enhancement, electromagnetic_twin, mobile_power_station, accumulator_shield, emergency_armor]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: vortex, index: 0, position: {x: 200, y: -20}, level: 9, exp: 5046/5046/5046, rotated: true, equipment: [anti_interference_module]}
+  - {name: vortex, index: 0, position: {x: 200, y: -20}, level: 9, exp: 5046/5046/5046, rotated: true, equipments: [anti_interference_module]}
   - {name: mustang, index: 1, position: {x: 195, y: -120}, level: 6, exp: 0/1870/6959, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: -100, y: -240}}
@@ -32,7 +32,7 @@ red:
   tower_strengthen_levels: [2, 4]
   units:
   - {name: fire_badger, index: 0, position: {x: -265, y: -200}, exp: 0/566/1400, source: delivered}
-  - {name: crawler, index: 1, position: {x: -95, y: -100}, level: 7, exp: 0/2833/2833, equipment: [absorption_module], source: joined}
+  - {name: crawler, index: 1, position: {x: -95, y: -100}, level: 7, exp: 0/2833/2833, equipments: [absorption_module], source: joined}
   - {name: steel_ball, index: 2, position: {x: -205, y: -100}, level: 4, exp: 0/3388/4490, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: 25, y: -140}}

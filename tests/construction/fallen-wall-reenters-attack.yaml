@@ -16,7 +16,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 2]
   units:
-  - {name: wasp, index: 0, position: {x: 255, y: -150}, level: 2, exp: 0/236/2028, equipment: [nano_repair_kit], source: joined}
+  - {name: wasp, index: 0, position: {x: 255, y: -150}, level: 2, exp: 0/236/2028, equipments: [nano_repair_kit], source: joined}
   - {name: hound, index: 1, position: {x: -50, y: -100}, level: 8, exp: 0/414/5046, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
@@ -34,7 +34,7 @@ red:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: typhoon, index: 0, position: {x: 160, y: -190}, level: 9, exp: 6559/8883/13118, equipment: [laser_sights]}
+  - {name: typhoon, index: 0, position: {x: 160, y: -190}, level: 9, exp: 6559/8883/13118, equipments: [laser_sights]}
   - {name: fire_badger, index: 1, position: {x: 75, y: -140}, source: delivered}
   - {name: war_factory, index: 2, position: {x: 255, y: -115}, exp: 0/2420/3200, source: joined}
   constructions:

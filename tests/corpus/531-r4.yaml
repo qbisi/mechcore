@@ -22,7 +22,7 @@ blue:
   - {name: crawler, index: 9, position: {x: 20, y: -285}, exp: 75/90/450, rotated: true}
   - {name: crawler, index: 10, position: {x: 250, y: -285}, exp: 117/450/450, rotated: true}
   - {name: hound, index: 11, position: {x: -230, y: -240}, exp: 260/442/750}
-  - {name: raiden, index: 12, position: {x: 230, y: -120}, level: 2, exp: 0/1625/5408, equipment: [improved_firepower_control_system]}
+  - {name: raiden, index: 12, position: {x: 230, y: -120}, level: 2, exp: 0/1625/5408, equipments: [improved_firepower_control_system]}
   - {name: hound, index: 13, position: {x: 190, y: -170}, exp: 133/183/750}
   - {name: hound, index: 14, position: {x: 190, y: -230}, exp: 0/62/750, rotated: true, source: joined}
   - {name: fang, index: 15, position: {x: -140, y: -135}, exp: 0/98/600, rotated: true, source: joined}
@@ -52,8 +52,8 @@ red:
   - {name: crawler, index: 9, position: {x: -245, y: -20}, exp: 29/29/450}
   - {name: wraith, index: 11, position: {x: -345, y: 235}, exp: 448/448/2250}
   - {name: crawler, index: 12, position: {x: -310, y: 235}}
-  - {name: wasp, index: 13, position: {x: -350, y: 275}, exp: 0/144/900, equipment: [laser_sights], travelling: true, source: joined}
-  - {name: wasp, index: 14, position: {x: -245, y: -40}, exp: 0/900/900, equipment: [improved_firepower_control_system], source: joined}
+  - {name: wasp, index: 13, position: {x: -350, y: 275}, exp: 0/144/900, equipments: [laser_sights], travelling: true, source: joined}
+  - {name: wasp, index: 14, position: {x: -245, y: -40}, exp: 0/900/900, equipments: [improved_firepower_control_system], source: joined}
   - {name: wasp, index: 15, position: {x: -350, y: 195}, exp: 0/400/900, travelling: true, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}

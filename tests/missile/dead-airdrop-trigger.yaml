@@ -20,7 +20,7 @@ blue:
   tower_strengthen_levels: [4, 4]
   units:
   - {name: fire_badger, index: 0, position: {x: -75, y: -100}, exp: 0/266/1400, source: delivered}
-  - {name: sandworm, index: 1, position: {x: -340, y: 40}, level: 2, exp: 0/4506/4506, equipment: [steel_ball_production_line], travelling: true, source: joined}
+  - {name: sandworm, index: 1, position: {x: -340, y: 40}, level: 2, exp: 0/4506/4506, equipments: [steel_ball_production_line], travelling: true, source: joined}
   - {name: abyss, index: 2, position: {x: -95, y: -275}, level: 9, exp: 0/266/32291, source: joined}
   contraptions:
   - {name: missile, index: 0, position: {x: -35, y: -45}, retained: false}

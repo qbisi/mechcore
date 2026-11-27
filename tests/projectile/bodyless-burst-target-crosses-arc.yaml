@@ -17,7 +17,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: fortress, index: 0, position: {x: -190, y: -50}, level: 2, exp: 1802/3122/3605, equipment: [steel_ball_production_line]}
+  - {name: fortress, index: 0, position: {x: -190, y: -50}, level: 2, exp: 1802/3122/3605, equipments: [steel_ball_production_line]}
   - {name: fang, index: 1, position: {x: 145, y: -230}, level: 9, exp: 0/1024/4036, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}
@@ -35,7 +35,7 @@ red:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: fortress, index: 0, position: {x: 270, y: -290}, level: 6, exp: 4639/6714/9278, equipment: [absorption_module]}
+  - {name: fortress, index: 0, position: {x: 270, y: -290}, level: 6, exp: 4639/6714/9278, equipments: [absorption_module]}
   - {name: rhino, index: 1, position: {x: 155, y: -145}, level: 2, source: delivered}
   - {name: phantom_ray, index: 2, position: {x: 25, y: -210}, level: 5, exp: 0/1881/5210, source: joined}
   constructions:

@@ -13,7 +13,7 @@ blue:
   blueprints: [defense_enhancement]
   tower_strengthen_levels: [1, 1]
   units:
-  - {name: wraith, index: 0, position: {x: -15, y: -55}, level: 8, exp: 7568/14888/15137, rotated: true, equipment: [haste_module]}
+  - {name: wraith, index: 0, position: {x: -15, y: -55}, level: 8, exp: 7568/14888/15137, rotated: true, equipments: [haste_module]}
   - {name: fire_badger, index: 1, position: {x: 205, y: -270}, level: 6}
   constructions:
   - {name: rapid_fire_turret, index: 1, position: {x: 140, y: -100}}
@@ -27,7 +27,7 @@ red:
   blueprints: [attack_enhancement]
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
-  - {name: phantom_ray, index: 0, position: {x: -95, y: -50}, level: 6, exp: 0/4742/5799, equipment: [absorption_module]}
+  - {name: phantom_ray, index: 0, position: {x: -95, y: -50}, level: 6, exp: 0/4742/5799, equipments: [absorption_module]}
   - {name: tarantula, index: 1, position: {x: -55, y: -85}, level: 9}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}

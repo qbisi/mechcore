@@ -71,13 +71,13 @@ red:
   - {name: marksman, index: 5, position: {x: -120, y: -150}, level: 3, exp: 0/483/2315}
   - {name: marksman, index: 6, position: {x: 120, y: -150}, level: 2, exp: 500/1036/1465}
   - {name: marksman, index: 7, position: {x: 0, y: -140}, level: 4, exp: 0/2014/2919}
-  - {name: sabertooth, index: 8, position: {x: -55, y: -95}, level: 2, exp: 1880/2125/2929, equipment: [photon_coating]}
+  - {name: sabertooth, index: 8, position: {x: -55, y: -95}, level: 2, exp: 1880/2125/2929, equipments: [photon_coating]}
   - {name: crawler, index: 9, position: {x: -250, y: -285}, exp: 450/450/450, rotated: true}
   - {name: wasp, index: 12, position: {x: -215, y: -270}, level: 2, exp: 664/1292/2028}
   - {name: wasp, index: 13, position: {x: 235, y: -260}, exp: 900/900/900}
   - {name: crawler, index: 14, position: {x: -290, y: -165}, exp: 220/341/450, rotated: true}
   - {name: crawler, index: 15, position: {x: 0, y: -285}, exp: 333/450/450, rotated: true}
-  - {name: stormcaller, index: 16, position: {x: 55, y: -120}, level: 2, exp: 0/1289/2479, equipment: [enhancement_module]}
+  - {name: stormcaller, index: 16, position: {x: 55, y: -120}, level: 2, exp: 0/1289/2479, equipments: [enhancement_module]}
   - {name: stormcaller, index: 17, position: {x: -195, y: -130}, level: 2, exp: 648/2479/2479}
   - {name: stormcaller, index: 18, position: {x: -65, y: -120}, level: 2, exp: 864/1246/2479}
   - {name: arclight, index: 19, position: {x: -250, y: -130}, exp: 321/592/750}

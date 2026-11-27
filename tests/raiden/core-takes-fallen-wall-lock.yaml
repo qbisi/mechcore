@@ -16,7 +16,7 @@ blue:
   blueprints: [attack_enhancement]
   tower_strengthen_levels: [2, 1]
   units:
-  - {name: overlord, index: 0, position: {x: 335, y: 165}, level: 7, exp: 11019/11019/11019, equipment: [tank_production_line]}
+  - {name: overlord, index: 0, position: {x: 335, y: 165}, level: 7, exp: 11019/11019/11019, equipments: [tank_production_line]}
   - {name: sledgehammer, index: 1, position: {x: -95, y: -300}, level: 3, exp: 0/36/4630, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: -140, y: -55}}
@@ -33,7 +33,7 @@ red:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: raiden, index: 0, position: {x: 150, y: -30}, level: 3, exp: 4274/7494/8548, equipment: [enhancement_module]}
+  - {name: raiden, index: 0, position: {x: 150, y: -30}, level: 3, exp: 4274/7494/8548, equipments: [enhancement_module]}
   - {name: tarantula, index: 1, position: {x: -185, y: -55}, level: 9, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}

@@ -305,8 +305,8 @@ class Player:
 
     def equip(self):
         position = self.view()
-        items = [item["name"] for item in position.get("equipment", []) or []
-                 if item["name"] not in SHUNNED_EQUIPMENT]
+        items = [item for item in position.get("equipments", []) or []
+                 if item not in SHUNNED_EQUIPMENT]
         self.draw.shuffle(items)
         for item in items:
             for unit in position.get("units", []):

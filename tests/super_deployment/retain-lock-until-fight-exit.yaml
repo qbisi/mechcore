@@ -20,7 +20,7 @@ blue:
   energy_tower_skills: [enhanced_range, high_mobility]
   tower_strengthen_levels: [3, 4]
   units:
-  - {name: tarantula, index: 0, position: {x: -15, y: -25}, exp: 750/750/1500, rotated: true, equipment: [dominion_core]}
+  - {name: tarantula, index: 0, position: {x: -15, y: -25}, exp: 750/750/1500, rotated: true, equipments: [dominion_core]}
   - {name: rhino, index: 1, position: {x: 245, y: -35}, level: 2, source: delivered}
   - {name: fortress, index: 2, position: {x: -170, y: -160}, level: 3, source: joined}
   contraptions:
@@ -37,7 +37,7 @@ red:
   tower_strengthen_levels: [4, 4]
   units:
   - {name: rhino, index: 0, position: {x: 95, y: -235}, level: 2, source: delivered}
-  - {name: sledgehammer, index: 1, position: {x: -320, y: 175}, level: 3, equipment: [deployment_module], travelling: true, source: joined}
+  - {name: sledgehammer, index: 1, position: {x: -320, y: 175}, level: 3, equipments: [deployment_module], travelling: true, source: joined}
   - {name: phantom_ray, index: 2, position: {x: 85, y: -120}, level: 5, exp: 0/400/5210, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: 120, y: -100}}

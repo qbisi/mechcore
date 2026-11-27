@@ -17,7 +17,7 @@ blue:
     rhino: [field_maintenance, whirlwind, wreckage_recycling, power_armor, final_blitz, armor_enhancement, mechanical_rage, photon_coating, combat_evolvement]
   energy_tower_skills: [high_mobility]
   units:
-  - {name: rhino, index: 0, position: {x: -175, y: -35}, level: 3, exp: 2048/4096/4096, rotated: true, equipment: [haste_module]}
+  - {name: rhino, index: 0, position: {x: -175, y: -35}, level: 3, exp: 2048/4096/4096, rotated: true, equipments: [haste_module]}
   - {name: sledgehammer, index: 1, position: {x: 105, y: -40}, level: 6, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: -55, y: -130}, retained: false}
@@ -32,7 +32,7 @@ red:
   energy_tower_skills: [high_mobility]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: overlord, index: 0, position: {x: -325, y: 225}, level: 2, exp: 3943/3943/3943, equipment: [tank_production_line]}
+  - {name: overlord, index: 0, position: {x: -325, y: 225}, level: 2, exp: 3943/3943/3943, equipments: [tank_production_line]}
   - {name: tarantula, index: 1, position: {x: -65, y: -85}, level: 6, exp: 0/2640/8698, source: joined}
   battle_skills:
   - {name: sticky_oil_bomb, positions: [{x: 245, y: 135}, {x: -220, y: -140}], grid_rows: {0: [], 1: [], 2: [240, 508, 510, 1022, 1023, 2047, 2047, 4095, 2046, 2046, 1020, 240], 3: [], 4: []}}

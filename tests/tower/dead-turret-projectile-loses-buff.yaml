@@ -18,7 +18,7 @@ blue:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: overlord, index: 0, position: {x: 335, y: 225}, level: 8, exp: 0/320/11773, equipment: [mustang_production_line], travelling: true, source: joined}
+  - {name: overlord, index: 0, position: {x: 335, y: 225}, level: 8, exp: 0/320/11773, equipments: [mustang_production_line], travelling: true, source: joined}
   - {name: tarantula, index: 1, position: {x: 15, y: -185}, level: 9, exp: 0/2400/10091, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: 140, y: -115}}
@@ -33,7 +33,7 @@ red:
   energy_tower_skills: [enhanced_range, high_mobility]
   units:
   - {name: marksman, index: 0, position: {x: 50, y: -170}, level: 3, source: delivered}
-  - {name: hound, index: 1, position: {x: 60, y: -60}, level: 3, rotated: true, equipment: [improved_firepower_control_system], source: joined}
+  - {name: hound, index: 1, position: {x: 60, y: -60}, level: 3, rotated: true, equipments: [improved_firepower_control_system], source: joined}
   - {name: steel_ball, index: 2, position: {x: 25, y: -110}, source: joined}
   constructions:
   - {name: defensive_wall, index: 0, position: {x: 140, y: -55}}

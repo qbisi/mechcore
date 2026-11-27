@@ -18,7 +18,7 @@ blue:
   officers: [advanced_shield_device, advanced_targeting_system, speed_specialist, smart_marksman]
   energy_tower_skills: [high_mobility]
   units:
-  - {name: marksman, index: 0, position: {x: 10, y: -110}, level: 6, exp: 1884/3769/3769, equipment: [improved_firepower_control_system]}
+  - {name: marksman, index: 0, position: {x: 10, y: -110}, level: 6, exp: 1884/3769/3769, equipments: [improved_firepower_control_system]}
   - {name: fortress, index: 1, position: {x: -230, y: -160}, level: 8, exp: 0/4242/10764, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: -80, y: -135}}
@@ -31,7 +31,7 @@ red:
   energy_tower_skills: [enhanced_range]
   tower_strengthen_levels: [4, 4]
   units:
-  - {name: phantom_ray, index: 0, position: {x: 220, y: -55}, exp: 1000/1000/1000, rotated: true, equipment: [haste_module]}
+  - {name: phantom_ray, index: 0, position: {x: 220, y: -55}, exp: 1000/1000/1000, rotated: true, equipments: [haste_module]}
   - {name: mustang, index: 1, position: {x: -175, y: -70}, level: 7, exp: 0/3600/7556, source: joined}
   contraptions:
   - {name: shield, index: 0, position: {x: -210, y: -190}}

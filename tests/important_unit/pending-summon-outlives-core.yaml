@@ -12,7 +12,7 @@ round: 1
 blue:
   core_damage: 0
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -80}, equipment: [dominion_core], source: joined}
+  - {name: marksman, index: 0, position: {x: 0, y: -80}, equipments: [dominion_core], source: joined}
   - {name: fortress, index: 1, position: {x: 0, y: -250}, source: joined}
   battle_skills:
   - {name: mobilize_battleship, positions: [{x: 100, y: -60}]}
