@@ -27,15 +27,12 @@ use mechcore_mcfr::{
     EventPayload, McfrReader, ObjectKind, Producer, Recording, ShieldRoundPolicy, ShieldSourceKind,
     ShieldState, TerrainType, WorldSnapshot,
 };
-use serde::Serialize;
 
 use crate::{
     cli::Failure,
     scene::{self, FIRST_TICK},
     turn::Side,
 };
-
-pub(crate) const SCHEMA: &str = "mechcore.fight-outcome";
 
 /// `FPoint`'s one, the recording's fixed point.
 const ONE: i64 = 1 << 32;
@@ -66,54 +63,12 @@ pub(crate) struct Reading {
 /// belongs to; `None` is a result `unresolved` names.
 struct SideReading {
     core_damage: Option<i64>,
-    survivors: Vec<Survivor>,
     /// By the side's `units`, in the layout's order.
     exp: Vec<Option<FightExperience>>,
     /// By the side's `contraptions`: whether each still stands.
     contraptions: Vec<Option<bool>>,
     /// By the side's `battle_skills`: the entry with its result.
     battle_skills: Vec<Option<FightBattleSkill>>,
-}
-
-/// One formation that survived, and how much of it did.
-#[derive(Serialize)]
-struct Survivor {
-    index: i32,
-    name: String,
-    /// How many members the formation went into the fight with, and how many
-    /// came out of it.
-    members: usize,
-    alive: usize,
-    /// The life those members have left, and what they would hold whole.
-    life: i64,
-    maximum: i64,
-}
-
-/// `show --view outcome`: what a fight document leaves out, and what keeps a
-/// recording from becoming one.
-#[derive(Serialize)]
-pub(crate) struct Outcome {
-    schema: &'static str,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    recording: Option<String>,
-    /// The last tick the recording holds, which is where the fight ended.
-    ticks: u32,
-    sides: Sides,
-    pub(crate) unresolved: Vec<String>,
-}
-
-#[derive(Serialize)]
-struct Sides {
-    blue: SideOutcome,
-    red: SideOutcome,
-}
-
-/// The formations still standing when the fight ended, by the index the
-/// document knows them under. A fight document does not carry them: a unit
-/// comes back whole next round, so its life hands nothing on.
-#[derive(Serialize)]
-struct SideOutcome {
-    survivors: Vec<Survivor>,
 }
 
 /// Opens a recording on disk.
@@ -201,8 +156,6 @@ fn read_parts(
 ) -> Result<Reading, Failure> {
     ended.formations.clone_from(&settlement.formations);
     let formations = scene::formations(&layout, opened)?;
-    let started = members(&formations, opened);
-    let survived = members(&formations, &ended);
 
     let mut unresolved = Vec::new();
     let scores = scores(settlement)?;
@@ -223,7 +176,6 @@ fn read_parts(
         let mut unresolved_here = Vec::new();
         let reading = SideReading {
             core_damage: damage[side.seat()],
-            survivors: survivors(side, &started, &survived, scene::units_of(&layout, side)),
             exp: experience(&layout, side, &scene, &mut unresolved_here),
             contraptions: contraptions(&layout, side, settlement),
             battle_skills: battle_skills(&layout, side, &scene, &mut unresolved_here),
@@ -244,25 +196,6 @@ fn read_parts(
 }
 
 impl Reading {
-    /// What `show --view outcome` answers.
-    pub(crate) fn outcome(self, recording: Option<String>) -> Outcome {
-        let [blue, red] = self.sides;
-        Outcome {
-            schema: SCHEMA,
-            recording,
-            ticks: self.ticks,
-            sides: Sides {
-                blue: SideOutcome {
-                    survivors: blue.survivors,
-                },
-                red: SideOutcome {
-                    survivors: red.survivors,
-                },
-            },
-            unresolved: self.unresolved,
-        }
-    }
-
     /// The fight document: the layout the recording embeds, with the result
     /// written in.
     ///
@@ -840,47 +773,4 @@ fn oil(
         }
     }
     Ok((!grid_rows.is_empty(), grid_rows))
-}
-
-/// How many members of each formation one snapshot holds, and their life.
-fn members(
-    formations: &BTreeMap<u64, (Side, i32)>,
-    snapshot: &WorldSnapshot,
-) -> BTreeMap<(Side, i32), (usize, i64, i64)> {
-    let mut counted: BTreeMap<(Side, i32), (usize, i64, i64)> = BTreeMap::new();
-    for unit in &snapshot.live_units {
-        let Some(formation) = formations.get(&unit.formation_id) else {
-            continue;
-        };
-        let entry = counted.entry(*formation).or_default();
-        entry.0 += 1;
-        entry.1 += i64::from(unit.life.current);
-        entry.2 += i64::from(unit.life.maximum);
-    }
-    counted
-}
-
-/// One side's formations that still stand, in document index order.
-fn survivors(
-    side: Side,
-    started: &BTreeMap<(Side, i32), (usize, i64, i64)>,
-    survived: &BTreeMap<(Side, i32), (usize, i64, i64)>,
-    placed: &[UnitPlacement],
-) -> Vec<Survivor> {
-    placed
-        .iter()
-        .filter_map(|placement| {
-            let (alive, life, maximum) = *survived.get(&(side, placement.index))?;
-            Some(Survivor {
-                index: placement.index,
-                name: placement.type_name.clone(),
-                members: started
-                    .get(&(side, placement.index))
-                    .map_or(alive, |(members, _, _)| *members),
-                alive,
-                life,
-                maximum,
-            })
-        })
-        .collect()
 }

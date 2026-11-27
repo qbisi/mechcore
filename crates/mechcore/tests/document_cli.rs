@@ -460,16 +460,16 @@ fn the_kind_is_read_from_the_content_and_an_unsupported_pair_names_it() {
         "{error}"
     );
 
-    let (code, _, error) = mechcore(&[os("show"), layout.as_os_str(), os("--view"), os("outcome")]);
+    let (code, _, error) = mechcore(&[os("query"), layout.as_os_str(), os("--schema")]);
     assert_eq!(code, Some(3), "{error}");
     assert!(
         error["reason"]
             .as_str()
             .unwrap()
-            .contains("show does not take a layout file"),
+            .contains("query does not take a layout file"),
         "{error}"
     );
-    assert_eq!(error["operation"], "show");
+    assert_eq!(error["operation"], "query");
 
     let state = directory.path().join("state.yaml");
     fs::write(&state, "kind: state\nround: 1\n").unwrap();

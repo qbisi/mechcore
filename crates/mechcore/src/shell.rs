@@ -50,16 +50,14 @@ the game
   game quit_match                 leave the active test, replay or watch
   game quit_game                  shut the game down
 without the game
-  verify | convert | diff | show  files, whose kind is read from what they hold
+  verify | convert | diff         files, whose kind is read from what they hold
   play <file> [--seed s] [--port p] [--no-open] [--no-cache]
                                   serve interactive playback over HTTP
-  format | schema                 documents
+  format <document.yaml> [--write] [--expanded]
+                                  write documents in normal form
   mask <file> --side blue|red --unit <type>
                                   geometric purchase placement grids
   preview <layout|state>           effective attributes and initial target relations
-  generate --seed n --count n <dir>
-                                  layouts that cover every pair of fight decisions
-  man [<topic>|<kind>]            the manual this binary carries
 a match, once a line has opened one or the shell was opened on it
   match new <match.yaml>          deal a match, or join one, and play the side handed out
   match show <match.yaml> --side blue|red
@@ -79,8 +77,7 @@ shell
 
 /// The commands a line may name beside the game's, which need no session.
 const SESSIONLESS: &[&str] = &[
-    "verify", "convert", "diff", "show", "play", "format", "schema", "generate", "mask", "preview",
-    "man",
+    "verify", "convert", "diff", "play", "format", "mask", "preview",
 ];
 
 /// A match and the side a shell plays of it.
@@ -184,12 +181,10 @@ async fn dispatch(
     let mut words = words(line).into_iter();
     let namespace = words.next().unwrap_or_default();
     let rest: Vec<String> = words.collect();
-    // `show <file> --view <view>` is the file verb, and a `show` without a
-    // view is the match's.
-    let file_show = namespace == "show" && rest.iter().any(|word| word == "--view");
-    if matches!(namespace.as_str(), "act" | "commit" | "undo" | "candidates")
-        || namespace == "show" && !file_show
-    {
+    if matches!(
+        namespace.as_str(),
+        "show" | "act" | "commit" | "undo" | "candidates"
+    ) {
         match bound {
             Some((path, side)) => {
                 let mut arguments = vec![

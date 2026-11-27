@@ -12,7 +12,6 @@ use crate::layout::{
     UnitSource,
 };
 pub use crate::names::OfferEntry;
-use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
 use std::borrow::Cow;
@@ -54,7 +53,7 @@ pub enum TechLoadoutFormat {
 }
 
 /// Battle backend that produced a match; transcoding preserves it.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum Source {
     Game,
@@ -78,7 +77,7 @@ pub const fn research_limit(unit: i32) -> usize {
 }
 
 /// The final score, independent of any next-round opening.
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct MatchResult {
     pub round: i32,
@@ -87,7 +86,7 @@ pub struct MatchResult {
     pub red: FinalCore,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum Winner {
     Blue,
@@ -95,7 +94,7 @@ pub enum Winner {
     Draw,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct FinalCore {
     pub reactor_core: i32,
@@ -178,15 +177,13 @@ pub struct OpeningOffer {
     pub specialist: i32,
 }
 
-#[derive(Deserialize, Serialize, JsonSchema)]
+#[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct OpeningOfferWire {
     /// Written as the team's name, its two unit types.
     #[serde(with = "crate::names::advance_team::one")]
-    #[schemars(with = "String")]
     team: i32,
     #[serde(with = "crate::names::officer::one")]
-    #[schemars(with = "String")]
     specialist: i32,
     core_modify: i32,
 }
@@ -241,16 +238,6 @@ impl<'de> Deserialize<'de> for OpeningOffer {
     }
 }
 
-impl JsonSchema for OpeningOffer {
-    fn schema_name() -> std::borrow::Cow<'static, str> {
-        "OpeningOffer".into()
-    }
-
-    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
-        OpeningOfferWire::json_schema(generator)
-    }
-}
-
 impl Opening {
     /// The opening as the decision that took it, which is what the round-zero
     /// action segment holds, or nothing while the side has not taken one.
@@ -285,7 +272,7 @@ pub struct Turn {
 }
 
 /// A match position, which a match writes as a state segment.
-#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct State {
     /// The shared reinforcement stream after this round's deal.
@@ -300,7 +287,6 @@ pub struct State {
         skip_serializing_if = "Option::is_none",
         with = "crate::names::card::offers"
     )]
-    #[schemars(with = "Option<Vec<OfferEntry>>")]
     pub reinforce_offers: Option<Offers>,
     pub blue: SideState,
     pub red: SideState,
@@ -365,7 +351,7 @@ impl State {
 }
 
 /// Current membership relative to the seed's initial ordinary reinforcement pool.
-#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct PoolDelta {
     #[serde(
@@ -373,14 +359,12 @@ pub struct PoolDelta {
         skip_serializing_if = "Vec::is_empty",
         with = "crate::names::card::many"
     )]
-    #[schemars(with = "Vec<String>")]
     pub removed: Vec<i32>,
     #[serde(
         default,
         skip_serializing_if = "Vec::is_empty",
         with = "crate::names::card::many"
     )]
-    #[schemars(with = "Vec<String>")]
     pub added: Vec<i32>,
 }
 
@@ -445,7 +429,7 @@ impl ReinforceChoice {
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct SideState {
     /// The player stream after this round's officer deliveries.
@@ -457,7 +441,6 @@ pub struct SideState {
     pub reinforce_choice: Option<i32>,
     /// Unit IDs, written as their type names in ID order.
     #[serde(with = "unit_names::units")]
-    #[schemars(with = "Vec<String>")]
     pub unlocked_units: Vec<i32>,
     /// What the round still allows, which a match does not write: each
     /// opens at a value the round's opening fixes, and only the round's own
@@ -469,14 +452,12 @@ pub struct SideState {
         skip_serializing_if = "Vec::is_empty",
         with = "crate::names::blueprint::many"
     )]
-    #[schemars(with = "Vec<String>")]
     pub blueprints: Vec<i32>,
     #[serde(
         default,
         skip_serializing_if = "Vec::is_empty",
         with = "crate::names::energy_tower_skill::many"
     )]
-    #[schemars(with = "Vec<String>")]
     pub energy_tower_skills: Vec<i32>,
     #[serde(default)]
     pub tower_strengthen_levels: Vec<i32>,
@@ -485,14 +466,12 @@ pub struct SideState {
         skip_serializing_if = "Vec::is_empty",
         with = "crate::names::equipment::many"
     )]
-    #[schemars(with = "Vec<String>")]
     pub equipments: Vec<i32>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub battle_skills: Vec<PanelSkill>,
     pub next_index: NextIndex,
     /// The officers the side holds, a multiset in ascending ID, by name.
     #[serde(default, with = "crate::names::officer::many")]
-    #[schemars(with = "Vec<String>")]
     pub officers: Vec<i32>,
     /// The unit technologies the side has researched, in ascending ID,
     /// written grouped by the unit they belong to.
@@ -501,7 +480,6 @@ pub struct SideState {
         skip_serializing_if = "Vec::is_empty",
         with = "crate::names::technologies"
     )]
-    #[schemars(with = "BTreeMap<String, Vec<String>>")]
     pub techs: Vec<i32>,
     pub units: Vec<StateUnit>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -526,7 +504,7 @@ pub struct Allowances {
 /// `value` is not a function of the unit's type and level. It is what the side
 /// actually paid, at the prices its officers made at the time, so two identical
 /// looking formations bought a round apart can be worth different amounts.
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(remote = "Self", deny_unknown_fields)]
 pub struct StateUnit {
     #[serde(rename = "name")]
@@ -552,7 +530,6 @@ pub struct StateUnit {
         skip_serializing_if = "Vec::is_empty",
         with = "crate::names::equipment::many"
     )]
-    #[schemars(with = "Vec<String>")]
     pub equipments: Vec<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub travelling: Option<bool>,
@@ -689,12 +666,11 @@ impl SideState {
 }
 
 /// One commander skill panel slot.
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(try_from = "PanelSkillFields")]
 pub struct PanelSkill {
     pub index: i32,
     #[serde(rename = "name", with = "crate::names::commander_skill::one")]
-    #[schemars(with = "String")]
     pub id: i32,
     pub cooldown: i32,
     /// What the slot's earlier releases left standing, in the payload the
@@ -711,12 +687,11 @@ pub struct PanelSkill {
 
 /// How a panel slot is read, before its standing objects are checked to be
 /// its skill's.
-#[derive(Deserialize, JsonSchema)]
+#[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct PanelSkillFields {
     index: i32,
     #[serde(rename = "name", with = "crate::names::commander_skill::one")]
-    #[schemars(with = "String")]
     id: i32,
     cooldown: i32,
     #[serde(default)]
@@ -750,13 +725,12 @@ impl TryFrom<PanelSkillFields> for PanelSkill {
 /// `order` is explicit because the panel is sorted by `index`, so array
 /// position cannot carry it. A layout is the other way round: it lists only
 /// releases, and there the array position is the order.
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Release {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub order: Option<i32>,
     #[serde(with = "serde_yaml::with::singleton_map")]
-    #[schemars(with = "SkillTarget")]
     pub target: SkillTarget,
 }
 
@@ -791,7 +765,7 @@ impl PanelSkill {
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct NextIndex {
     pub unit: i32,
@@ -800,7 +774,7 @@ pub struct NextIndex {
 
 /// Each side's decisions in one round, which a match writes as an action
 /// segment.
-#[derive(Clone, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct TurnActions {
     pub blue: Vec<Action>,
@@ -815,7 +789,7 @@ pub struct TurnActions {
 pub const DEFAULT_DEPLOY_TIME: i32 = 100;
 
 /// One decision that took effect, in the order the side took it.
-#[derive(Clone, Debug, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Action {
     /// The round's reinforcement answer, which declining is one of.
@@ -827,7 +801,6 @@ pub enum Action {
     ChooseReinforceItem {
         index: i32,
         #[serde(rename = "name", with = "crate::names::card::choice")]
-        #[schemars(with = "String")]
         id: ReinforceChoice,
     },
     /// The opening, which is one decision with two halves: the team of
@@ -837,17 +810,14 @@ pub enum Action {
     ChooseAdvanceTeam {
         index: i32,
         #[serde(rename = "name", with = "crate::names::advance_team::one")]
-        #[schemars(with = "String")]
         id: i32,
         #[serde(with = "crate::names::officer::one")]
-        #[schemars(with = "String")]
         specialist: i32,
     },
     /// A purchase at the default landing or coupled with its immediate move.
     /// Its level is determined by the current officers and tower skills.
     BuyUnit {
         #[serde(rename = "name", with = "unit_names::unit")]
-        #[schemars(with = "String")]
         unit: i32,
         #[serde(skip_serializing_if = "Option::is_none")]
         position: Option<Position>,
@@ -859,26 +829,21 @@ pub enum Action {
     },
     UnlockUnit {
         #[serde(rename = "name", with = "unit_names::unit")]
-        #[schemars(with = "String")]
         unit: i32,
     },
     /// `tech` is written by its name, which is only unique within `unit`.
     UpgradeTechnology {
         #[serde(with = "unit_names::unit")]
-        #[schemars(with = "String")]
         unit: i32,
         #[serde(serialize_with = "crate::names::technology::serialize")]
-        #[schemars(with = "String")]
         tech: i32,
     },
     ActiveBlueprint {
         #[serde(rename = "name", with = "crate::names::blueprint::one")]
-        #[schemars(with = "String")]
         id: i32,
     },
     ActiveEnergyTowerSkill {
         #[serde(rename = "name", with = "crate::names::energy_tower_skill::one")]
-        #[schemars(with = "String")]
         skill: i32,
     },
     StrengthenTower {
@@ -886,7 +851,6 @@ pub enum Action {
     },
     UseEquipment {
         #[serde(rename = "name", with = "crate::names::equipment::one")]
-        #[schemars(with = "String")]
         equipment: i32,
         index: i32,
     },
@@ -903,15 +867,12 @@ pub enum Action {
     ReleaseCommanderSkill {
         index: i32,
         #[serde(rename = "name", with = "crate::names::commander_skill::one")]
-        #[schemars(with = "String")]
         id: i32,
         #[serde(with = "serde_yaml::with::singleton_map")]
-        #[schemars(with = "SkillTarget")]
         target: SkillTarget,
     },
     ReleaseContraption {
         #[serde(rename = "name", with = "crate::names::contraption::one")]
-        #[schemars(with = "String")]
         contraption: i32,
         position: Position,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -927,7 +888,7 @@ pub enum Action {
 /// A release covers an area or points at one object, never both. A document
 /// writes it as a one-key mapping, `{unit: 4}` or `{area: [...]}`, which every
 /// YAML and JSON reader takes, rather than `serde_yaml`'s `!unit 4` tag.
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum SkillTarget {
     Area(Vec<Position>),
@@ -1392,133 +1353,6 @@ pub fn opening_state_value(game: &Match) -> Result<Value, String> {
         game,
     ))))
     .map_err(|error| format!("cannot serialize opening state: {error}"))
-}
-
-/// The shape of each segment a match stream is written as.
-///
-/// A match is a stream of documents rather than one, and each names its own
-/// `kind`, so each has its own schema. These types exist to be described: they
-/// carry the segment's own two fields and hand the rest to the types that hold
-/// them, so a schema cannot drift from what [`canonical_yaml`] writes without
-/// the compiler saying so.
-pub mod schema {
-    use super::{Action, OpeningOffer, SideState, StaticPlacement};
-    use schemars::JsonSchema;
-    use serde::Serialize;
-    use std::collections::BTreeMap;
-
-    /// A match's header, which opens the stream.
-    #[derive(Serialize, JsonSchema)]
-    #[serde(deny_unknown_fields)]
-    pub struct Match {
-        pub kind: MatchKind,
-        /// The game's Application.version, always written by a match writer.
-        #[serde(default = "crate::economy::this_build")]
-        pub build: String,
-        pub source: super::Source,
-        #[serde(default = "default_true")]
-        pub reinforce: bool,
-        pub max_round: i32,
-        pub base_core: i32,
-        pub map_id: i32,
-        pub seed: i32,
-        pub blue: Side,
-        pub red: Side,
-    }
-
-    const fn default_true() -> bool {
-        true
-    }
-
-    #[derive(Serialize, JsonSchema)]
-    #[serde(untagged)]
-    pub enum TechLoadout {
-        Compact(String),
-        Expanded(BTreeMap<String, Vec<String>>),
-    }
-
-    /// What the header says about one side.
-    #[derive(Serialize, JsonSchema)]
-    #[serde(deny_unknown_fields)]
-    pub struct Side {
-        /// Player display name; omitted, the seat name (blue or red).
-        pub name: Option<String>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        pub elo_score: Option<i32>,
-        /// The seed of the side's own stream.
-        pub seed: Option<i32>,
-        /// Which technologies each unit may research (`"full"`, compact bitset string, or unit map).
-        #[schemars(with = "TechLoadout")]
-        pub tech_loadout: BTreeMap<i32, Vec<i32>>,
-    }
-
-    /// Round zero's opening state segment.
-    #[derive(Serialize, JsonSchema)]
-    #[serde(deny_unknown_fields)]
-    pub struct OpeningState {
-        pub kind: StateKind,
-        pub round: i32,
-        pub blue: OpeningStateSide,
-        pub red: OpeningStateSide,
-    }
-
-    #[derive(Serialize, JsonSchema)]
-    #[serde(deny_unknown_fields)]
-    pub struct OpeningStateSide {
-        /// The four openings this side was dealt.
-        pub offers: Vec<OpeningOffer>,
-        pub constructions: Vec<StaticPlacement>,
-    }
-
-    /// The position a round opens with.
-    #[derive(Serialize, JsonSchema)]
-    #[serde(deny_unknown_fields)]
-    pub struct State {
-        pub random_state: [u64; 4],
-        #[serde(default, skip_serializing_if = "super::PoolDelta::is_empty")]
-        pub reinforce_pool: super::PoolDelta,
-        pub kind: StateKind,
-        pub round: i32,
-        /// Absent in rounds 0 and 1, which are dealt no reinforcement offer.
-        #[schemars(with = "Option<Vec<super::OfferEntry>>")]
-        pub reinforce_offers: Option<super::Offers>,
-        pub blue: SideState,
-        pub red: SideState,
-    }
-
-    /// The decisions a round's two sides took, in the order each took them.
-    #[derive(Serialize, JsonSchema)]
-    #[serde(deny_unknown_fields)]
-    pub struct Actions {
-        pub kind: ActionKind,
-        pub round: i32,
-        pub blue: Vec<Action>,
-        pub red: Vec<Action>,
-    }
-
-    #[derive(Serialize, JsonSchema)]
-    #[serde(deny_unknown_fields)]
-    pub struct Result {
-        pub kind: ResultKind,
-        #[serde(flatten)]
-        pub result: super::MatchResult,
-    }
-
-    /// Each segment names its own kind, and names one.
-    macro_rules! kind {
-        ($name:ident, $variant:ident) => {
-            #[derive(Serialize, JsonSchema)]
-            #[serde(rename_all = "snake_case")]
-            pub enum $name {
-                $variant,
-            }
-        };
-    }
-
-    kind!(MatchKind, Match);
-    kind!(StateKind, State);
-    kind!(ActionKind, Action);
-    kind!(ResultKind, Result);
 }
 
 /// Reads a match document whole, or nothing when the file is not a match.
@@ -2360,9 +2194,6 @@ mod tests {
                 .contains("another-version")
         );
         assert!(super::build_warning(crate::game_build()).is_none());
-        let schema = serde_json::to_value(schemars::schema_for!(super::schema::Match)).unwrap();
-        assert!(schema["properties"].get("build").is_some());
-        assert!(schema["properties"].get("game_build").is_none());
     }
 
     #[test]

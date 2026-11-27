@@ -323,9 +323,8 @@ A building row carries `GameRiver.BuildingType`: `Normal`, `EnergyTower`,
 `ResearchCenter` or `Special`. Every construction is `Special`, so **a
 recording does not say which construction a row came from**. Two things follow.
 
-- A row is named by matching it back to the layout the recording embeds, which
-  is what `show --view buildings` does and why it refuses a row that matches no
-  single placement.
+- A row is named by matching it back to the layout the recording embeds, and a
+  row that matches no single placement is refused.
 - A wall block and a turret are told apart by their life and their box, not by
   a type. Nothing in a recording distinguishes two of the build's rows where
   they share both.

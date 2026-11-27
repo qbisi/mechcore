@@ -569,41 +569,87 @@ mod tests {
     }
 
     /// Every field a side's position can hold, as the dotted path a leaf is
-    /// grouped under, read off the schema rather than off any match.
+    /// grouped under, read off a fully populated sample position.
     fn side_fields() -> Vec<String> {
-        fn walk(
-            node: &serde_json::Value,
-            defs: &serde_json::Value,
-            path: &str,
-            out: &mut Vec<String>,
-        ) {
-            if !node.is_object() {
-                return;
-            }
-            if let Some(name) = node["$ref"].as_str().and_then(|at| at.rsplit('/').next()) {
-                walk(&defs[name], defs, path, out);
-            }
-            if let Some(fields) = node["properties"].as_object() {
-                for (name, field) in fields {
-                    let at = if path.is_empty() {
-                        name.clone()
-                    } else {
-                        format!("{path}.{name}")
-                    };
-                    out.push(at.clone());
-                    walk(field, defs, &at, out);
+        fn walk(value: &serde_json::Value, path: &str, out: &mut Vec<String>) {
+            match value {
+                serde_json::Value::Object(fields) => {
+                    for (name, field) in fields {
+                        let at = if path.is_empty() {
+                            name.clone()
+                        } else {
+                            format!("{path}.{name}")
+                        };
+                        out.push(at.clone());
+                        walk(field, &at, out);
+                    }
                 }
-            }
-            walk(&node["items"], defs, path, out);
-            for key in ["anyOf", "oneOf", "allOf"] {
-                for branch in node[key].as_array().into_iter().flatten() {
-                    walk(branch, defs, path, out);
+                serde_json::Value::Array(items) => {
+                    for item in items {
+                        walk(item, path, out);
+                    }
                 }
+                _ => {}
             }
         }
-        let schema = serde_json::to_value(schemars::schema_for!(SideState)).unwrap();
+        let sample = SideState {
+            random_state: [1, 2, 3, 4],
+            reactor_core: 4500,
+            supply: 200,
+            reinforce_choice: Some(-1),
+            unlocked_units: vec![2],
+            blueprints: vec![1],
+            energy_tower_skills: vec![1],
+            tower_strengthen_levels: vec![0, 0],
+            equipments: vec![1_305_003],
+            battle_skills: vec![crate::r#match::PanelSkill {
+                index: 0,
+                id: SHIELD_AIRDROP_SKILL,
+                cooldown: 0,
+                standing: vec![Standing::Shield {
+                    position: Position { x: 0, y: -50 },
+                }],
+                release: Some(crate::r#match::Release {
+                    order: Some(0),
+                    target: SkillTarget::Area(vec![Position { x: 0, y: -50 }]),
+                }),
+            }],
+            next_index: crate::r#match::NextIndex {
+                unit: 1,
+                contraption: 1,
+            },
+            officers: vec![10002],
+            techs: vec![702],
+            units: vec![crate::r#match::StateUnit {
+                type_name: "marksman".into(),
+                index: 0,
+                value: Some(100),
+                level: Some(1),
+                source: crate::layout::UnitSource::Joined,
+                recovered: false,
+                position: Some(Position { x: 0, y: -50 }),
+                exp: crate::layout::Experience::at_level(10, "marksman", 1),
+                rotated: Some(false),
+                equipments: vec![1_305_003],
+                travelling: Some(false),
+                record_position: Some(Position { x: 0, y: -50 }),
+                record_rotated: Some(false),
+            }],
+            constructions: vec![crate::layout::StaticPlacement {
+                type_name: "defensive_wall".into(),
+                index: 0,
+                position: Position { x: 0, y: -50 },
+            }],
+            contraptions: vec![crate::layout::ContraptionPlacement {
+                type_name: "missile_interceptor".into(),
+                index: 0,
+                position: Position { x: 0, y: -50 },
+            }],
+            ..SideState::default()
+        };
+        let value = serde_json::to_value(&sample).unwrap();
         let mut out = Vec::new();
-        walk(&schema, &schema["$defs"], "", &mut out);
+        walk(&value, "", &mut out);
         out
     }
 

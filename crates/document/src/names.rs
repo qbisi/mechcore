@@ -564,7 +564,7 @@ pub(crate) mod card {
         use serde::Serialize;
 
         /// Structured representation of one entry in `reinforce_offers`.
-        #[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema, PartialEq, Eq)]
+        #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
         #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
         pub enum OfferEntry {
             Officer {

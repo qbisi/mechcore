@@ -710,7 +710,6 @@ dependencies = [
  "mechcore-simulation",
  "pprof",
  "rusqlite",
- "schemars",
  "serde",
  "serde_json",
  "serde_yaml",
@@ -739,7 +738,6 @@ name = "mechcore-document"
 version = "0.1.0"
 dependencies = [
  "quick-xml 0.38.4",
- "schemars",
  "serde",
  "serde_json",
  "serde_yaml",

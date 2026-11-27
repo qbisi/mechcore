@@ -13,7 +13,6 @@
 //! layout into a plan a scene can install, and [`record`] with [`convert`]
 //! reads a replay into a match behind the `convert` feature.
 
-use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 mod board;
@@ -26,7 +25,6 @@ pub mod economy;
 pub mod experience;
 pub mod fight;
 pub mod fixed;
-pub mod generate;
 mod grbr;
 pub mod landing;
 pub mod layout;
@@ -76,7 +74,7 @@ pub use layout::{
 /// document names itself. The tag is a constant, not a version: it never needs
 /// maintaining, and because it takes one value within a kind it cannot split
 /// one state across two documents.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum DocumentKind {
     Layout,
