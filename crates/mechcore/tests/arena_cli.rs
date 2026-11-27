@@ -37,7 +37,7 @@ def record(direction, line):
             message = json.loads(line)
         except ValueError:
             message = line
-        with wire.open("a") as f:
+        with pathlib.Path(f"bot-wire-{side}.jsonl").open("a") as f:
             print(json.dumps(dict(side=side, direction=direction, phase="play", message=message)), file=f)
 def read():
     line = input()
@@ -210,7 +210,7 @@ fn parallel_trials_match_the_recording_and_leave_both_openings_unchanged() {
             &json!({"side":side, "direction":"bot_to_arena", "phase":"name", "message":"original\n"})
         );
     }
-    assert_eq!(log[4..], json_lines(&dir.join("bot-wire.jsonl")));
+    assert_bot_wire_logs(dir, &log[4..]);
     assert_eq!(
         game.result.unwrap().winner,
         mechcore_document::r#match::Winner::Blue
@@ -276,6 +276,21 @@ fn parallel_trials_match_the_recording_and_leave_both_openings_unchanged() {
     for side in ["blue", "red"] {
         assert_eq!(collected["settlement"][side], fight[side]);
     }
+}
+
+fn assert_bot_wire_logs(dir: &Path, play_log: &[Value]) {
+    let mut total = 0;
+    for side in ["blue", "red"] {
+        let recorded: Vec<Value> = play_log
+            .iter()
+            .filter(|entry| entry["side"] == side)
+            .cloned()
+            .collect();
+        let wire = json_lines(&dir.join(format!("bot-wire-{side}.jsonl")));
+        assert_eq!(recorded, wire);
+        total += wire.len();
+    }
+    assert_eq!(play_log.len(), total);
 }
 
 #[test]
