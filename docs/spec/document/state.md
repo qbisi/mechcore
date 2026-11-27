@@ -19,25 +19,40 @@ map_id: 1001
 seed: 2038621361
 round: 7
 
-reinforce_offers: [phoenix_2x_lv2, sabertooth_2x_lv2, steel_ball_2x_lv2, sledgehammer_2x_lv2, refund_400]
+reinforce_offers:
+- {type: unit, name: phoenix_2x_lv2, unit: phoenix, level: 2, squads: 2, cost: 200}
+- {type: unit, name: sabertooth_2x_lv2, unit: sabertooth, level: 2, squads: 2, cost: 200}
+- {type: unit, name: steel_ball_2x_lv2, unit: steel_ball, level: 2, squads: 2, cost: 200}
+- {type: unit, name: sledgehammer_2x_lv2, unit: sledgehammer, level: 2, squads: 2, cost: 200}
+- {type: supply, name: refund_400, cost: -400}
 
-blue: {reinforce_choice: -1, ...}
-red: {reinforce_choice: -1, ...}
+blue: {...}
+red: {...}
 ```
 
 `map_id` and `seed` carry the same meaning and the same optionality as in a
 layout. They belong to the document rather than to a side because both sides
 share them.
 
-`reinforce_offers` lists the cards the round dealt, in the order it dealt them,
-and then the decline as `refund_<amount>`, for example `refund_400`, naming
-what declining pays in this round. A round that deals offers always offers the
-decline after them. What the decline pays is the round's, not the position's,
-and it is not dealt: it is the map's figure, or in a unit round the schedule's.
-Writing it lets a position price its decline without replaying the deal. With
-`rules.reinforcements: false` in the match header, every state omits the offer
-and no decline is available; the shared stream stays at its opening checkpoint
-and the pool delta stays empty.
+`reinforce_offers` lists the cards the round dealt as structured mappings in the
+order dealt, followed by the final `supply` decline entry. Each entry carries an
+explicit `type`, its card or refund `name`, and an explicit `cost` (including
+`cost: 0`; a negative cost represents supply gained):
+
+- `{type: officer, name: <card_name>, cost: <amount>}`
+- `{type: equipment, name: <card_name>, cost: <amount>}`
+- `{type: commander_skill, name: <card_name>, cost: <amount>}`
+- `{type: unit, name: <unit>_<squads>x_lv<level>, unit: <unit>, level: <level>, squads: <squads>, cost: <amount>}`
+- `{type: supply, name: refund_<amount>, cost: -<amount>}`
+
+Every card entry is validated against the build's catalogues for its `type`,
+`cost`, and unit fields, and `supply` must appear once as the final entry with
+`cost` equal to `-<amount>`. Writing `cost` and the decoded unit fields lets a
+position price and evaluate its offers without replaying the deal or looking up
+the tables, while keeping `name` as the card alias referenced by
+`choose_reinforce_item`. With `rules.reinforcements: false` in the match header,
+every state omits the offer and no decline is available; the shared stream stays
+at its opening checkpoint and the pool delta stays empty.
 
 Each side's `reinforce_choice` is absent in a round without offers. When
 there are offers, a standalone or live deployment state holds `-1` (or omits

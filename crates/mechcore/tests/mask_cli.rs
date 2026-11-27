@@ -123,7 +123,10 @@ fn standalone_state_reads_unit_reinforcements_in_its_own_round() {
         ..Default::default()
     };
     let input = json!({"kind":"state","round":2,"random_state":[1,2,3,4],
-        "reinforce_offers":["rhino_1x_lv1","refund_200"],"blue":side,"red":side});
+        "reinforce_offers":[
+            {"type":"unit","name":"rhino_1x_lv1","unit":"rhino","level":1,"squads":1,"cost":50},
+            {"type":"supply","name":"refund_200","cost":-200}
+        ],"blue":side,"red":side});
     fs::write(&state, input.to_string()).unwrap();
     let result = answer(&run(&[
         "mask",

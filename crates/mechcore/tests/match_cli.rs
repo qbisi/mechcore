@@ -103,7 +103,9 @@ fn open_the_match(path: &str) {
 fn decline(path: &str, side: &str) {
     let view = run(&["match", "show", path, "--side", side]).ok();
     let last = state(&view)["reinforce_offers"].as_array().unwrap().len() - 1;
-    let name = state(&view)["reinforce_offers"][last].as_str().unwrap();
+    let name = state(&view)["reinforce_offers"][last]["name"]
+        .as_str()
+        .unwrap();
     let decision = format!("{{type: choose_reinforce_item, index: {last}, name: {name}}}");
     assert_eq!(state(&view)[side]["reinforce_chosen"], false);
     assert_eq!(state(&view)[side]["reinforce_choice"], -1);
@@ -1711,7 +1713,9 @@ fn a_round_takes_one_reinforcement_answer() {
     decline(&path, "blue");
     let view = run(&["match", "show", &path, "--side", "blue"]).ok();
     let last = state(&view)["reinforce_offers"].as_array().unwrap().len() - 1;
-    let name = state(&view)["reinforce_offers"][last].as_str().unwrap();
+    let name = state(&view)["reinforce_offers"][last]["name"]
+        .as_str()
+        .unwrap();
     let again = format!("{{type: choose_reinforce_item, index: {last}, name: {name}}}");
     let refused = run(&["match", "act", &path, "--side", "blue", &again]).refused();
     assert!(refused.contains("one answer"), "{refused}");

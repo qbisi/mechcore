@@ -29,7 +29,7 @@ class Round:
             self.opponent = [self.choose_team(self.other, 0)]
         elif offers := self.state.get("reinforce_offers"):
             self.opponent = [{"type": "choose_reinforce_item", "index": len(offers) - 1,
-                              "name": offers[-1]}]
+                              "name": offers[-1]["name"]}]
 
     def choose_team(self, seat, index):
         offer = self.header[seat]["offers"][index]

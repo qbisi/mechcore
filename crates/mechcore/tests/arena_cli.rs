@@ -129,7 +129,8 @@ for line in sys.stdin:
     else:
         assert n == 2 and "reinforce_offers:" in doc.split("---\n")[-1]
         if "reinforce_offers:" in doc.split("---\n")[-1]:
-            offers = re.search(r"^reinforce_offers: \[([^\]]+)\]", doc.split("---\n")[-1], re.M)[1].split(", ")
+            section = re.search(r"^reinforce_offers:\n((?:- .+\n)+)", doc.split("---\n")[-1], re.M)[1]
+            offers = re.findall(r"name: ([^,}\s]+)", section)
             decline = dict(type="choose_reinforce_item",index=len(offers)-1,name=offers[-1])
             assert "error" in ask(request("act", 1, {}))
             assert "error" in ask(request("commit", 2, []))

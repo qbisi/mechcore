@@ -556,11 +556,41 @@ pub(crate) mod card {
         }
     }
 
-    /// A round's cards followed by its decline amount, such as `refund_50`.
+    /// A round's cards followed by its supply decline option.
     pub(crate) mod offers {
         use super::{Deserialize, Deserializer, Serializer};
+        use crate::economy::CardKind;
         use crate::r#match::Offers;
         use serde::Serialize;
+
+        /// Structured representation of one entry in `reinforce_offers`.
+        #[derive(Clone, Debug, Deserialize, Serialize, schemars::JsonSchema, PartialEq, Eq)]
+        #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
+        pub enum OfferEntry {
+            Officer {
+                name: String,
+                cost: i32,
+            },
+            Equipment {
+                name: String,
+                cost: i32,
+            },
+            CommanderSkill {
+                name: String,
+                cost: i32,
+            },
+            Unit {
+                name: String,
+                unit: String,
+                level: i32,
+                squads: i32,
+                cost: i32,
+            },
+            Supply {
+                name: String,
+                cost: i32,
+            },
+        }
 
         #[allow(clippy::ref_option)] // Required by serde's `with` shape.
         pub(crate) fn serialize<S: Serializer, O: std::borrow::Borrow<Offers>>(
@@ -577,17 +607,54 @@ pub(crate) mod card {
             offers: &Offers,
             serializer: S,
         ) -> Result<S::Ok, S::Error> {
+            use serde::ser::Error;
             if offers.refund < 0 {
-                return Err(serde::ser::Error::custom(
-                    "reinforcement refund is not negative",
-                ));
+                return Err(S::Error::custom("reinforcement refund is not negative"));
             }
-            let mut entries = offers
-                .dealt
-                .iter()
-                .map(|card| super::name::<S::Error>(*card).map(str::to_owned))
-                .collect::<Result<Vec<_>, _>>()?;
-            entries.push(format!("refund_{}", offers.refund));
+            let supply_cost = offers
+                .refund
+                .checked_neg()
+                .ok_or_else(|| S::Error::custom("reinforcement refund overflows cost"))?;
+            let economy = crate::economy::Economy::embedded().map_err(S::Error::custom)?;
+            let mut entries = Vec::with_capacity(offers.dealt.len() + 1);
+            for &card in &offers.dealt {
+                let name = super::name::<S::Error>(card)?.to_owned();
+                let cost = economy.card(card).ok_or_else(|| {
+                    S::Error::custom(format!("reinforcement card {card} has no price"))
+                })?;
+                if let Some(ur) = economy.unit_reinforcement(card) {
+                    let (unit, _) =
+                        crate::catalog::unit_type_from_id(ur.unit).ok_or_else(|| {
+                            S::Error::custom(format!(
+                                "unit card {card} has unknown unit {}",
+                                ur.unit
+                            ))
+                        })?;
+                    entries.push(OfferEntry::Unit {
+                        name,
+                        unit: unit.to_owned(),
+                        level: ur.level,
+                        squads: ur.squads,
+                        cost,
+                    });
+                } else {
+                    let entry = match economy.card_kind(card) {
+                        Some(CardKind::Officer) => OfferEntry::Officer { name, cost },
+                        Some(CardKind::Equipment) => OfferEntry::Equipment { name, cost },
+                        Some(CardKind::CommanderSkill) => OfferEntry::CommanderSkill { name, cost },
+                        _ => {
+                            return Err(S::Error::custom(format!(
+                                "reinforcement card {card} has no offer kind"
+                            )));
+                        }
+                    };
+                    entries.push(entry);
+                }
+            }
+            entries.push(OfferEntry::Supply {
+                name: format!("refund_{}", offers.refund),
+                cost: supply_cost,
+            });
             entries.serialize(serializer)
         }
 
@@ -595,23 +662,102 @@ pub(crate) mod card {
             deserializer: D,
         ) -> Result<Option<Offers>, D::Error> {
             use serde::de::Error;
-            let Some(mut entries) = Option::<Vec<String>>::deserialize(deserializer)? else {
+            let Some(mut entries) = Option::<Vec<OfferEntry>>::deserialize(deserializer)? else {
                 return Ok(None);
             };
-            let refund = entries
-                .pop()
-                .and_then(|name| super::refund_amount(&name))
-                .ok_or_else(|| {
-                    D::Error::custom("reinforce_offers ends in refund_<nonnegative integer>")
-                })?;
-            let dealt = entries
-                .iter()
-                .map(|name| super::id::<D::Error>(name))
-                .collect::<Result<_, _>>()?;
+            let refund = match entries.pop() {
+                Some(OfferEntry::Supply { name, cost }) => {
+                    let refund = super::refund_amount(&name).ok_or_else(|| {
+                        D::Error::custom(
+                            "reinforce_offers ends in supply entry refund_<nonnegative integer>",
+                        )
+                    })?;
+                    if refund.checked_neg() != Some(cost) {
+                        return Err(D::Error::custom("supply offer cost must equal -<refund>"));
+                    }
+                    refund
+                }
+                _ => {
+                    return Err(D::Error::custom(
+                        "reinforce_offers ends in supply entry refund_<nonnegative integer>",
+                    ));
+                }
+            };
+            let economy = crate::economy::Economy::embedded().map_err(D::Error::custom)?;
+            let mut dealt = Vec::with_capacity(entries.len());
+            for entry in entries {
+                let id = match entry {
+                    OfferEntry::Supply { .. } => {
+                        return Err(D::Error::custom(
+                            "supply offer must appear only as the final entry",
+                        ));
+                    }
+                    OfferEntry::Officer { name, cost } => {
+                        check_card::<D::Error>(economy, &name, CardKind::Officer, cost)?
+                    }
+                    OfferEntry::Equipment { name, cost } => {
+                        check_card::<D::Error>(economy, &name, CardKind::Equipment, cost)?
+                    }
+                    OfferEntry::CommanderSkill { name, cost } => {
+                        check_card::<D::Error>(economy, &name, CardKind::CommanderSkill, cost)?
+                    }
+                    OfferEntry::Unit {
+                        name,
+                        unit,
+                        level,
+                        squads,
+                        cost,
+                    } => {
+                        let id = super::id::<D::Error>(&name)?;
+                        let ur = economy.unit_reinforcement(id).ok_or_else(|| {
+                            D::Error::custom(format!("{name} is not a unit reinforcement card"))
+                        })?;
+                        let expected_unit =
+                            crate::catalog::unit_type_from_id(ur.unit).map(|(u, _)| u);
+                        if expected_unit != Some(unit.as_str())
+                            || ur.level != level
+                            || ur.squads != squads
+                        {
+                            return Err(D::Error::custom(format!(
+                                "unit offer {name} disagrees with unit {unit}, level {level}, squads {squads}"
+                            )));
+                        }
+                        if economy.card(id) != Some(cost) {
+                            return Err(D::Error::custom(format!(
+                                "reinforcement offer {name} has wrong cost {cost}"
+                            )));
+                        }
+                        id
+                    }
+                };
+                dealt.push(id);
+            }
             Ok(Some(Offers { dealt, refund }))
+        }
+
+        fn check_card<E: serde::de::Error>(
+            economy: &crate::economy::Economy,
+            name: &str,
+            expected_kind: CardKind,
+            cost: i32,
+        ) -> Result<i32, E> {
+            let id = super::id::<E>(name)?;
+            if economy.card_kind(id) != Some(expected_kind) {
+                return Err(E::custom(format!(
+                    "reinforcement offer {name} has wrong card kind"
+                )));
+            }
+            if economy.card(id) != Some(cost) {
+                return Err(E::custom(format!(
+                    "reinforcement offer {name} has wrong cost {cost}"
+                )));
+            }
+            Ok(id)
         }
     }
 }
+
+pub use card::offers::OfferEntry;
 
 /// Technologies grouped by the unit they belong to, `{fang: [name, ...]}`:
 /// units in ID order, a unit's technologies in ID order. Stored flat, as IDs.

@@ -23,7 +23,7 @@ def deploy(problem, draw):
         draw.shuffle(order)
         for index in order + [len(offers) - 1]:
             if problem.try_action({"type": "choose_reinforce_item", "index": index,
-                                   "name": offers[index]}, keep=True) is not None:
+                                   "name": offers[index]["name"]}, keep=True) is not None:
                 break
     refused = 0
     while refused < PATIENCE:

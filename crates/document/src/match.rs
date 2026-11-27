@@ -11,6 +11,7 @@ use crate::layout::{
     ContraptionPlacement, Experience, Position, Standing, StaticPlacement, UnitPlacement,
     UnitSource,
 };
+pub use crate::names::OfferEntry;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
@@ -234,14 +235,13 @@ pub struct State {
     #[serde(default, skip_serializing_if = "PoolDelta::is_empty")]
     pub reinforce_pool: PoolDelta,
     /// Absent in rounds 0 and 1, which are dealt no reinforcement offer.
-    /// Written as card names, a unit card's read within this round, and then
-    /// the decline.
+    /// Written as structured offer entries, ending with the supply decline.
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         with = "crate::names::card::offers"
     )]
-    #[schemars(with = "Option<Vec<String>>")]
+    #[schemars(with = "Option<Vec<OfferEntry>>")]
     pub reinforce_offers: Option<Offers>,
     pub blue: SideState,
     pub red: SideState,
@@ -1046,8 +1046,10 @@ pub(crate) fn payload<T: serde::de::DeserializeOwned>(
 /// Appends `@round` to every unit card name a segment holds.
 fn within_round(fields: &mut serde_yaml::Mapping, round: i64) {
     if let Some(Value::Sequence(offers)) = fields.get_mut("reinforce_offers") {
-        for name in offers {
-            qualify_card(name, round);
+        for offer in offers {
+            if let Some(name) = offer.get_mut("name") {
+                qualify_card(name, round);
+            }
         }
     }
     for side in ["blue", "red"] {
@@ -1347,7 +1349,7 @@ pub mod schema {
         pub kind: StateKind,
         pub round: i32,
         /// Absent in rounds 0 and 1, which are dealt no reinforcement offer.
-        #[schemars(with = "Option<Vec<String>>")]
+        #[schemars(with = "Option<Vec<super::OfferEntry>>")]
         pub reinforce_offers: Option<super::Offers>,
         pub blue: SideState,
         pub red: SideState,
@@ -1954,11 +1956,11 @@ mod tests {
         }
     }
 
-    /// A round's offers are its cards and then the decline with its refund,
-    /// and a list that does not end in the decline is not a round's offers.
+    /// A round's offers are its structured cards and then the supply decline,
+    /// and a list that does not end in the supply entry is not a round's offers.
     #[test]
     fn offers_end_in_the_decline_and_its_refund() {
-        use super::{Offers, State};
+        use super::{Offers, State, payload};
         let state = |offers: &str| {
             format!(
                 "random_state: [1, 2, 3, 4]\nreinforce_offers: {offers}\nblue: {{random_state: [1, 2, 3, 4], reactor_core: 0, supply: 0, unlocked_units: [], \
@@ -1967,8 +1969,12 @@ mod tests {
                  next_index: {{unit: 0, contraption: 0}}, units: []}}\n"
             )
         };
-        let read: State =
-            serde_yaml::from_str(&state("[photon_coating, missile_strike, refund_150]")).unwrap();
+        let read: State = serde_yaml::from_str(&state(
+            "[{type: equipment, name: photon_coating, cost: 0}, \
+              {type: commander_skill, name: missile_strike, cost: 50}, \
+              {type: supply, name: refund_150, cost: -150}]",
+        ))
+        .unwrap();
         let offers = read.reinforce_offers.clone().unwrap();
         assert_eq!(
             offers,
@@ -1980,25 +1986,67 @@ mod tests {
         assert_eq!(offers.decline_index(), 2);
         let written = serde_yaml::to_string(&read).unwrap();
         assert_eq!(serde_yaml::from_str::<State>(&written).unwrap(), read);
-        assert!(written.contains("refund_150"));
+        assert!(written.contains("name: refund_150"));
+        assert!(written.contains("cost: -150"));
+        assert!(written.contains("cost: 0"));
+
+        let unit_yaml = format!(
+            "kind: state\nround: 2\n{}",
+            state(
+                "[{type: officer, name: super_supply_enhancement, cost: 250}, \
+                  {type: unit, name: rhino_1x_lv1, unit: rhino, level: 1, squads: 1, cost: 50}, \
+                  {type: supply, name: refund_200, cost: -200}]"
+            )
+        );
+        let unit_state: State = payload(serde_yaml::from_str(&unit_yaml).unwrap()).unwrap();
+        assert_eq!(
+            unit_state.reinforce_offers,
+            Some(Offers {
+                dealt: vec![10_003, 102_115],
+                refund: 200
+            })
+        );
+
         for amount in [0, 50, 400, i32::MAX] {
-            let value: State = serde_yaml::from_str(&state(&format!("[refund_{amount}]"))).unwrap();
+            let neg = -amount;
+            let value: State = serde_yaml::from_str(&state(&format!(
+                "[{{type: supply, name: refund_{amount}, cost: {neg}}}]"
+            )))
+            .unwrap();
             assert_eq!(value.reinforce_offers.unwrap().refund, amount);
         }
         for refused in [
             "[]",
-            "[refund_-1]",
-            "[refund_2147483648]",
-            "[refund_]",
-            "[refund_+50]",
-            "[refund_50, refund_100]",
-            "[photon_coating, missile_strike]",
-            "[refund_50, photon_coating]",
-            "[photon_coating, {name: decline, refund: 50}]",
+            "[photon_coating, refund_50]",
+            "[{type: supply, name: refund_-1, cost: 1}]",
+            "[{type: supply, name: refund_2147483648, cost: -2147483648}]",
+            "[{type: supply, name: refund_, cost: 0}]",
+            "[{type: supply, name: refund_+50, cost: -50}]",
+            "[{type: supply, name: refund_50, cost: 50}]",
+            "[{type: supply, name: refund_50, cost: -100}]",
+            "[{type: supply, name: refund_50, cost: -50}, {type: supply, name: refund_100, cost: -100}]",
+            "[{type: equipment, name: photon_coating, cost: 0}, {type: commander_skill, name: missile_strike, cost: 50}]",
+            "[{type: supply, name: refund_50, cost: -50}, {type: equipment, name: photon_coating, cost: 0}]",
+            "[{type: commander_skill, name: photon_coating, cost: 0}, {type: supply, name: refund_50, cost: -50}]",
+            "[{type: equipment, name: photon_coating, cost: 50}, {type: supply, name: refund_50, cost: -50}]",
+            "[{type: equipment, name: photon_coating, cost: 0, extra: 1}, {type: supply, name: refund_50, cost: -50}]",
+            "[{name: decline, refund: 50}]",
         ] {
             assert!(
                 serde_yaml::from_str::<State>(&state(refused)).is_err(),
                 "{refused}"
+            );
+        }
+        for refused_unit in [
+            "[{type: unit, name: rhino_1x_lv1, unit: wasp, level: 1, squads: 1, cost: 50}, {type: supply, name: refund_200, cost: -200}]",
+            "[{type: unit, name: rhino_1x_lv1, unit: rhino, level: 2, squads: 1, cost: 50}, {type: supply, name: refund_200, cost: -200}]",
+            "[{type: unit, name: rhino_1x_lv1, unit: rhino, level: 1, squads: 2, cost: 50}, {type: supply, name: refund_200, cost: -200}]",
+            "[{type: unit, name: rhino_1x_lv1, unit: rhino, level: 1, squads: 1, cost: 0}, {type: supply, name: refund_200, cost: -200}]",
+        ] {
+            let yaml = format!("kind: state\nround: 2\n{}", state(refused_unit));
+            assert!(
+                payload::<State>(serde_yaml::from_str(&yaml).unwrap()).is_err(),
+                "{refused_unit}"
             );
         }
     }

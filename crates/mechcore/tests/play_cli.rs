@@ -166,7 +166,7 @@ fn create_two_round_match(dir: &Path) -> (PathBuf, PathBuf) {
             let view = run_str(&["match", "show", path_str, "--side", side]);
             if let Some(offers) = view["state"]["reinforce_offers"].as_array() {
                 let last = offers.len() - 1;
-                let name = offers[last].as_str().unwrap();
+                let name = offers[last]["name"].as_str().unwrap();
                 let decline =
                     format!("{{type: choose_reinforce_item, index: {last}, name: {name}}}");
                 run_str(&["match", "act", path_str, "--side", side, &decline]);
