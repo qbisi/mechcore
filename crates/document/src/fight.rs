@@ -9,7 +9,6 @@ use crate::layout::{
     SHIELD_AIRDROP_SKILL, STICKY_OIL_BOMB_SKILL, Side, Standing, StaticPlacement, UnitPlacement,
 };
 use crate::{DocumentKind, compile::compile_layout};
-use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -50,7 +49,7 @@ pub struct Fight {
 /// and an assert whose rows nobody recorded states none. Whether the claim
 /// is bound to a tick or only to the order of what happened is the query's
 /// to say, by what it selects and orders by.
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct Assert {
     /// The SQL the recording is asked.
@@ -71,18 +70,8 @@ pub struct Trajectory {
     pub hash: FightHash,
 }
 
-impl JsonSchema for Fight {
-    fn schema_name() -> std::borrow::Cow<'static, str> {
-        "Fight".into()
-    }
-
-    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
-        WrittenFight::json_schema(generator)
-    }
-}
-
 /// The embedded fight document and its optional trajectory.
-#[derive(Deserialize, Serialize, JsonSchema)]
+#[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct WrittenFight {
     kind: FightKind,
@@ -94,11 +83,9 @@ struct WrittenFight {
     )]
     game_build: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schemars(range(min = 1))]
     map_id: Option<i32>,
     /// The match seed the fight was fought with: a result is one seed's.
     seed: i32,
-    #[schemars(range(min = 1))]
     round: i32,
     blue: FightSide,
     red: FightSide,
@@ -107,7 +94,6 @@ struct WrittenFight {
     asserts: Vec<Assert>,
     /// The fight's logical ticks, stated with `hash` or not at all.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schemars(range(min = 1))]
     ticks: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     hash: Option<FightHash>,
@@ -160,7 +146,7 @@ impl From<Fight> for WrittenFight {
 }
 
 /// A fight document names itself `fight`, and nothing else.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum FightKind {
     Fight,
@@ -169,7 +155,7 @@ pub enum FightKind {
 /// Who fought the fight whose result a document states: the recording's
 /// `producer`. The game fights a layout and a native replay's round the same
 /// way, and the two agree tick for tick, so both are `game`.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum Source {
     /// The game, through the Adapter: evidence of what the game does.
@@ -221,26 +207,12 @@ impl From<FightHash> for String {
     }
 }
 
-impl JsonSchema for FightHash {
-    fn schema_name() -> std::borrow::Cow<'static, str> {
-        "FightHash".into()
-    }
-
-    fn json_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
-        schemars::json_schema!({
-            "type": "string",
-            "pattern": "^[0-9]+:[0-9a-f]{64}$",
-        })
-    }
-}
-
 /// One side of a fight: the layout's side, what the fight took off its
 /// reactor core, and the result on each of its objects.
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct FightSide {
     /// Complete settlement, required even when zero.
-    #[schemars(range(min = 0))]
     pub core_damage: i32,
     /// The officers the side holds, by name, a multiset in ascending ID. A
     /// chain blueprint's officer is not one: `blueprints` states it.
@@ -249,7 +221,6 @@ pub struct FightSide {
         skip_serializing_if = "Vec::is_empty",
         with = "crate::names::officer::many"
     )]
-    #[schemars(with = "Vec<String>")]
     pub officers: Vec<i32>,
     /// Unit technologies, written grouped by the unit type they belong to.
     #[serde(
@@ -257,7 +228,6 @@ pub struct FightSide {
         skip_serializing_if = "Vec::is_empty",
         with = "crate::names::technologies"
     )]
-    #[schemars(with = "BTreeMap<String, Vec<String>>")]
     pub techs: Vec<i32>,
     /// The Research Center's enhancement chains the side holds, by name: the
     /// blueprints a fight sees. [`crate::catalog::CHAIN_BLUEPRINTS`] lists them.
@@ -266,14 +236,12 @@ pub struct FightSide {
         skip_serializing_if = "Vec::is_empty",
         with = "crate::names::blueprint::many"
     )]
-    #[schemars(with = "Vec<String>")]
     pub blueprints: Vec<i32>,
     #[serde(
         default,
         skip_serializing_if = "Vec::is_empty",
         with = "crate::names::energy_tower_skill::many"
     )]
-    #[schemars(with = "Vec<String>")]
     pub energy_tower_skills: Vec<i32>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tower_strengthen_levels: Vec<i32>,
@@ -294,7 +262,7 @@ pub struct FightSide {
 }
 
 /// A unit and its beginning/final/maximum experience.
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct FightUnit {
     #[serde(rename = "name")]
@@ -328,7 +296,6 @@ pub struct FightUnit {
         skip_serializing_if = "Vec::is_empty",
         with = "crate::names::equipment::many"
     )]
-    #[schemars(with = "Vec<String>")]
     pub equipments: Vec<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub travelling: Option<bool>,
@@ -390,22 +357,8 @@ impl<'de> Deserialize<'de> for FightExperience {
     }
 }
 
-impl JsonSchema for FightExperience {
-    fn schema_name() -> std::borrow::Cow<'static, str> {
-        "FightExperience".into()
-    }
-
-    fn json_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
-        schemars::json_schema!({
-            "description": "Experience within the formation's level across the fight, written begin/final/max, where maximum is the level's full bar.",
-            "type": "string",
-            "pattern": "^-?[0-9]+/-?[0-9]+/[0-9]+$"
-        })
-    }
-}
-
 /// A layout contraption, and whether it still stands when the fight ends.
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct FightContraption {
     #[serde(rename = "name")]
@@ -419,7 +372,7 @@ pub struct FightContraption {
 
 /// One `battle_skills` entry of a fight: the layout's entry and what the
 /// fight left of it.
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(try_from = "FightBattleSkillFields", into = "FightBattleSkillFields")]
 pub enum FightBattleSkill {
     Release(FightRelease),
@@ -454,7 +407,7 @@ pub struct FightStanding {
 
 /// How a fight's `battle_skills` entry is written: the layout's fields, and
 /// the result fields beside them.
-#[derive(Clone, Deserialize, Serialize, JsonSchema)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct FightBattleSkillFields {
     name: String,
@@ -1159,26 +1112,5 @@ hash: 23:380d721bf2aa581622f521e4386160a0b5eedfb16ffed7b477b7e288c31534ef
                 assert_eq!(parse_yaml(written.as_bytes()).unwrap(), fight, "{written}");
             }
         }
-    }
-
-    #[test]
-    fn schema_requires_embedded_core_damage_and_three_term_experience() {
-        let schema = serde_json::to_value(schemars::schema_for!(Fight)).unwrap();
-        let required = schema["required"].as_array().unwrap();
-        assert!(!required.contains(&serde_json::json!("outcome")));
-        assert!(required.contains(&serde_json::json!("seed")));
-        assert!(!required.contains(&serde_json::json!("ticks")));
-        assert!(
-            schema["$defs"]["FightSide"]["required"]
-                .as_array()
-                .unwrap()
-                .contains(&serde_json::json!("core_damage"))
-        );
-        assert!(
-            schema["$defs"]["FightExperience"]["pattern"]
-                .as_str()
-                .unwrap()
-                .contains('/')
-        );
     }
 }

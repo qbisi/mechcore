@@ -189,7 +189,7 @@ impl Asked {
             _ => Err(Failure::usage(
                 "expected exactly one of --sql <sql>, --sql-file <path>, --query <name> and \
                  --schema; --schema lists the tables and the named queries, and \
-                 `mechcore man query` the contract",
+                 docs/spec/mechcore/cli.md holds the contract",
             )),
         }
     }

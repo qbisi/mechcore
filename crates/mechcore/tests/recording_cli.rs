@@ -227,37 +227,6 @@ red:
         "{}",
         String::from_utf8_lossy(&run.stderr)
     );
-
-    let read = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .args(["show", "--view", "outcome"])
-        .arg(&recording)
-        .output()
-        .unwrap();
-    // The answer is yes: the recording answers everything its fight decided.
-    assert_eq!(read.status.code(), Some(0));
-    let outcome: serde_json::Value = serde_json::from_slice(&read.stdout).unwrap();
-    assert_eq!(outcome["schema"], "mechcore.fight-outcome");
-    assert!(outcome["ticks"].as_u64().unwrap() > 0);
-    assert_eq!(outcome["unresolved"], serde_json::json!([]), "{outcome}");
-
-    let blue = &outcome["sides"]["blue"]["survivors"];
-    let indices: Vec<i64> = blue
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|survivor| survivor["index"].as_i64().unwrap())
-        .collect();
-    assert_eq!(indices, vec![0, 3, 7], "{outcome}");
-    assert_eq!(blue[0]["name"], "marksman");
-    assert_eq!(blue[0]["members"], 1);
-    assert_eq!(blue[0]["alive"], 1);
-    assert!(blue[0]["life"].as_i64().unwrap() > 0);
-    assert!(
-        outcome["sides"]["red"]["survivors"]
-            .as_array()
-            .unwrap()
-            .is_empty()
-    );
 }
 
 /// A recording converts to the fight document it records, and a layout to
@@ -361,8 +330,6 @@ red:
     assert_eq!(compared.status.code(), Some(1));
     let report: serde_json::Value = serde_json::from_slice(&compared.stdout).unwrap();
     assert_eq!(report["differences"][0]["path"], "/red/core_damage");
-    let schema = mechcore(&["schema".as_ref(), "fight".as_ref()]);
-    assert!(schema.status.success());
 }
 
 #[test]
@@ -591,137 +558,6 @@ fn verify_compares_a_game_fight() {
             .ends_with("/core_damage"),
         "{report}"
     );
-}
-
-/// What was written onto a fight's units, which is not what the fight decided.
-///
-/// Both halves of a unit's numbers, read out of a recording.
-///
-/// This layout carries no officer and no buff reaches either unit at the first
-/// tick — and every formation still answers, with the numbers its description
-/// alone gives. That is the case a control is read
-/// for, and it is also what says the derived numbers are recorded rather than
-/// inferred. The corrected cases are measured against the game by the scripts
-/// under `tests/modifier/`.
-#[test]
-fn stats_read_a_tick_and_answer_every_formation() {
-    let directory = tempfile::tempdir().unwrap();
-    let recording = directory.path().join("fight.mcfr");
-    let layout =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/marksman-vs-arclight.yaml");
-    let run = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .args(["convert", "--to", "mcfr"])
-        .arg(&layout)
-        .arg(&recording)
-        .output()
-        .unwrap();
-    assert!(
-        run.status.success(),
-        "{}",
-        String::from_utf8_lossy(&run.stderr)
-    );
-
-    let read = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .args(["show", "--view", "stats"])
-        .arg(&recording)
-        .output()
-        .unwrap();
-    assert!(read.status.success());
-    let written: serde_json::Value = serde_json::from_slice(&read.stdout).unwrap();
-    assert_eq!(written["schema"], "mechcore.fight-stats");
-    assert_eq!(written["tick"], 1, "the first tick is the default");
-    assert!(written["ticks"].as_u64().unwrap() > 1);
-    // Every formation answers. A Marksman's description gives 8 m/s, 140 m
-    // and 2329 of damage, and nothing here corrects any of them.
-    assert_eq!(written["sides"]["blue"][0]["name"], "marksman", "{written}");
-    // No buff reaches one member alone, so the formation reads as one.
-    let readings = written["sides"]["blue"][0]["readings"].as_array().unwrap();
-    assert_eq!(readings.len(), 1, "{written}");
-    let blue = &readings[0];
-    assert!(!blue["units"].as_array().unwrap().is_empty(), "{written}");
-    assert_eq!(blue["move_speed"], 8_i64 << 32);
-    assert_eq!(blue["skills"][0]["attack_range"], 140_i64 << 32);
-    assert_eq!(blue["skills"][0]["attack_damage"], 2329);
-    assert!(
-        blue.get("buffs").is_none(),
-        "a unit holding no buff leaves them out: {written}"
-    );
-    assert_eq!(written["sides"]["red"][0]["name"], "arclight", "{written}");
-
-    // A tick the recording does not hold is refused rather than answered from
-    // the nearest one it does.
-    let beyond = written["ticks"].as_u64().unwrap() + 1_000;
-    let refused = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .args(["show", "--view", "stats"])
-        .arg(&recording)
-        .arg("--tick")
-        .arg(beyond.to_string())
-        .output()
-        .unwrap();
-    assert!(!refused.status.success());
-    assert!(
-        String::from_utf8_lossy(&refused.stdout).contains("has no tick")
-            || String::from_utf8_lossy(&refused.stderr).contains("has no tick"),
-        "stdout {} stderr {}",
-        String::from_utf8_lossy(&refused.stdout),
-        String::from_utf8_lossy(&refused.stderr)
-    );
-}
-
-/// What is standing in a fight, which is neither what it decided nor a unit's
-/// numbers.
-///
-/// This layout places no constructions, so the answer holds the two towers
-/// a map gives each side, named by the build's own `BuildingType`, and an
-/// empty construction list beside them.
-#[test]
-fn buildings_read_the_towers_a_map_gives_each_side() {
-    let directory = tempfile::tempdir().unwrap();
-    let recording = directory.path().join("fight.mcfr");
-    let layout =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/marksman-vs-arclight.yaml");
-    let run = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .args(["convert", "--to", "mcfr"])
-        .arg(&layout)
-        .arg(&recording)
-        .output()
-        .unwrap();
-    assert!(
-        run.status.success(),
-        "{}",
-        String::from_utf8_lossy(&run.stderr)
-    );
-
-    let read = Command::new(env!("CARGO_BIN_EXE_mechcore"))
-        .args(["show", "--view", "buildings"])
-        .arg(&recording)
-        .output()
-        .unwrap();
-    assert!(read.status.success());
-    let standing: serde_json::Value = serde_json::from_slice(&read.stdout).unwrap();
-    assert_eq!(standing["schema"], "mechcore.fight-buildings");
-    assert_eq!(standing["tick"], 1, "the first tick is the default");
-    for side in ["blue", "red"] {
-        let towers = standing["sides"][side]["towers"].as_array().unwrap();
-        assert_eq!(towers.len(), 2, "{side}: {standing}");
-        let kinds: Vec<&str> = towers
-            .iter()
-            .map(|tower| tower["kind"].as_str().unwrap())
-            .collect();
-        assert_eq!(kinds, ["energy_tower", "research_center"], "{side}");
-        // 3400 of life and a 20 m box, which `config/towers.yaml`
-        // states and the capture confirmed.
-        assert_eq!(towers[0]["life"]["maximum"], 3400, "{side}");
-        assert_eq!(towers[0]["bounds"]["width"], 20_i64 << 32, "{side}");
-        assert_eq!(
-            standing["sides"][side]["constructions"]
-                .as_array()
-                .unwrap()
-                .len(),
-            0,
-            "{side} places none: {standing}"
-        );
-    }
 }
 
 /// A fight document converts to the recording of the fight it states: its

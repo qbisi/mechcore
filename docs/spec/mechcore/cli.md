@@ -14,10 +14,8 @@ layout's shape is [layout.md](../document/layout.md), the wire protocol behind
 the `game` namespace is [adapter.md](../adapter/adapter.md), how a process
 acquires the game is [session.md](session.md). What the game itself decides is
 [`docs/rules/`](../../rules), beside the tables in
-[`config/`](../../../config) that the binary carries and computes with. Those
-documents and these contracts are what `man` answers with, so a reader needs
-the binary and nothing else. This document says how each is invoked and what
-comes back.
+[`config/`](../../../config) that the binary carries and computes with. This
+document says how each operation is invoked and what comes back.
 
 A match played here is a match of standard 1v1 as the documents describe it,
 played by the rules this binary carries and fought by the simulator it carries.
@@ -70,12 +68,8 @@ standard output, and a simulator computation to MCFR answers its result
 without keeping a recording. Conversion to GRBR or match, and every game
 computation, requires `<out>`.
 
-**`man <kind>` lists the verbs a kind takes**, from the same table the verbs
-are refused by, ahead of the document that describes the kind.
-
-Two commands stand outside both, because their object is neither a file nor
-a state: `shell` opens a prompt, and `man` answers with the manual the binary
-carries.
+`shell` stands outside both, because its object is a prompt rather than a
+file or namespace.
 
 ## Kinds and verbs
 
@@ -93,22 +87,19 @@ carries.
 A YAML document that names no kind, or one this binary does not read, is
 refused rather than guessed at.
 
-| Kind | `verify` | `convert --to` | `diff` | `show --view` | `query` | `play` | `format` | `mask` | `preview` |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `layout` | yes | `grbr` (transcode), `mcfr` (computation), `fight` (computation), `html` (computation) | yes | — | — | yes (computation) | yes | yes | yes |
-| `fight` | yes | `layout` (projection), `grbr` (transcode), `mcfr` (computation), `html` (computation) | yes | — | — | yes (computation) | yes | — | — |
-| `match` | yes | `grbr` (transcode), `layout` (projection), `fight`, `mcfr`, and `html` (computation) | — | — | — | yes (computation) | — | yes | — |
-| `state` | — | — | — | — | — | — | — | yes | yes |
-| `action` | — | — | — | — | — | — | — | — | — |
-| `mcfr` | yes | `fight`, `layout`, and `html` (projection), `grbr` (transcode) | yes | `outcome`, `stats`, `buildings` | yes | yes | — | — | — |
-| `grbr` | — | `match` (transcode), `layout` (projection), `mcfr`, `fight`, and `html` (computation) | — | — | — | yes (computation) | — | — | — |
-| `html` | — | — | — | — | — | — | — | — | — |
+| Kind | `verify` | `convert --to` | `diff` | `query` | `play` | `format` | `mask` | `preview` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `layout` | yes | `grbr` (transcode), `mcfr` (computation), `fight` (computation), `html` (computation) | yes | — | yes (computation) | yes | yes | yes |
+| `fight` | yes | `layout` (projection), `grbr` (transcode), `mcfr` (computation), `html` (computation) | yes | — | yes (computation) | yes | — | — |
+| `match` | yes | `grbr` (transcode), `layout` (projection), `fight`, `mcfr`, and `html` (computation) | — | — | yes (computation) | — | yes | — |
+| `state` | — | — | — | — | — | — | yes | yes |
+| `action` | — | — | — | — | — | — | — | — |
+| `mcfr` | yes | `fight`, `layout`, and `html` (projection), `grbr` (transcode) | yes | yes | yes | — | — | — |
+| `grbr` | — | `match` (transcode), `layout` (projection), `mcfr`, `fight`, and `html` (computation) | — | — | yes (computation) | — | — | — |
+| `html` | — | — | — | — | — | — | — | — |
 
 A state and an action are verified inside a match. A standalone state also
 takes `mask`, which projects its stated position without replaying decisions.
-`schema` names a
-kind rather than a file, and answers the shape of `layout`, `fight`, `match`,
-`state` and `action`.
 
 ## One operation, four callers
 
@@ -451,7 +442,9 @@ there and answers its path, round and source.
 
 The recording holds the fight's objects under its own identities, so each
 layout entry is found by what the two share. A formation is paired with its
-placement as [`show --view outcome`](#show) pairs it, and its embedded `exp` final term is
+placement by where its members open the fight at the first tick (excluding
+units handed by an officer as the fight is built, which have no placement), and
+its embedded `exp` final term is
 the formation's experience at the last tick, cut to a whole number as the
 fight's end cuts it; the formation has to open the fight holding the layout's
 experience, and its bar has to be the table's. `core_damage` is what
@@ -518,78 +511,8 @@ A recording `diff` includes a `settlement` array of field differences.
 `--fields settlement` selects its results, with field prefixes such as
 `settlement.teams.score`. A settlement-only mismatch makes `equal` false while
 `first_divergence` stays null and the per-tick field comparisons can all agree.
-`verify` compares the complete content hash, including settlement. Converting
-to a fight reads final experience from settlement rather than truncating the
-last snapshot.
-
-## `show`
-
-`show <file> --view <view>` answers one view of what a file holds. A recording
-has three, and `--view` names one of them.
-
-**`outcome`** reads a recording as [`convert --to fight`](#convert) reads it,
-and answers what a fight document leaves out: the formations that came out of
-the fight, under the indices the document knows them by, with how many
-members each took in and brought out and the life they have left, which a
-fight document does not carry because a unit comes back whole next round; and
-`unresolved`, everything the fight decided that the recording does not answer,
-which is what keeps the recording from converting. A unit counts as deployed
-from its side's formations when it opened the fight in a formation a placement
-takes and the fight did not create it; a formation no placement takes, such as
-one an officer hands a side as the fight is built, is no placement's and is not
-among the survivors. A unit that died in the fight and stands at its end was
-reborn, and scores as one. What the recording does not answer is never
-approximated, and the verdict is no while anything is — the fight was read, and
-the answer is that it converts to no fight document and settles no round.
-What the fight decided is the fight document itself; the view stays because a
-recording's survivors are what a capture of a mechanism is commonly read for,
-and a fight document has no place for them.
-
-**`stats`** reads the same recording for a unit's numbers at one tick: the
-`buffs` it holds, each by its `buff_id` (or the `technology_id` of a
-technology that serves as its own buff data) and its `stacks` when it stacks,
-and the numbers the build **computed** after every correction on it: the
-unit's `move_speed`, and each skill's `attack_range`, `attack_damage` and
-`current_attack_interval`, by its slot. None is something the fight decided,
-which is why none belongs in the outcome. A recording keeps no correction a
-technology, an officer or an equipment writes, so a capture reads a correction
-off the number it comes to: a damage of 1.6 times the description is a rate
-of `+0.6`. [officer_effects.md](../../rules/officer_effects.md) is what reads
-them that way.
-
-Every formation answers, whether or not anything corrects it: a unit with
-nothing on it still has numbers, and that is what a control is read for. It
-answers one reading per distinct state its standing members are in, each
-naming its members by unit id: a buff the build hands a single member, one it
-takes on being hit, splits that member off.
-
-`--tick <n>` picks the tick to read; the default is the first, where a
-correction applied as the fight is built has landed and nothing the fight does
-has moved it yet. A mechanism that writes during the fight is read at the tick
-it is expected at. A formation answers whether or not it survives, because the
-side that spends a correction attacking is commonly the side that loses the
-unit carrying it.
-
-**`buildings`** reads the same recording for the objects standing in it, and
-takes the same `--tick <n>`. A side answers its `towers` — the buildings the
-map gives it, which no layout places — and its `constructions`, one entry per
-layout placement in index order.
-
-**A construction is not one object.** `FightConstructionSystem.Create` answers
-a list of them, so a placement owns as many buildings as its description says
-and each of them is its own row with its own life; `parts` is those rows. A
-recording records a building's `BuildingType` and not the construction that
-released it, so the rows are matched back to the layout the recording embeds by
-the one thing the two share, where a thing stands. A building that belongs to
-no single placement is refused rather than assigned. An empty `parts` is a
-reading: every object that placement owned is gone.
-
-Positions, bounds and every other length are the recording's own fixed point,
-`1 << 32` to the metre, as `stats` reports a derived number in.
-[constructions.md](../../rules/constructions.md) is what reads them that way.
-
-`match show` shares the verb because it is the same question asked of a match
-in play: what one side is shown of it.
+`verify` compares the complete content hash, including settlement. Converting to a fight reads final experience from settlement rather than
+truncating the last snapshot.
 
 ## `query`
 
@@ -673,7 +596,7 @@ from `meta`'s `layout.yaml`; two tables hold what naming a formation takes.
 `layout_units` one row per formation placement, keyed by `side` and
 `placement`, the placement's `index`, with the `team_id` the recording records
 the side under, its `name`, and `formation_id`, the recorded formation the
-placement is, matched as [`show --view outcome`](#show) matches them: by where
+placement is, matched by where
 the formation's members stand at the first tick. A placement no formation is
 matched to has none, and where the matching refuses every one is null and
 `meta` holds the refusal as `layout_formations_refused`.
@@ -743,7 +666,7 @@ independent per-side clocks, the presentation tail settles survivor scores onto
 the opposing core, and the SVG download / `window.player.snapshot(frame)`
 exports a deterministic vector snapshot at any frame.
 
-## `format` and `schema`
+## `format`
 
 `format <document>` writes the document in its normal form, in place with
 `--write`. Layouts, fights and matches are the kinds it takes. The leading comment
@@ -765,12 +688,6 @@ opening and closing states, as [action.md](../document/action.md#settling-a-roun
 defines. Historical action sequences remain readable; formatting rewrites them
 only after the new sequence reproduces the deployment endpoint. It does not
 rewrite the recorded states or run a fight.
-
-`schema <kind>...` takes the kinds a document declares in its own `kind` field:
-`layout`, `fight`, `state`, `match`, `action` and `result`. It answers the shape of the document,
-which is what a reader validates against and what a writer generates from; it
-says nothing about what the fields mean, which is the document's own spec. A
-kind this contract does not name is refused.
 
 ## `mask`
 
@@ -912,25 +829,6 @@ Preview sees exactly the supplied deployment. For a decision model, pass the
 current own position and the opponent's round-opening position, not both
 players' completed deployment. It neither applies unseen opponent actions nor
 removes information the caller already put in its input.
-
-## `generate`
-
-`generate --seed <u64> --count <n> <dir>` draws the first `n` layouts of the
-batch the seed starts, so that every pair of values of two factors the rules
-admit appears in one of them, as [generate.md](../document/generate.md)
-defines. It writes each into `<dir>` as `<seed>-<index>.yaml`, refusing to
-replace one without `--force`, and answers `mechcore.generate-result`: each
-layout's path and the pairs it was the first to cover, how many pairs the rules
-admit and how many the batch covers, and each pair it does not, with the
-refusal of the last candidate dropped while holding it.
-
-`generate --seed <u64> --index <i>` writes layout `i` of that batch on
-standard output, the same layout a batch of any count above `i` writes. It
-names no directory.
-
-A generated layout is fought as any other: `convert` writes it as a replay or
-fights it in the simulator, and the game's recording of it is what the
-simulator's is compared with.
 
 ## `match`
 
@@ -1600,9 +1498,7 @@ match: `match new m.yaml` binds the side it was handed, and `match show m.yaml
 [--round <n>]`. That match's verbs are then written
 without their namespace, without the document and without the side:
 `act {type: buy_unit, name: marksman}`, `show`, `commit`. Every other line
-keeps its own spelling. A `show` that names no file is the bound match's, and
-`show <file> --view <view>` stays the file verb, since the operand says which
-is meant.
+keeps its own spelling.
 
 Naming a side once is the session's version of naming it every time. A process
 that lives for one operation has nowhere to carry a side, so each command
@@ -1643,53 +1539,6 @@ In the prompt a decision is one word however many spaces it holds:
 space inside its braces, and a quoted word, such as a path with a space in it,
 keeps its spaces and drops its quotes. Brackets group an action array in the
 same way: `act [{type: unlock_unit, name: rhino}, {type: concede}] --dry-run`.
-
-## `man`
-
-`man` answers with the manual the binary carries: the game's rules, as
-[`docs/rules/`](../../rules) states them, and the contracts its own documents
-and commands are held to, as [`docs/spec/`](..) states them. A binary is
-distributed on its own, so what it knows travels with it, and a caller that has
-the binary needs nothing else to read the same rules it computes with or the
-same contracts it is written against.
-
-```sh
-mechcore man                 # every topic, with the line each one opens with
-mechcore man <topic>         # that topic, as text
-```
-
-A topic is named by its document's path under `docs/`, without the extension:
-`rules/reinforcements`, `spec/document/match`, `spec/mechcore/cli`, which is
-this contract. A name no other topic shares
-may be written on its own, as `reinforcements`. A document's links to its
-siblings resolve to topic names the same way, so a reader without the
-repository can still follow them. A link to something the binary does not
-carry, a configuration table among them, is left as the document wrote it
-rather than rewritten into a topic that does not exist.
-
-A kind is named by itself, `mechcore man layout`, and its page opens with the
-verbs a file of that kind takes and the kinds `convert` reaches from it, as
-[kinds and verbs](#kinds-and-verbs) states them, before the document that
-describes the kind. A kind no document describes, `grbr`, answers its verbs
-alone. `mechcore man` lists the kinds after the topics.
-
-A verb no document is named after is named by itself too, `mechcore man query`,
-and answers its own section of this contract, from its heading to the next.
-
-`--format json` answers `{topic, title, game_build, text}` rather than the text
-alone, for a caller that stores what it reads, with `verbs` beside them for a
-kind. `--lang <code>` answers a
-translation, and a topic with no translation in that language is refused rather
-than answered in another one.
-
-The manual is the game's rules and not this binary's usage: what a command does
-is `--help`, and what it contracts to do is this document.
-
-The build's tables have no surface of their own. They are compiled in, and a
-reader that wants a price or a pool reads the index that explains it, which is
-what the manual answers with. A table answered as data would be a second
-spelling of what the binary already computes with, and nothing here asks for
-one.
 
 ## Unresolved
 

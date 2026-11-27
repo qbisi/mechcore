@@ -111,7 +111,7 @@ To ask what a recording holds (events in a window, a unit's state at a tick,
 kills by formation, how far units moved, where two recordings part), use
 `mechcore query <recording> --sql …` or `--sql-file`, not a program that reads
 its Parquet members. `--schema` lists the tables, their keys and the named
-queries the binary carries, which are worked examples; `mechcore man query`
+queries the binary carries, which are worked examples; `docs/spec/mechcore/cli.md`
 holds the contract. `diff` stays the tool for whether and where two
 recordings first differ.
 

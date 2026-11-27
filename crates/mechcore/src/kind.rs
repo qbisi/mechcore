@@ -34,15 +34,7 @@ pub(crate) enum Conversion {
     Computation,
 }
 
-impl Conversion {
-    pub(crate) const fn name(self) -> &'static str {
-        match self {
-            Self::Projection => "projection",
-            Self::Transcode => "transcode",
-            Self::Computation => "computation",
-        }
-    }
-}
+impl Conversion {}
 
 /// `BinaryFormatter`'s serialization header: record type 0, root id 1,
 /// header id -1, format version 1.0.
@@ -168,7 +160,7 @@ impl Kind {
             Self::Match => &["verify", "convert", "play", "format", "mask"],
             Self::State => &["mask", "preview"],
             Self::Action | Self::Html => &[],
-            Self::Mcfr => &["verify", "convert", "diff", "show", "query", "play"],
+            Self::Mcfr => &["verify", "convert", "diff", "query", "play"],
             Self::Grbr => &["convert", "play"],
         }
     }
@@ -254,7 +246,7 @@ mod tests {
 
     /// The file verbs the command line holds.
     const VERBS: &[&str] = &[
-        "verify", "convert", "diff", "show", "query", "play", "format", "mask", "preview",
+        "verify", "convert", "diff", "query", "play", "format", "mask", "preview",
     ];
 
     #[test]
@@ -296,7 +288,7 @@ mod tests {
                 !kind.conversions().is_empty(),
                 "{kind:?}"
             );
-            assert!(kind.require("schema").is_err());
+            assert!(kind.require("unknown").is_err());
         }
         assert_eq!(
             Kind::Layout.conversion(Kind::Mcfr),

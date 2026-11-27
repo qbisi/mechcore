@@ -7,7 +7,6 @@
 use crate::DocumentKind;
 use crate::catalog::{resolve_construction_type, resolve_contraption_type, resolve_unit_type};
 use crate::compile::compile_layout;
-use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
@@ -59,7 +58,7 @@ pub const MOVEMENT_ENHANCEMENT_SKILL: i32 = 6;
 pub const FIGHT_VISIBLE_ENERGY_TOWER_SKILLS: [i32; 2] =
     [RANGE_ENHANCEMENT_SKILL, MOVEMENT_ENHANCEMENT_SKILL];
 
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Layout {
     pub kind: DocumentKind,
@@ -71,17 +70,15 @@ pub struct Layout {
     )]
     pub game_build: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schemars(range(min = 1))]
     pub map_id: Option<i32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub seed: Option<i32>,
-    #[schemars(range(min = 1))]
     pub round: i32,
     pub blue: Side,
     pub red: Side,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Side {
     /// The officers the side holds, by name, a multiset in ascending ID. A
@@ -91,7 +88,6 @@ pub struct Side {
         skip_serializing_if = "Vec::is_empty",
         with = "crate::names::officer::many"
     )]
-    #[schemars(with = "Vec<String>")]
     pub officers: Vec<i32>,
     /// Unit technologies, written grouped by the unit type they belong to.
     #[serde(
@@ -99,7 +95,6 @@ pub struct Side {
         skip_serializing_if = "Vec::is_empty",
         with = "crate::names::technologies"
     )]
-    #[schemars(with = "BTreeMap<String, Vec<String>>")]
     pub techs: Vec<i32>,
     /// The Research Center's enhancement chains the side holds, by name: the
     /// blueprints a fight sees. [`crate::catalog::CHAIN_BLUEPRINTS`] lists them.
@@ -108,14 +103,12 @@ pub struct Side {
         skip_serializing_if = "Vec::is_empty",
         with = "crate::names::blueprint::many"
     )]
-    #[schemars(with = "Vec<String>")]
     pub blueprints: Vec<i32>,
     #[serde(
         default,
         skip_serializing_if = "Vec::is_empty",
         with = "crate::names::energy_tower_skill::many"
     )]
-    #[schemars(with = "Vec<String>")]
     pub energy_tower_skills: Vec<i32>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tower_strengthen_levels: Vec<i32>,
@@ -144,7 +137,7 @@ pub struct Techs {
     pub units: Vec<i32>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct UnitPlacement {
     #[serde(rename = "name")]
@@ -178,7 +171,6 @@ pub struct UnitPlacement {
         skip_serializing_if = "Vec::is_empty",
         with = "crate::names::equipment::many"
     )]
-    #[schemars(with = "Vec<String>")]
     pub equipments: Vec<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub travelling: Option<bool>,
@@ -188,9 +180,7 @@ pub struct UnitPlacement {
 }
 
 /// How a unit came to its side, which a fight tells apart as it starts.
-#[derive(
-    Clone, Copy, Debug, Default, Deserialize, Serialize, JsonSchema, PartialEq, Eq, PartialOrd, Ord,
-)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
 pub enum UnitSource {
     /// The side carried it from an earlier round. The round's snapshot holds it.
@@ -257,20 +247,6 @@ impl<'de> Deserialize<'de> for Experience {
     }
 }
 
-impl JsonSchema for Experience {
-    fn schema_name() -> std::borrow::Cow<'static, str> {
-        "Experience".into()
-    }
-
-    fn json_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
-        schemars::json_schema!({
-            "description": "Experience within the formation's level, written current/maximum, where maximum is the level's full bar.",
-            "type": "string",
-            "pattern": "^-?[0-9]+/[0-9]+$"
-        })
-    }
-}
-
 impl Experience {
     /// Experience at a specific rank, including a rank that starts at zero.
     #[must_use]
@@ -308,7 +284,7 @@ impl Experience {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct StaticPlacement {
     #[serde(rename = "name")]
@@ -317,7 +293,7 @@ pub struct StaticPlacement {
     pub position: Position,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct ContraptionPlacement {
     #[serde(rename = "name")]
@@ -333,7 +309,7 @@ pub struct ContraptionPlacement {
 /// `standing`, and an entry carrying both or neither is refused. A standing
 /// entry names its skill, which is the one its [`Standing`] payload belongs
 /// to, so the payload is all the entry holds.
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(try_from = "BattleSkillFields", into = "BattleSkillFields")]
 pub enum BattleSkillEntry {
     Release(BattleSkillRelease),
@@ -354,7 +330,7 @@ pub struct BattleSkillRelease {
 /// destroyed, and a Sticky Oil Bomb, whose area lasts into the next round.
 /// Every other skill's release is gone before the round that would carry it
 /// opens, so no other payload exists.
-#[derive(Clone, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(try_from = "StandingFields", into = "StandingFields")]
 pub enum Standing {
     /// A Shield Airdrop, at its centre.
@@ -455,7 +431,7 @@ impl Standing {
 }
 
 /// How a `battle_skills` entry is written.
-#[derive(Clone, Deserialize, Serialize, JsonSchema)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct BattleSkillFields {
     pub(crate) name: String,
@@ -518,7 +494,7 @@ impl From<BattleSkillEntry> for BattleSkillFields {
 
 /// How a standing object is written: a shield's `position`, or an oil
 /// area's `control_points` and `grid_rows`.
-#[derive(Clone, Deserialize, Serialize, JsonSchema)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct StandingFields {
     /// A Shield Airdrop's centre.
@@ -576,7 +552,7 @@ impl From<Standing> for StandingFields {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, JsonSchema, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Position {
     pub x: i32,
