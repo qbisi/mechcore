@@ -28,7 +28,7 @@ red:
     fortress: [doubleshot, barrier, anti_air_barrage, fang_production, armor_enhancement, range_enhancement, launcher_overload, solid_shot, elite_marksman, rocket_punch]
   blueprints: [attack_enhancement]
   energy_tower_skills: [high_mobility]
-  tower_strengthen_levels: [1, 4]
+  tower_strengthen_levels: [4, 1]
   units:
   - {name: fortress, index: 0, position: {x: 70, y: -40}, level: 6, exp: 0/606/9278, equipments: [super_heavy_armor], source: joined}
   - {name: sledgehammer, index: 1, position: {x: 85, y: -90}, level: 4, exp: 0/1402/5837, source: joined}

@@ -660,7 +660,10 @@ fn side_state(
         } else {
             Vec::new()
         },
-        tower_strengthen_levels: data.tower_strengthen_levels.values.clone(),
+        tower_strengthen_levels: crate::territory::doc_tower_levels(
+            seat == Seat::Red,
+            &data.tower_strengthen_levels.values,
+        )?,
         equipments: unfitted_equipment(data)?,
         battle_skills,
         next_index: NextIndex {
@@ -990,7 +993,10 @@ pub(crate) fn layout_snapshot(data: &PlayerData, red: bool) -> Result<crate::Sid
             .collect(),
         blueprints: data.blueprints.values.clone(),
         energy_tower_skills: Vec::new(),
-        tower_strengthen_levels: data.tower_strengthen_levels.values.clone(),
+        tower_strengthen_levels: crate::territory::doc_tower_levels(
+            red,
+            &data.tower_strengthen_levels.values,
+        )?,
         units: formations(data, seat)?
             .iter()
             .filter(|entry| !entry.recovered)
@@ -1424,7 +1430,10 @@ fn recorded_actions(
                 skill: field("SkillID", action.skill_id)?,
             },
             "PAD_StrengthenTower" => Action::StrengthenTower {
-                tower: field("Index", action.index)?,
+                tower: crate::territory::doc_tower_index(
+                    seat == Seat::Red,
+                    field("Index", action.index)?,
+                )?,
             },
             "PAD_UseEquipment" => Action::UseEquipment {
                 equipment: field("EquipmentID", action.equipment_id)?,

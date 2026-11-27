@@ -516,7 +516,8 @@ fn write_snapshot(
     write_ints(xml, "bluepints", &side.blueprints);
     xml.push_str("<researchQueue />");
     write_ints(xml, "energyTowerSkills", &side.energy_tower_skills);
-    write_ints(xml, "towerStrengthenLevels", &side.tower_strengthen_levels);
+    let levels = crate::territory::native_tower_levels(sign < 0, &side.tower_strengthen_levels)?;
+    write_ints(xml, "towerStrengthenLevels", &levels);
     write_constructions(xml, side, sign)?;
     xml.push_str(
         "<asynReinforcePools /><asynReinforcePoolOPs /><IsSpecialSupply>false</IsSpecialSupply>",
@@ -936,7 +937,8 @@ fn action_records(
             format!("<SkillID>{skill}</SkillID>"),
         )],
         Action::StrengthenTower { tower } => {
-            vec![("PAD_StrengthenTower", format!("<Index>{tower}</Index>"))]
+            let native = crate::territory::native_tower_index(sign < 0, *tower)?;
+            vec![("PAD_StrengthenTower", format!("<Index>{native}</Index>"))]
         }
         Action::UseEquipment { equipment, index } => vec![(
             "PAD_UseEquipment",

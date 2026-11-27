@@ -29,7 +29,7 @@ red:
   officers: [advanced_missile_device, advanced_power_system, aerial_specialist]
   techs:
     raiden: [energy_shield, electromagnetic_shot, chain, ionization, range_enhancement, fork]
-  tower_strengthen_levels: [2, 4]
+  tower_strengthen_levels: [4, 2]
   units:
   - {name: raiden, index: 0, position: {x: -200, y: -90}, level: 2, exp: 2704/2740/5408, rotated: true, equipments: [laser_sights]}
   - {name: sandworm, index: 1, position: {x: -230, y: -150}, level: 5, exp: 0/560/10421, source: joined}

@@ -31,7 +31,7 @@ red:
     stormcaller: [incendiary_bomb]
   blueprints: [defense_enhancement]
   energy_tower_skills: [enhanced_range]
-  tower_strengthen_levels: [2, 3]
+  tower_strengthen_levels: [3, 2]
   units:
   - {name: stormcaller, index: 0, position: {x: -195, y: -70}, level: 5, exp: 0/36/5732, equipments: [secondary_fire_control_system], source: joined}
   - {name: sandworm, index: 1, position: {x: 270, y: -40}, level: 6, exp: 0/2744/11598, source: joined}

@@ -67,7 +67,7 @@ red:
     void_eye: [range_enhancement, suppression_shots]
   blueprints: [attack_enhancement, defense_enhancement]
   energy_tower_skills: [enhanced_range, high_mobility]
-  tower_strengthen_levels: [0, 1]
+  tower_strengthen_levels: [1, 0]
   units:
   - {name: void_eye, index: 0, position: {x: 30, y: -100}, level: 2, exp: 0/1465/1465}
   - {name: void_eye, index: 1, position: {x: 140, y: -100}, level: 4, exp: 0/1540/2919}

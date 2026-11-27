@@ -30,7 +30,7 @@ red:
   techs:
     sandworm: [burrow_maintenance, armor_enhancement, anti_aerial, replicate, sandstorm, strike, mechanical_rage, mechanical_division]
   blueprints: [defense_enhancement]
-  tower_strengthen_levels: [2, 3]
+  tower_strengthen_levels: [3, 2]
   units:
   - {name: sandworm, index: 0, position: {x: 280, y: -170}, level: 7, exp: 12593/12593/12593, rotated: true, equipments: [mustang_production_line]}
   - {name: centurion, index: 1, position: {x: -275, y: -245}, level: 3, exp: 0/568/8014, source: joined}

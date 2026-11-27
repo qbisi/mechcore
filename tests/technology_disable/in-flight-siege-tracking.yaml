@@ -27,7 +27,7 @@ red:
     phoenix: [energy_shield, jump_drive, electromagnetic_shot, quantum_reassembly, range_enhancement, launcher_overload, elite_marksman, charged_shot]
   blueprints: [attack_enhancement]
   energy_tower_skills: [enhanced_range, high_mobility]
-  tower_strengthen_levels: [2, 1]
+  tower_strengthen_levels: [1, 2]
   units:
   - {name: phoenix, index: 0, position: {x: 220, y: -160}, level: 6, exp: 7539/7539/7539, equipments: [deployment_module]}
   - {name: marksman, index: 1, position: {x: -80, y: -240}, level: 3, source: delivered}

@@ -61,7 +61,7 @@ red:
     vortex: [field_maintenance, emergency_armor]
   blueprints: [attack_enhancement, defense_enhancement]
   energy_tower_skills: [enhanced_range, high_mobility]
-  tower_strengthen_levels: [1, 2]
+  tower_strengthen_levels: [2, 1]
   units:
   - {name: vortex, index: 0, position: {x: 0, y: -150}, level: 2, exp: 1548/1552/1690}
   - {name: vortex, index: 1, position: {x: 90, y: -150}, level: 2, exp: 222/272/1690}

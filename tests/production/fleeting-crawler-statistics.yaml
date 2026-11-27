@@ -31,7 +31,7 @@ red:
   techs:
     melting_point: [crawler_production]
   blueprints: [defense_enhancement]
-  tower_strengthen_levels: [1, 2]
+  tower_strengthen_levels: [2, 1]
   units:
   - {name: sabertooth, index: 0, position: {x: 5, y: -215}, exp: 0/400/1300, source: delivered}
   - {name: melting_point, index: 1, position: {x: 320, y: 230}, level: 8, exp: 0/2800/9418, rotated: true, equipments: [secondary_fire_control_system], travelling: true, source: joined}

@@ -52,7 +52,7 @@ red:
     wraith: [field_maintenance]
     vortex: [field_maintenance, range_enhancement]
   blueprints: [attack_enhancement, defense_enhancement]
-  tower_strengthen_levels: [0, 2]
+  tower_strengthen_levels: [2, 0]
   units:
   - {name: vortex, index: 0, position: {x: 140, y: -70}, level: 2, exp: 789/819/1690}
   - {name: vortex, index: 1, position: {x: 230, y: -70}, level: 2, exp: 346/519/1690}

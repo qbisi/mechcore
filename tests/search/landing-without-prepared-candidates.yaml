@@ -33,7 +33,7 @@ red:
     arclight: [electromagnetic_shot, armor_enhancement, anti_aircraft_ammunition, shockwave, range_enhancement, elite_marksman, charged_shot]
   blueprints: [attack_enhancement_ii]
   energy_tower_skills: [enhanced_range, high_mobility]
-  tower_strengthen_levels: [2, 1]
+  tower_strengthen_levels: [1, 2]
   units:
   - {name: arclight, index: 0, position: {x: -240, y: -80}, level: 8, exp: 5046/5046/5046, rotated: true, equipments: [nano_repair_kit]}
   - {name: rhino, index: 1, position: {x: 25, y: -195}, level: 2, source: delivered}

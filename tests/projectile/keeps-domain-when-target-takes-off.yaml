@@ -31,7 +31,7 @@ red:
   officers: [advanced_power_system, advanced_targeting_system, sabertooth_specialist, extended_range_stormcaller]
   techs:
     stormcaller: [high_explosive_ammo, incendiary_bomb, electromagnetic_explosion, range_enhancement, launcher_overload, heavy_missile]
-  tower_strengthen_levels: [1, 2]
+  tower_strengthen_levels: [2, 1]
   units:
   - {name: stormcaller, index: 0, position: {x: 135, y: -230}, level: 6, exp: 3189/3249/6379, equipments: [secondary_heavy_armor]}
   - {name: sabertooth, index: 1, position: {x: 5, y: -175}, exp: 0/200/1300, source: delivered}

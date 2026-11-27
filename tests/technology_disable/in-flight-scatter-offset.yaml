@@ -36,7 +36,7 @@ red:
     mountain: [saturation_bombardment, mountain_plating, anti_aircraft_ammunition, range_enhancement, extended_range_ammo, gun_launched_missile, smoke_bomb, photon_loop]
   blueprints: [attack_enhancement]
   energy_tower_skills: [enhanced_range]
-  tower_strengthen_levels: [4, 1]
+  tower_strengthen_levels: [1, 4]
   units:
   - {name: mountain, index: 0, position: {x: -75, y: -155}, level: 2, exp: 0/5142/7210, rotated: true, source: joined}
   contraptions:

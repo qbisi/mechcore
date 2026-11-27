@@ -70,7 +70,7 @@ blue:
   tower_strengthen_levels: [1, 2]
 
   units:
-  - {name: marksman, index: 0, position: {x: 0, y: -50}, equipment: [laser_sights]}
+  - {name: marksman, index: 0, position: {x: 0, y: -50}, equipments: [laser_sights]}
   - {name: arclight, index: 1, position: {x: -310, y: 20}, travelling: true, source: joined}
 
   constructions:
@@ -112,9 +112,9 @@ in its defined order:
 | `techs` | ascending unit ID, each unit's technologies ascending ID |
 | `battle_skills` | standing entries first, ascending skill `name`, then a shield's `(x, y)` or an oil area's control points; then the releases as written: release order is what they record |
 
-`tower_strengthen_levels` is absent from that table because its order is its
-meaning: it is keyed by tower position. An all-zero list is equivalent to
-omitting it, and normal form omits it.
+`tower_strengthen_levels` is absent from that table because its order is fixed:
+index `0` is `energy_tower` and index `1` is `research_center`. An all-zero
+list is equivalent to omitting it, and normal form omits it.
 
 The standing entries can be reordered because none of them is a release: they
 are installed before any release, shields before oil areas whatever their
@@ -487,26 +487,22 @@ translating it.
 tower_strengthen_levels: [1, 2]
 ```
 
-`tower_strengthen_levels` holds one strengthening level per fixed tower, keyed
-by the tower's position in `BuildingManager.buildings`. That is the key
-`PAD_StrengthenTower.Index` uses and the key the state field of the same name
-uses, so the two documents say this the same way.
+`tower_strengthen_levels` holds one strengthening level per fixed tower: **index
+`0` is always the Energy Tower (`energy_tower`) and index `1` is always the
+Research Center (`research_center`) for both sides**, matching [`state.md`](state.md).
 
 The list is either empty, which puts every tower at level `0`, or exactly two
 entries long. Each level is an integer in `0..=4`, the four levels
-[`config/economy.yaml`](../../../config/economy.yaml) prices. The executor
-strengthens a tower one level at a time and verifies the final level.
+[`config/economy.yaml`](../../../config/economy.yaml) prices.
 
-A position keys a tower; it does not name one. The two sides order their towers
-oppositely: on map 1021 blue holds the Energy Tower at position `0` and red
-holds it at position `1`, which [`docs/state.md`](state.md) explains. So `[1, 2]` does not say which building is at level `2` without
-knowing the side and the map, and nothing needs to: a level is captured from a
-position and applied to that same position.
-
-The adapter checks on every apply and every capture that the side holds one
-tower of each native kind, in whichever order, and refuses a scene that does
-not. A side that lost a tower or grew one fails loudly rather than having its
-levels written to the wrong building.
+Because native `BuildingManager.buildings` and MCFR order red's two towers
+oppositely (`[ResearchCenter, EnergyTower]`), layout compilation and live
+capture translate red's tower order between document indices and native
+building-manager indices using [`config/maps.yaml`](../../../config/maps.yaml).
+The executor strengthens each tower at its resolved building-manager position
+one level at a time and verifies the final level. The adapter checks on every
+apply and every capture that the side holds one tower of each native kind, and
+refuses a scene that does not.
 
 The Research Center's two persistent enhancements are `blueprints`, each
 applied as the Officer it hands out:

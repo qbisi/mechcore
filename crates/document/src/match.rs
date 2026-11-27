@@ -279,6 +279,30 @@ impl State {
         }
         Ok(())
     }
+
+    pub(crate) fn check_towers(&self, require_present: bool) -> Result<(), String> {
+        for (name, side) in [("blue", &self.blue), ("red", &self.red)] {
+            if !require_present && side.tower_strengthen_levels.is_empty() {
+                continue;
+            }
+            if side.tower_strengthen_levels.len() != crate::layout::TOWER_COUNT {
+                return Err(format!(
+                    "{name} tower_strengthen_levels must hold {} levels, not {}",
+                    crate::layout::TOWER_COUNT,
+                    side.tower_strengthen_levels.len()
+                ));
+            }
+            for (index, &level) in side.tower_strengthen_levels.iter().enumerate() {
+                if !(0..=crate::layout::MAX_TOWER_STRENGTHEN_LEVEL).contains(&level) {
+                    return Err(format!(
+                        "{name} tower_strengthen_levels[{index}] must be 0..={}",
+                        crate::layout::MAX_TOWER_STRENGTHEN_LEVEL
+                    ));
+                }
+            }
+        }
+        Ok(())
+    }
 }
 
 /// Current membership relative to the seed's initial ordinary reinforcement pool.
@@ -395,6 +419,7 @@ pub struct SideState {
     )]
     #[schemars(with = "Vec<String>")]
     pub energy_tower_skills: Vec<i32>,
+    #[serde(default)]
     pub tower_strengthen_levels: Vec<i32>,
     #[serde(
         default,
@@ -2494,11 +2519,13 @@ mod tests {
             blue: super::SideState {
                 random_state: [5, 6, 7, 8],
                 reactor_core: 4800,
+                tower_strengthen_levels: vec![0, 0],
                 ..Default::default()
             },
             red: super::SideState {
                 random_state: [9, 10, 11, 12],
                 reactor_core: 4800,
+                tower_strengthen_levels: vec![0, 0],
                 ..Default::default()
             },
             ..Default::default()
@@ -2542,5 +2569,34 @@ mod tests {
                 .unwrap_err()
                 .contains("reinforce_choice disagrees")
         );
+    }
+
+    #[test]
+    fn invalid_tower_strengthen_levels_are_refused() {
+        let valid = || super::State {
+            blue: super::SideState {
+                tower_strengthen_levels: vec![0, 0],
+                ..Default::default()
+            },
+            red: super::SideState {
+                tower_strengthen_levels: vec![0, 0],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        valid().check_towers(true).unwrap();
+
+        let mut wrong_count = valid();
+        wrong_count.blue.tower_strengthen_levels.pop();
+        assert!(
+            wrong_count
+                .check_towers(true)
+                .unwrap_err()
+                .contains("2 levels")
+        );
+
+        let mut bad_level = valid();
+        bad_level.red.tower_strengthen_levels[1] = 5;
+        assert!(bad_level.check_towers(true).unwrap_err().contains("0..=4"));
     }
 }

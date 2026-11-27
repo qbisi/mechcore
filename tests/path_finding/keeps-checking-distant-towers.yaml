@@ -23,7 +23,7 @@ red:
   officers: [quick_teleport, advanced_power_system, fortified_specialist, improved_overlord]
   blueprints: [attack_enhancement_ii]
   energy_tower_skills: [high_mobility]
-  tower_strengthen_levels: [2, 3]
+  tower_strengthen_levels: [3, 2]
   units:
   - {name: sandworm, index: 0, position: {x: 10, y: -60}, level: 9, source: joined}
 asserts:

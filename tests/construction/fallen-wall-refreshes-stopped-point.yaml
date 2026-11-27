@@ -29,7 +29,7 @@ red:
   core_damage: 200
   officers: [advanced_offensive_tactics, advanced_power_system, cost_control_specialist]
   blueprints: [defense_enhancement]
-  tower_strengthen_levels: [1, 4]
+  tower_strengthen_levels: [4, 1]
   units:
   - {name: wasp, index: 0, position: {x: 335, y: 90}, level: 6, exp: 5219/5219/5219, rotated: true, equipments: [dominion_core]}
   - {name: mountain, index: 1, position: {x: 85, y: -75}, level: 3, exp: 0/2400/11398, source: joined}

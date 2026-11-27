@@ -44,7 +44,7 @@ red:
     scorpion: [range_enhancement]
   blueprints: [attack_enhancement]
   energy_tower_skills: [enhanced_range]
-  tower_strengthen_levels: [1, 0]
+  tower_strengthen_levels: [0, 1]
   units:
   - {name: arclight, index: 0, position: {x: 0, y: -170}, exp: 750/750/750}
   - {name: arclight, index: 1, position: {x: 120, y: -170}, exp: 296/658/750}

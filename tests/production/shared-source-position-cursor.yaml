@@ -29,7 +29,7 @@ red:
   techs:
     marksman: [doubleshot, shooting_squad, electromagnetic_shot, aerial_specialization, assault_mode, range_enhancement, quick_reload, elite_marksman]
   blueprints: [attack_enhancement_ii]
-  tower_strengthen_levels: [1, 2]
+  tower_strengthen_levels: [2, 1]
   units:
   - {name: marksman, index: 0, position: {x: 60, y: -160}, level: 3, exp: 0/2315/2315, source: delivered}
   - {name: marksman, index: 1, position: {x: -320, y: 110}, level: 7, exp: 0/4093/4093, rotated: true, equipments: [deployment_module], travelling: true, source: joined}

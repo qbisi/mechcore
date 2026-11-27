@@ -62,7 +62,7 @@ red:
     centurion: [summon_hounds, range_enhancement]
   blueprints: [attack_enhancement, defense_enhancement]
   energy_tower_skills: [enhanced_range, high_mobility]
-  tower_strengthen_levels: [1, 0]
+  tower_strengthen_levels: [0, 1]
   units:
   - {name: hound, index: 0, position: {x: 190, y: -90}, exp: 701/750/750}
   - {name: hound, index: 1, position: {x: -110, y: -90}, level: 2, exp: 370/1165/1690, equipments: [secondary_heavy_armor]}

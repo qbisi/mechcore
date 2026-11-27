@@ -28,7 +28,7 @@ red:
   officers: [quick_teleport, marksman_specialist, improved_wasp]
   blueprints: [attack_enhancement]
   energy_tower_skills: [enhanced_range, high_mobility]
-  tower_strengthen_levels: [2, 3]
+  tower_strengthen_levels: [3, 2]
   units:
   - {name: marksman, index: 0, position: {x: -140, y: -190}, level: 3, source: delivered}
   - {name: wasp, index: 1, position: {x: 335, y: 150}, level: 2, exp: 0/1000/2028, rotated: true, equipments: [improved_firepower_control_system], travelling: true, source: joined}

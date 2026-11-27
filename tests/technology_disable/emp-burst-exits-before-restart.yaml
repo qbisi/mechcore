@@ -29,7 +29,7 @@ red:
   techs:
     void_eye: [energy_shield, energy_absorption, aerial_mode, range_enhancement, charged_shot, suppression_shots, electromagnetic_armor]
   blueprints: [defense_enhancement_ii]
-  tower_strengthen_levels: [4, 3]
+  tower_strengthen_levels: [3, 4]
   units:
   - {name: void_eye, index: 0, position: {x: 200, y: -100}, level: 9, exp: 0/4373/4373, rotated: true, equipments: [secondary_fire_control_system], source: joined}
   - {name: hound, index: 1, position: {x: -210, y: -200}, level: 3, exp: 0/1848/2671, source: joined}

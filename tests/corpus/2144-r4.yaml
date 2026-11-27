@@ -37,7 +37,7 @@ red:
   techs:
     hound: [range_enhancement]
   blueprints: [defense_enhancement, attack_enhancement_ii]
-  tower_strengthen_levels: [0, 1]
+  tower_strengthen_levels: [1, 0]
   units:
   - {name: hound, index: 0, position: {x: -120, y: -190}, level: 2, exp: 0/393/1690}
   - {name: hound, index: 1, position: {x: 0, y: -190}, exp: 486/750/750}

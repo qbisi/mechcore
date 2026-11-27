@@ -32,7 +32,7 @@ red:
     phantom_ray: [energy_shield, high_explosive_ammo, burst_mode, armor_enhancement, ground_targeting, stealth_cloak, range_enhancement, sticky_oil_bomb]
   blueprints: [attack_enhancement]
   energy_tower_skills: [enhanced_range, high_mobility]
-  tower_strengthen_levels: [1, 4]
+  tower_strengthen_levels: [4, 1]
   units:
   - {name: sabertooth, index: 0, position: {x: 255, y: -185}, exp: 0/134/1300, source: delivered}
   - {name: phantom_ray, index: 1, position: {x: 310, y: 215}, level: 8, exp: 0/6727/6727, equipments: [amplifying_core], travelling: true, source: joined}

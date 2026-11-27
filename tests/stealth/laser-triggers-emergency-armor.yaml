@@ -29,7 +29,7 @@ red:
   officers: [advanced_defensive_tactics, advanced_offensive_tactics, fire_badger_specialist]
   blueprints: [defense_enhancement_ii]
   energy_tower_skills: [high_mobility]
-  tower_strengthen_levels: [2, 4]
+  tower_strengthen_levels: [4, 2]
   units:
   - {name: fire_badger, index: 0, position: {x: -265, y: -200}, exp: 0/566/1400, source: delivered}
   - {name: crawler, index: 1, position: {x: -95, y: -100}, level: 7, exp: 0/2833/2833, equipments: [absorption_module], source: joined}

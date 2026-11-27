@@ -28,7 +28,7 @@ red:
     overlord: [mothership]
   blueprints: [attack_enhancement]
   energy_tower_skills: [high_mobility]
-  tower_strengthen_levels: [2, 3]
+  tower_strengthen_levels: [3, 2]
   units:
   - {name: overlord, index: 0, position: {x: 75, y: -45}, level: 9, exp: 0/2862/11773, equipments: [mustang_production_line]}
   - {name: scorpion, index: 1, position: {x: -195, y: -25}, level: 7, exp: 0/5120/9445, source: joined}

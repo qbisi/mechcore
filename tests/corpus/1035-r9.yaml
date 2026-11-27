@@ -70,7 +70,7 @@ red:
     raiden: [electromagnetic_shot, range_enhancement]
   blueprints: [attack_enhancement, defense_enhancement]
   energy_tower_skills: [enhanced_range]
-  tower_strengthen_levels: [0, 2]
+  tower_strengthen_levels: [2, 0]
   units:
   - {name: tarantula, index: 3, position: {x: 95, y: -55}, level: 2, exp: 3380/3380/3380}
   - {name: tarantula, index: 4, position: {x: 185, y: -55}, level: 2, exp: 3380/3380/3380}

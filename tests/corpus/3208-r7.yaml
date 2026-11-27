@@ -57,7 +57,7 @@ red:
     tarantula: [high_explosive_ammo, range_enhancement]
     void_eye: [range_enhancement, charged_shot]
   blueprints: [attack_enhancement, defense_enhancement_ii]
-  tower_strengthen_levels: [0, 1]
+  tower_strengthen_levels: [1, 0]
   units:
   - {name: crawler, index: 0, position: {x: 180, y: -115}, level: 2, exp: 429/497/1014, rotated: true}
   - {name: crawler, index: 1, position: {x: 90, y: -115}, level: 2, exp: 193/199/1014, rotated: true}

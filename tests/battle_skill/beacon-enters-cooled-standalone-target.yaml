@@ -31,7 +31,7 @@ red:
   techs:
     overlord: [high_explosive_ammo, field_maintenance, overlord_artillery, mothership, jump_drive, armor_enhancement, range_enhancement, launcher_overload, photon_emission]
   energy_tower_skills: [enhanced_range, high_mobility]
-  tower_strengthen_levels: [4, 2]
+  tower_strengthen_levels: [2, 4]
   units:
   - {name: overlord, index: 0, position: {x: 335, y: 35}, level: 9, exp: 0/11773/11773, rotated: true, equipments: [deployment_module]}
   - {name: fire_badger, index: 1, position: {x: 75, y: -150}, source: delivered}

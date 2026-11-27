@@ -211,6 +211,11 @@ fn compile_side(
         contraptions,
         battle_skills,
     } = side;
+    let tower_strengthen_levels = if tower_strengthen_levels.iter().all(|level| *level == 0) {
+        Vec::new()
+    } else {
+        crate::territory::native_tower_levels(side_name == "red", &tower_strengthen_levels)?
+    };
     // A chain blueprint is applied as the officer it hands out, which is what
     // a fight reads.
     let mut officers = officers;

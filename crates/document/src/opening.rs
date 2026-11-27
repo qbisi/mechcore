@@ -683,6 +683,9 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
             state
                 .check_reinforcement(true)
                 .map_err(|error| format!("round {}: {error}", round.round))?;
+            state
+                .check_towers(true)
+                .map_err(|error| format!("round {}: {error}", round.round))?;
             // A state segment is the position a round opens with, so its
             // unanswered reinforcement choice and allowances come from the opening.
             state.open_reinforcement();

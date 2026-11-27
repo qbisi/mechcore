@@ -29,7 +29,7 @@ red:
     war_factory: [high_explosive_ammo, armor_enhancement, missile_interceptor, range_enhancement, launcher_overload, phoenix_production, steel_ball_production, sledgehammer_production, photon_coating]
   blueprints: [attack_enhancement_ii]
   energy_tower_skills: [high_mobility]
-  tower_strengthen_levels: [4, 2]
+  tower_strengthen_levels: [2, 4]
   units:
   - {name: rhino, index: 0, position: {x: -175, y: -125}, level: 2, source: delivered}
   - {name: war_factory, index: 1, position: {x: 105, y: -225}, level: 6, exp: 0/1905/18556, rotated: true, source: joined}

@@ -4883,7 +4883,10 @@ fn read_native_side(
             .filter_map(|officer| chain_blueprint(*officer))
             .collect(),
         energy_tower_skills: read_native_energy_tower_skills(api, controller)?,
-        tower_strengthen_levels: read_native_tower_strengthen_levels(api, controller)?,
+        tower_strengthen_levels: mechcore_document::territory::doc_tower_levels(
+            team == 1,
+            &read_native_tower_strengthen_levels(api, controller)?,
+        )?,
         units: formations,
         recovered: Vec::new(),
         constructions,
@@ -5299,15 +5302,15 @@ fn read_energy_tower_skill(api: Api, manager: *mut Object, mut id: i32) -> Resul
     invoke_value(api, skill, "IsActive")
 }
 
-/// Reads each fixed tower's strengthening level, keyed by its position.
+/// Reads each fixed tower's strengthening level in native building-manager order.
 ///
-/// A layout keys `tower_strengthen_levels` by building-manager position, the
-/// same key `PAD_StrengthenTower.Index` uses, so each level is written under
-/// the position it was read from. A position does not name a tower: blue and
-/// red order their two towers oppositely, which `mechcore_document::TOWER_COUNT`
-/// measures. What is checked is that the side holds one tower of each kind, in
-/// whichever order, so a build that grew a third building or lost one fails
-/// loudly here instead of exporting levels a layout cannot apply.
+/// Native `BuildingManager.buildings` (and `PAD_StrengthenTower.Index`) keys
+/// the two fixed towers oppositely for blue (`[EnergyTower, ResearchCenter]`)
+/// and red (`[ResearchCenter, EnergyTower]`). `capture` translates these native
+/// levels via `territory::doc_tower_levels` into document `tower_strengthen_levels`
+/// (`0 = energy_tower`, `1 = research_center` on both sides). What is checked
+/// here is that the side holds one tower of each kind, so a build that grew a
+/// third building or lost one fails loudly instead of reading the wrong tower.
 fn read_native_tower_strengthen_levels(
     api: Api,
     controller: *mut Object,
