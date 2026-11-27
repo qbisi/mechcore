@@ -33,8 +33,6 @@ pub struct MatchMetadata {
     pub source: crate::r#match::Source,
     #[serde(rename = "Reinforcements")]
     pub reinforcements: bool,
-    #[serde(rename = "FullTechLoadout")]
-    pub full_tech_loadout: bool,
 }
 
 fn enabled() -> bool {
@@ -42,26 +40,18 @@ fn enabled() -> bool {
 }
 
 impl BattleRecord {
-    pub(crate) fn match_rules(
-        &self,
-    ) -> Result<(crate::r#match::Source, crate::r#match::Rules), String> {
+    pub(crate) fn match_rules(&self) -> Result<(crate::r#match::Source, bool), String> {
         if self.info.reinforcements != self.info.unit_reinforcements {
             return Err("ordinary and unit reinforcement flags disagree".into());
         }
-        let rules = crate::r#match::Rules {
-            reinforcements: self.info.reinforcements,
-            full_tech_loadout: self
-                .metadata
-                .as_ref()
-                .is_some_and(|meta| meta.full_tech_loadout),
-        };
+        let reinforce = self.info.reinforcements;
         if let Some(meta) = &self.metadata {
-            if meta.reinforcements != rules.reinforcements {
+            if meta.reinforcements != reinforce {
                 return Err("MechcoreMatch reinforcement marker contradicts BattleInfo".into());
             }
-            return Ok((meta.source, rules));
+            return Ok((meta.source, reinforce));
         }
-        Ok((crate::r#match::Source::Game, rules))
+        Ok((crate::r#match::Source::Game, reinforce))
     }
 }
 
@@ -76,6 +66,8 @@ pub struct BattleInfo {
     pub system_seed: i32,
     #[serde(rename = "MapID")]
     pub map_id: i32,
+    #[serde(default, rename = "MaxRound")]
+    pub max_round: Option<i32>,
     /// How long a side has to deploy a round, in seconds.
     #[serde(rename = "DeployTime")]
     pub deploy_time: i32,
@@ -108,6 +100,8 @@ pub struct PlayerRecord {
 /// The per-player match-level record: supply settings and the tech loadout.
 #[derive(Debug, Deserialize)]
 pub struct PlayerSetup {
+    #[serde(default, rename = "reactorCore")]
+    pub reactor_core: Option<i32>,
     #[serde(rename = "maxRoundSupply")]
     pub max_round_supply: i32,
     #[serde(rename = "firstRoundSupply")]

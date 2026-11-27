@@ -788,10 +788,209 @@ pub(crate) mod technologies {
 
 /// A mapping from unit type to that unit's technologies, both by name:
 /// `{fortress: [anti_air_barrage, ...]}`, units and technologies in ID order.
+///
+/// Match headers write `tech_loadout` in compact form (`"full"` when every
+/// standard 1v1 technology is enabled, otherwise an unpadded Base64url bitset
+/// of enabled standard 1v1 technology IDs sorted ascending), while `--expanded`
+/// formatting writes this mapping by name. Deserialization accepts both forms.
 pub mod loadout {
-    use serde::{Deserialize, Deserializer, Serializer};
+    use serde::de::MapAccess;
+    use serde::{Deserializer, Serializer};
     use std::borrow::Borrow;
     use std::collections::BTreeMap;
+    use std::fmt;
+    use std::sync::OnceLock;
+
+    const BASE64URL: &[u8; 64] =
+        b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+    struct TechCatalog {
+        /// `(tech_id, unit_id)` for every standard 1v1 technology, sorted by `tech_id`.
+        techs: Vec<(i32, i32)>,
+        index_by_id: BTreeMap<i32, usize>,
+        bytes_len: usize,
+        encoded_len: usize,
+        trailing_byte_mask: u8,
+        trailing_b64_mask: u8,
+    }
+
+    fn catalog() -> Result<&'static TechCatalog, String> {
+        static CATALOG: OnceLock<Result<TechCatalog, String>> = OnceLock::new();
+        CATALOG
+            .get_or_init(|| {
+                let economy = crate::economy::Economy::embedded()?;
+                let mut techs = Vec::new();
+                for (unit, list) in economy.unit_technologies() {
+                    for tech in list {
+                        techs.push((tech, unit));
+                    }
+                }
+                techs.sort_unstable_by_key(|(tech, _)| *tech);
+                let mut index_by_id = BTreeMap::new();
+                for (bit, (tech, _)) in techs.iter().enumerate() {
+                    if index_by_id.insert(*tech, bit).is_some() {
+                        return Err(format!("duplicate standard technology ID {tech}"));
+                    }
+                }
+                let count = techs.len();
+                let bytes_len = count.div_ceil(8);
+                let encoded_len = (bytes_len * 4).div_ceil(3);
+                let rem_bits = count % 8;
+                let trailing_byte_mask = if rem_bits == 0 {
+                    u8::MAX
+                } else {
+                    (1u8 << rem_bits) - 1
+                };
+                let b64_rem_bits = (bytes_len * 8) % 6;
+                let trailing_b64_mask = if b64_rem_bits == 0 {
+                    0
+                } else {
+                    (1u8 << (6 - b64_rem_bits)) - 1
+                };
+                Ok(TechCatalog {
+                    techs,
+                    index_by_id,
+                    bytes_len,
+                    encoded_len,
+                    trailing_byte_mask,
+                    trailing_b64_mask,
+                })
+            })
+            .as_ref()
+            .map_err(Clone::clone)
+    }
+
+    fn encode_b64url(bytes: &[u8]) -> String {
+        let mut out = String::with_capacity((bytes.len() * 4).div_ceil(3));
+        for chunk in bytes.chunks(3) {
+            let b0 = chunk[0];
+            let b1 = *chunk.get(1).unwrap_or(&0);
+            let b2 = *chunk.get(2).unwrap_or(&0);
+            let n = (u32::from(b0) << 16) | (u32::from(b1) << 8) | u32::from(b2);
+            out.push(BASE64URL[((n >> 18) & 0x3f) as usize] as char);
+            out.push(BASE64URL[((n >> 12) & 0x3f) as usize] as char);
+            if chunk.len() >= 2 {
+                out.push(BASE64URL[((n >> 6) & 0x3f) as usize] as char);
+            }
+            if chunk.len() == 3 {
+                out.push(BASE64URL[(n & 0x3f) as usize] as char);
+            }
+        }
+        out
+    }
+
+    fn b64url_value(byte: u8) -> Option<u8> {
+        match byte {
+            b'A'..=b'Z' => Some(byte - b'A'),
+            b'a'..=b'z' => Some(byte - b'a' + 26),
+            b'0'..=b'9' => Some(byte - b'0' + 52),
+            b'-' => Some(62),
+            b'_' => Some(63),
+            _ => None,
+        }
+    }
+
+    fn decode_compact(text: &str) -> Result<BTreeMap<i32, Vec<i32>>, String> {
+        let cat = catalog()?;
+        if text == "full" {
+            return Ok(crate::economy::Economy::embedded()?.unit_technologies());
+        }
+        let bytes = text.as_bytes();
+        if bytes.len() != cat.encoded_len {
+            return Err(format!(
+                "compact tech_loadout must be \"full\" or {} base64url characters, not {}",
+                cat.encoded_len,
+                bytes.len()
+            ));
+        }
+        let mut sextets = Vec::with_capacity(bytes.len());
+        for (at, &ch) in bytes.iter().enumerate() {
+            let val = b64url_value(ch).ok_or_else(|| {
+                format!(
+                    "compact tech_loadout has invalid base64url character {:?} at {at}",
+                    ch as char
+                )
+            })?;
+            sextets.push(val);
+        }
+        if let Some(&last) = sextets.last()
+            && (last & cat.trailing_b64_mask) != 0
+        {
+            return Err("compact tech_loadout has nonzero base64url padding bits".into());
+        }
+        let mut raw = Vec::with_capacity(cat.bytes_len);
+        for chunk in sextets.chunks(4) {
+            let (c0, c1) = (chunk[0], chunk[1]);
+            raw.push((c0 << 2) | (c1 >> 4));
+            if chunk.len() >= 3 {
+                let c2 = chunk[2];
+                raw.push((c1 << 4) | (c2 >> 2));
+                if chunk.len() == 4 {
+                    raw.push((c2 << 6) | chunk[3]);
+                }
+            }
+        }
+        debug_assert_eq!(raw.len(), cat.bytes_len);
+        if (raw[cat.bytes_len - 1] & !cat.trailing_byte_mask) != 0 {
+            return Err("compact tech_loadout sets bits past the technology table".into());
+        }
+        let mut enabled = 0usize;
+        let mut map: BTreeMap<i32, Vec<i32>> = BTreeMap::new();
+        for (bit, &(tech, unit)) in cat.techs.iter().enumerate() {
+            if ((raw[bit / 8] >> (bit % 8)) & 1) != 0 {
+                enabled += 1;
+                map.entry(unit).or_default().push(tech);
+            }
+        }
+        if enabled == cat.techs.len() {
+            return Err("full tech_loadout must be written as `full`".into());
+        }
+        for list in map.values_mut() {
+            list.sort_unstable();
+        }
+        Ok(map)
+    }
+
+    /// Writes a compact loadout (`"full"` or a 42-char base64url positive bitset).
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when a unit or technology is outside this build's standard table.
+    pub fn serialize_compact<S, M>(map: &M, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+        M: Borrow<BTreeMap<i32, Vec<i32>>>,
+    {
+        use serde::ser::Error;
+        let cat = catalog().map_err(S::Error::custom)?;
+        let mut buf = vec![0u8; cat.bytes_len];
+        let mut count = 0usize;
+        for (&unit, technologies) in map.borrow() {
+            for &tech in technologies {
+                let Some(&bit) = cat.index_by_id.get(&tech) else {
+                    return Err(S::Error::custom(format!(
+                        "technology {tech} is not in the standard tech table"
+                    )));
+                };
+                if cat.techs[bit].1 != unit {
+                    return Err(S::Error::custom(format!(
+                        "technology {tech} belongs to unit {}, not {unit}",
+                        cat.techs[bit].1
+                    )));
+                }
+                let mask = 1u8 << (bit % 8);
+                if (buf[bit / 8] & mask) == 0 {
+                    buf[bit / 8] |= mask;
+                    count += 1;
+                }
+            }
+        }
+        if count == cat.techs.len() {
+            serializer.serialize_str("full")
+        } else {
+            serializer.serialize_str(&encode_b64url(&buf))
+        }
+    }
 
     /// Writes a loadout by name.
     ///
@@ -822,27 +1021,115 @@ pub mod loadout {
         serializer.collect_map(rows)
     }
 
-    /// Reads a loadout written by name.
+    /// Reads a loadout written either in compact bitset (`"full"` or base64url)
+    /// or expanded map (`{unit: [tech, ...]}`) form.
     ///
     /// # Errors
     ///
-    /// Returns an error when a name is not one this build carries.
+    /// Returns an error when a compact encoding or technology name is invalid.
     pub fn deserialize<'de, D: Deserializer<'de>>(
         deserializer: D,
     ) -> Result<BTreeMap<i32, Vec<i32>>, D::Error> {
-        use serde::de::Error;
-        let mut map = BTreeMap::new();
-        for (name, technologies) in BTreeMap::<String, Vec<String>>::deserialize(deserializer)? {
-            let unit = crate::catalog::unit_id_from_type(&name).ok_or_else(|| {
-                D::Error::custom(format!("{name} is not a unit type of this build"))
-            })?;
-            let mut ids = technologies
-                .iter()
-                .map(|technology| super::technology_id::<D::Error>(unit, technology))
-                .collect::<Result<Vec<_>, _>>()?;
-            ids.sort_unstable();
-            map.insert(unit, ids);
+        struct Visitor;
+        impl<'de> serde::de::Visitor<'de> for Visitor {
+            type Value = BTreeMap<i32, Vec<i32>>;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                formatter.write_str("a compact tech_loadout string or unit-technology mapping")
+            }
+
+            fn visit_str<E: serde::de::Error>(self, value: &str) -> Result<Self::Value, E> {
+                decode_compact(value).map_err(E::custom)
+            }
+
+            fn visit_map<M: MapAccess<'de>>(self, mut access: M) -> Result<Self::Value, M::Error> {
+                use serde::de::Error;
+                let mut map = BTreeMap::new();
+                while let Some((name, technologies)) = access.next_entry::<String, Vec<String>>()? {
+                    let unit = crate::catalog::unit_id_from_type(&name).ok_or_else(|| {
+                        M::Error::custom(format!("{name} is not a unit type of this build"))
+                    })?;
+                    let mut ids = technologies
+                        .iter()
+                        .map(|technology| super::technology_id::<M::Error>(unit, technology))
+                        .collect::<Result<Vec<_>, _>>()?;
+                    ids.sort_unstable();
+                    map.insert(unit, ids);
+                }
+                Ok(map)
+            }
         }
-        Ok(map)
+        deserializer.deserialize_any(Visitor)
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use serde::Deserialize;
+
+        #[derive(Debug, Deserialize, PartialEq, Eq)]
+        struct Wrapper(#[serde(with = "super")] BTreeMap<i32, Vec<i32>>);
+
+        #[derive(serde::Serialize)]
+        struct CompactWrapper<'a>(
+            #[serde(serialize_with = "super::serialize_compact")] &'a BTreeMap<i32, Vec<i32>>,
+        );
+
+        #[derive(serde::Serialize)]
+        struct ExpandedWrapper<'a>(
+            #[serde(serialize_with = "super::serialize")] &'a BTreeMap<i32, Vec<i32>>,
+        );
+
+        #[test]
+        fn compact_bitset_round_trips_full_empty_and_partial_loadouts() {
+            let economy = crate::economy::Economy::embedded().unwrap();
+            let full = economy.unit_technologies();
+            let full_yaml = serde_yaml::to_string(&CompactWrapper(&full)).unwrap();
+            assert_eq!(full_yaml.trim(), "full");
+            assert_eq!(serde_yaml::from_str::<Wrapper>(&full_yaml).unwrap().0, full);
+
+            let empty = BTreeMap::new();
+            let empty_yaml = serde_yaml::to_string(&CompactWrapper(&empty)).unwrap();
+            assert_eq!(empty_yaml.trim().len(), 42);
+            assert_eq!(
+                serde_yaml::from_str::<Wrapper>(&empty_yaml).unwrap().0,
+                empty
+            );
+
+            // Keep 4 per normal unit and up to 6 for factory/abyss/mountain.
+            let mut custom = BTreeMap::new();
+            for (unit, mut list) in full {
+                list.truncate(crate::r#match::research_limit(unit));
+                custom.insert(unit, list);
+            }
+            let custom_yaml = serde_yaml::to_string(&CompactWrapper(&custom)).unwrap();
+            assert_eq!(custom_yaml.trim().len(), 42);
+            assert_eq!(
+                serde_yaml::from_str::<Wrapper>(&custom_yaml).unwrap().0,
+                custom
+            );
+
+            // Expanded YAML map reads identically to compact.
+            let expanded_yaml = serde_yaml::to_string(&ExpandedWrapper(&custom)).unwrap();
+            assert_eq!(
+                serde_yaml::from_str::<Wrapper>(&expanded_yaml).unwrap().0,
+                custom
+            );
+        }
+
+        #[test]
+        fn compact_decoder_refuses_malformed_and_all_ones_strings() {
+            assert!(decode_compact("A").is_err());
+            assert!(decode_compact(&format!("{}=", "A".repeat(41))).is_err());
+            assert!(decode_compact(&format!("{}!", "A".repeat(41))).is_err());
+            // Last base64 char of 31 bytes has 4 unused low bits -> 'B' sets bit 0.
+            assert!(decode_compact(&format!("{}B", "A".repeat(41))).is_err());
+            // All-ones encoding for full table must be written as "full".
+            let cat = catalog().unwrap();
+            let mut full_bytes = vec![0xffu8; cat.bytes_len];
+            full_bytes[cat.bytes_len - 1] = cat.trailing_byte_mask;
+            let all_ones = encode_b64url(&full_bytes);
+            assert!(decode_compact(&all_ones).is_err());
+        }
     }
 }

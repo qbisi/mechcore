@@ -66,10 +66,9 @@ pub fn match_replay(
     );
     let _ = write!(
         xml,
-        "<MechcoreMatch><Source>{}</Source><Reinforcements>{}</Reinforcements><FullTechLoadout>{}</FullTechLoadout></MechcoreMatch><playerRecords>",
+        "<MechcoreMatch><Source>{}</Source><Reinforcements>{}</Reinforcements></MechcoreMatch><playerRecords>",
         stated.source.as_str(),
-        stated.rules.reinforcements,
-        stated.rules.full_tech_loadout
+        stated.reinforce
     );
     for (id, name, side, sign) in [(1, "blue", &stated.blue, 1), (2, "red", &stated.red, -1)] {
         write_player(&mut xml, economy, stated, id, name, side, sign)?;
@@ -101,7 +100,7 @@ pub fn match_replay(
         "</matchDatas><reinforceItems /><Version>{version}</Version><Seat>0</Seat><BattleInfo>\
          <gameRules /><StartTime>0</StartTime><SystemSeed>{}</SystemSeed>\
          <BattleID>{BATTLE_ID}</BattleID><PrepareTime>30</PrepareTime><DeployTime>{}</DeployTime>\
-         <FightTime>120</FightTime><MapID>{}</MapID><MaxRound>40</MaxRound>\
+         <FightTime>120</FightTime><MapID>{}</MapID><MaxRound>{}</MaxRound>\
          <BlueprintIncreaseSupply>0</BlueprintIncreaseSupply>\
          <EnableAdvanceTeam>true</EnableAdvanceTeam><EnableReinforcement>{reinforcements}</EnableReinforcement>\
          <EnableUnitReinforcement>{reinforcements}</EnableUnitReinforcement>\
@@ -112,7 +111,8 @@ pub fn match_replay(
         stated.seed,
         DEFAULT_DEPLOY_TIME,
         stated.map_id,
-        reinforcements = stated.rules.reinforcements
+        stated.max_round,
+        reinforcements = stated.reinforce
     );
     Ok(binary_formatter(
         BATTLE_ID,
@@ -216,7 +216,7 @@ fn write_player(
         .as_ref()
         .ok_or_else(|| format!("{name} takes no opening, and a replay records one"))?;
     let shared = economy.round_supply();
-    let reactor = crate::opening::reactor_core(stated.map_id, usize::from(red))?;
+    let reactor = stated.base_core;
     let display_name = side
         .name
         .as_deref()

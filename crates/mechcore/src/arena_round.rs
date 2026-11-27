@@ -1,12 +1,14 @@
 //! The arena's immutable round opening and complete, side-local answers.
-use super::{Action, Draw, Failure, Game, Side, SideState, State, TurnActions, Value, dealt_game};
-use mechcore_document::r#match::Rules;
+use super::{
+    Action, Draw, Failure, Game, MatchOptions, Side, SideState, State, TurnActions, Value,
+    dealt_game,
+};
 
 impl Game {
     pub(crate) fn arena_new(
         seed: Option<i32>,
         map: Option<i32>,
-        rules: Rules,
+        options: MatchOptions,
     ) -> Result<Self, Failure> {
         let mut draw = seed.map_or_else(Draw::new, |seed| Draw(u64::from(seed.unsigned_abs())));
         let seed = seed.unwrap_or_else(|| draw.seed().max(1));
@@ -22,15 +24,32 @@ impl Game {
             None,
             None,
             None,
-            rules,
+            options,
             draw,
         )?;
         game.turn.side_mut(Side::Red).given = true;
         Ok(game)
     }
 
-    pub(crate) fn arena_load(path: &std::path::Path, round: i32) -> Result<Self, Failure> {
-        let document = super::read_match(path)?;
+    pub(crate) fn arena_load(
+        path: &std::path::Path,
+        round: i32,
+        max_round: Option<i32>,
+        base_core: Option<i32>,
+    ) -> Result<Self, Failure> {
+        let mut document = super::read_match(path)?;
+        if let Some(max_round) = max_round {
+            if max_round < 1 {
+                return Err(Failure::refused("match max_round must be >= 1"));
+            }
+            document.max_round = max_round;
+        }
+        if let Some(base_core) = base_core {
+            if base_core <= 0 {
+                return Err(Failure::refused("match base_core must be > 0"));
+            }
+            document.base_core = base_core;
+        }
         super::warn_build(&document.game_build);
         super::fork_position(std::path::PathBuf::new(), document, None, Some(round))
     }
@@ -56,7 +75,7 @@ impl Game {
         side: Side,
         input: &[Value],
     ) -> Result<(Vec<Action>, SideState), Failure> {
-        let mut position = self.opened(side)?;
+        let mut position = self.opened(side);
         let mut actions = Vec::with_capacity(input.len());
         for (index, value) in input.iter().enumerate() {
             let context = |failure: Failure| {

@@ -70,7 +70,7 @@ for line in sys.stdin:
         if wire.exists():
             send_line("{broken")
             assert read()["error"]["kind"] == "usage"
-        seats = re.findall(r"^  - \{team: ([^,]+), specialist: ([^}]+)\}", doc, re.M)
+        seats = re.findall(r"^  - \{team: ([^,]+), specialist: ([^,]+), core_modify:", doc, re.M)
         opening = {s:[dict(type="choose_advance_team", index=i, name=seats[start+i][0],
                            specialist=seats[start+i][1])] for s,start,i in [("blue",0,2),("red",4,1)]}
         assert "kind: action" not in doc
@@ -354,7 +354,9 @@ fn load_reopens_only_the_selected_round_and_uses_the_new_bot_names() {
         assert_eq!(output.result.unwrap().winner, Winner::Red);
         assert_eq!(history, history_before);
         assert_eq!(last.state, expected.state);
-        assert_eq!(output.rules, recorded.rules);
+        assert_eq!(output.reinforce, recorded.reinforce);
+        assert_eq!(output.max_round, recorded.max_round);
+        assert_eq!(output.base_core, recorded.base_core);
         assert_eq!(output.seed, recorded.seed);
         assert_eq!(output.map_id, recorded.map_id);
         for (old, new, name) in [
@@ -463,4 +465,33 @@ fn reference_bots_report_names_without_reading_a_match() {
             format!("{name}\n")
         );
     }
+}
+
+#[test]
+fn arena_new_supports_max_round_and_base_core_overrides() {
+    let dir = fixture();
+    let stdout = success(cli(
+        dir.path(),
+        &[
+            "arena",
+            "new",
+            "--seed",
+            "7",
+            "--map",
+            "1001",
+            "--max-round",
+            "1",
+            "--base-core",
+            "6000",
+            "--blue",
+            "exec python3 bot.py",
+            "--red",
+            "exec python3 bot.py",
+        ],
+    ));
+    let output = String::from_utf8(stdout).unwrap();
+    assert!(output.contains("max_round: 1\n"), "{output}");
+    assert!(output.contains("base_core: 6000\n"), "{output}");
+    assert!(!output.contains("round: 2\n"), "{output}");
+    assert!(output.contains("kind: result\n"), "{output}");
 }

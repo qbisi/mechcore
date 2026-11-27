@@ -552,3 +552,86 @@ with [values](n, [order]) as (values (1, 'FROM WHERE'), (2, 'a''b')) select n, [
     assert!(String::from_utf8_lossy(&refused.stderr).contains("asserts[0].sql"));
     assert_eq!(fs::read_to_string(&path).unwrap(), invalid);
 }
+
+#[test]
+fn format_expanded_writes_mapping_loadout_and_round_trips_compact() {
+    let directory = tempfile::tempdir().unwrap();
+    let run_ok = |args: &[&str]| -> String {
+        let out = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+            .args(args)
+            .output()
+            .unwrap();
+        assert!(
+            out.status.success(),
+            "{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        String::from_utf8(out.stdout).unwrap()
+    };
+    let assert_expanded_round_trip = |path: &std::path::Path, compact_text: &str| {
+        let expanded_yaml = run_ok(&["format", "--expanded", path.to_str().unwrap()]);
+        assert!(
+            expanded_yaml.contains("tech_loadout:\n    fortress: ["),
+            "{expanded_yaml}"
+        );
+        assert!(!expanded_yaml.contains("tech_loadout: full"));
+        let expanded_path = path.with_extension("expanded.yaml");
+        fs::write(&expanded_path, &expanded_yaml).unwrap();
+        assert_eq!(
+            run_ok(&["format", expanded_path.to_str().unwrap()]),
+            compact_text
+        );
+    };
+
+    let path = directory.path().join("match.yaml");
+    run_ok(&[
+        "match",
+        "new",
+        path.to_str().unwrap(),
+        "--seed",
+        "7",
+        "--map",
+        "1001",
+        "--reinforcements",
+        "false",
+        "--full-tech-loadout",
+        "false",
+    ]);
+    let compact_text = fs::read_to_string(&path).unwrap();
+    assert!(!compact_text.contains("tech_loadout: full"));
+    assert!(!compact_text.contains("tech_loadout:\n"));
+    assert_expanded_round_trip(&path, &compact_text);
+
+    let full_path = directory.path().join("full.yaml");
+    run_ok(&[
+        "match",
+        "new",
+        full_path.to_str().unwrap(),
+        "--seed",
+        "7",
+        "--map",
+        "1001",
+        "--full-tech-loadout",
+        "true",
+    ]);
+    let full_text = fs::read_to_string(&full_path).unwrap();
+    assert!(full_text.contains("tech_loadout: full"));
+    assert_expanded_round_trip(&full_path, &full_text);
+
+    let layout = directory.path().join("layout.yaml");
+    fs::write(
+        &layout,
+        "kind: layout\nround: 1\nblue:\n  units: [{name: marksman, index: 0, position: {x: 0, y: -50}}]\nred:\n  units: [{name: arclight, index: 0, position: {x: 0, y: -50}}]\n",
+    )
+    .unwrap();
+    let refused = Command::new(env!("CARGO_BIN_EXE_mechcore"))
+        .args(["format", "--expanded", layout.to_str().unwrap()])
+        .output()
+        .unwrap();
+    assert!(!refused.status.success());
+    assert!(
+        String::from_utf8_lossy(&refused.stderr).contains("--expanded"),
+        "{}",
+        String::from_utf8_lossy(&refused.stderr)
+    );
+}

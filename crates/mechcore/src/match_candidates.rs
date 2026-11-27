@@ -135,7 +135,7 @@ mod tests {
             (Some(12345), Some(1021), None),
             None,
             None,
-            mechcore_document::r#match::Rules::default(),
+            crate::r#match::MatchOptions::default(),
         )
         .unwrap();
         for side in Side::BOTH {

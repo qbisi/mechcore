@@ -14,6 +14,7 @@ Requires PyYAML.
 """
 
 import argparse
+import base64
 from collections import Counter, defaultdict
 from pathlib import Path
 import re
@@ -36,6 +37,19 @@ def header(path):
     return yaml.load("".join(lines), Loader=LOADER)
 
 
+def decode_loadout(raw, table, full):
+    if raw == "full":
+        return full
+    if isinstance(raw, dict):
+        return raw
+    data = base64.urlsafe_b64decode((raw + "=" * (-len(raw) % 4)).encode("ascii"))
+    out = defaultdict(list)
+    for bit, (unit, tech) in enumerate(table):
+        if (data[bit >> 3] >> (bit & 7)) & 1:
+            out[unit].append(tech)
+    return out
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("corpus", type=Path)
@@ -43,6 +57,18 @@ def main():
     version = (ROOT / "GAME_VERSION").read_text().strip()
     names = yaml.load((ROOT / "config/names.yaml").read_text(), Loader=LOADER)
     units = yaml.load((ROOT / "config/unit_techs.yaml").read_text(), Loader=LOADER)["units"]
+    table = [
+        (unit, tech)
+        for _, unit, tech in sorted(
+            (tech["id"], row["type"], names["technologies"][row["type"]][tech["id"]])
+            for row in units
+            for tech in row["technologies"]
+        )
+    ]
+    full = {
+        row["type"]: [names["technologies"][row["type"]][tech["id"]] for tech in row["technologies"]]
+        for row in units
+    }
     counts = defaultdict(Counter)
     seen = set()
     for path in sorted([*args.corpus.glob("matches/**/*.yaml"), *args.corpus.glob("tournaments/**/*.yaml")]):
@@ -54,7 +80,8 @@ def main():
             continue
         seen.add(identity)
         for side in ("blue", "red"):
-            for unit, technologies in match[side]["tech_loadout"].items():
+            loadout = decode_loadout(match[side]["tech_loadout"], table, full)
+            for unit, technologies in loadout.items():
                 counts[unit].update(set(technologies))
     if not seen:
         raise ValueError("the corpus holds no matches for GAME_VERSION")

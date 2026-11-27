@@ -38,22 +38,22 @@ match's map, and the two players `{id: 1, name: blue}` and `{id: 2, name: red}`.
 
 ## The battle record
 
-`BattleInfo` holds the match's `seed` as `SystemSeed`, its map, `VS_1_1` and the
-standard 1v1 constants, with advance teams and construction on, both
-`EnableReinforcement` and `EnableUnitReinforcement` equal to
-`rules.reinforcements`, and no native game rules and no match type. `Version`
+`BattleInfo` holds the match's `seed` as `SystemSeed`, its map, `MaxRound` from
+`max_round`, `VS_1_1` and the standard 1v1 constants, with advance teams and
+construction on, both `EnableReinforcement` and `EnableUnitReinforcement`
+equal to `reinforce`, and no native game rules and no match type. `Version`
 is the build number and `Seat` is 0, a locally recorded replay.
 `DeployTime` is the standard 100 seconds. Deployment time is runtime
 configuration and is not carried in the match header.
 
 Each `PlayerRecord`, blue first, holds the side's `name` (defaulting to `blue`
-or `red`) and `seed`, the map's reactor core, the round income every versus
-map shares, and its effective tech loadout as `unitDatas`: the custom mapping
-when `full_tech_loadout` is false, or every eligible catalogue technology when
-true. Canonical decisions obey the match's per-unit research limit in either
-case.
-Its rounds run from 0 to the match's last, one `PlayerRoundRecord` each, and
-`matchDatas` holds one `MatchSnapshotData` per round.
+or `red`) and `seed`, the match's `base_core` as `reactorCore`, the round
+income every versus map shares, and its effective tech loadout as `unitDatas`:
+the side's custom selection or every eligible catalogue technology when
+`tech_loadout` is `"full"`. Canonical decisions obey the match's per-unit
+research limit in either case. Its rounds run from 0 to the match's last, one
+`PlayerRoundRecord` each, and `matchDatas` holds one `MatchSnapshotData` per
+round.
 
 ## Match metadata
 
@@ -64,25 +64,25 @@ A synthesized replay carries one `MechcoreMatch` element directly under
 <MechcoreMatch>
   <Source>simulator</Source>
   <Reinforcements>true</Reinforcements>
-  <FullTechLoadout>true</FullTechLoadout>
 </MechcoreMatch>
 ```
 
-All three members are required. `Source` is copied from the input match,
-including `game` when the input says so; writing a GRBR does not change the
-backend that produced its battles. The two booleans preserve the match's
-resolved rule switches. This element is Mechcore's framing metadata, not a
-native game-rule ID or a claim that the replay was captured by the game.
+Both members are required. `Source` is copied from the input match, including
+`game` when the input says so; writing a GRBR does not change the backend that
+produced its battles. `Reinforcements` preserves `reinforce`. This element is
+Mechcore's framing metadata, not a native game-rule ID or a claim that the
+replay was captured by the game.
 
-Conversion reads this element before assigning source and rules. Without it,
-a native recording is `source: game`, its matching reinforcement flags supply
-`rules.reinforcements`, and `rules.full_tech_loadout` is false. A recording
-with ordinary and unit reinforcement enabled independently is refused: the
-single match switch cannot express that combination. A present but
+Conversion reads this element before assigning source and rules. Without it, a
+native recording is `source: game`, and its matching reinforcement flags supply
+`reinforce`; `MaxRound` and `reactorCore` fall back to the map preset's
+`max_round` and starting `reactor_cores[0]` when omitted by legacy fixtures. A
+recording with ordinary and unit reinforcement enabled independently is refused:
+the single `reinforce` switch cannot express that combination. A present but
 incomplete, duplicate or malformed element is refused; it never falls back to
-the unmarked interpretation. The reinforcement marker must agree with both native reinforcement flags,
-and `unitDatas` must state the effective loadout the
-marker describes. Contradictions are refused rather than silently repaired.
+the unmarked interpretation. The reinforcement marker must agree with both
+native reinforcement flags. Contradictions are refused rather than silently
+repaired.
 
 With reinforcements disabled, round snapshots and actions carry no offers or
 choices, the pool has no refresh or removal log, and the shared stream stays
@@ -215,9 +215,9 @@ A match is refused when a replay cannot hold it, and the refusal names why:
 
 A match replay is a function of its match and the build: the same two always
 write the same bytes. `MechcoreMatch` appears once before `playerRecords`, and
-its members are `Source`, `Reinforcements`, then `FullTechLoadout`. Players
-come blue then red, rounds ascend, and each round's decisions follow the match's phases, with the native insertion points
-stated above.
+its members are `Source`, then `Reinforcements`. Players come blue then red,
+rounds ascend, and each round's decisions follow the match's phases, with the
+native insertion points stated above.
 
 ## Excluded fields
 

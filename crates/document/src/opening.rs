@@ -530,7 +530,9 @@ pub struct Stated {
     pub has_opening: bool,
     pub build: String,
     pub source: crate::r#match::Source,
-    pub rules: crate::r#match::Rules,
+    pub reinforce: bool,
+    pub max_round: i32,
+    pub base_core: i32,
     pub map_id: i32,
     pub seed: i32,
     pub blue: StatedSide,
@@ -544,23 +546,45 @@ pub struct Stated {
     pub result: Option<crate::r#match::MatchResult>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug)]
 pub struct StatedSide {
     /// Player display name, defaulting to the seat when absent.
-    #[serde(default)]
     pub name: Option<String>,
-    #[serde(default)]
     pub elo_score: Option<i32>,
     /// The opening this side took, absent while it has not taken one.
-    #[serde(skip)]
     pub opening: Option<StatedOpening>,
     /// The seed of the side's own stream, when the match states one.
-    #[serde(default)]
     pub seed: Option<i32>,
     pub offers: Vec<OpeningOffer>,
     pub constructions: Vec<StaticPlacement>,
-    #[serde(default, with = "crate::names::loadout")]
     pub tech_loadout: BTreeMap<i32, Vec<i32>>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct StatedHeaderSide {
+    #[serde(default)]
+    name: Option<String>,
+    #[serde(default)]
+    elo_score: Option<i32>,
+    #[serde(default)]
+    seed: Option<i32>,
+    #[serde(with = "crate::names::loadout")]
+    tech_loadout: BTreeMap<i32, Vec<i32>>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OpeningState {
+    blue: OpeningStateSide,
+    red: OpeningStateSide,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OpeningStateSide {
+    offers: Vec<OpeningOffer>,
+    constructions: Vec<StaticPlacement>,
 }
 
 /// The opening decision one side states in round zero.
@@ -579,18 +603,29 @@ impl StatedSide {
     }
 }
 
+fn default_reinforce() -> bool {
+    true
+}
+
 #[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct StatedHeader {
+    #[allow(dead_code)]
+    kind: String,
     /// A match that states no build is this binary's, as a layout is.
     #[serde(default = "crate::economy::this_build")]
     build: String,
     source: crate::r#match::Source,
+    #[serde(default = "default_reinforce")]
+    reinforce: bool,
     #[serde(default)]
-    rules: crate::r#match::Rules,
+    max_round: Option<i32>,
+    #[serde(default)]
+    base_core: Option<i32>,
     map_id: i32,
     seed: i32,
-    blue: StatedSide,
-    red: StatedSide,
+    blue: StatedHeaderSide,
+    red: StatedHeaderSide,
 }
 
 impl StatedOpening {
@@ -637,45 +672,99 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
     };
     let header: StatedHeader = serde_yaml::from_value(stream.header.clone())
         .map_err(|error| format!("match header is not readable: {error}"))?;
-    let has_opening = stream.opening.is_some();
+    let (max_round, base_core) = stated_header_settings(&header)?;
+    let has_opening = stream.opening_state.is_some();
     if !has_opening && stream.rounds.is_empty() {
-        return Err("match states no round 0 opening decisions or captured state".into());
+        return Err("match states no round 0 opening state or captured state".into());
     }
+    let opening_state: Option<OpeningState> = stream
+        .opening_state
+        .map(crate::r#match::payload)
+        .transpose()
+        .map_err(|error| format!("round 0 state segment is not readable: {error}"))?;
     let opening: TurnActions = stream
         .opening
         .map(crate::r#match::payload)
         .transpose()
         .map_err(|error| format!("round 0 action segment is not readable: {error}"))?
         .unwrap_or_default();
-    let mut blue = header.blue;
-    let mut red = header.red;
-    for (name, side) in [("blue", &mut blue), ("red", &mut red)] {
-        let explicit = stream
-            .header
-            .get(name)
-            .and_then(|side| side.get("tech_loadout"))
-            .is_some();
-        if header.rules.full_tech_loadout {
-            if explicit {
-                return Err(format!(
-                    "{name} tech_loadout is forbidden with full_tech_loadout"
-                ));
-            }
-            side.tech_loadout = crate::economy::Economy::embedded()?.unit_technologies();
-        } else if !explicit {
-            return Err(format!(
-                "{name} requires tech_loadout when full_tech_loadout is false"
-            ));
-        }
-    }
-    blue.opening = StatedOpening::opening(&opening.blue, "blue")?;
-    red.opening = StatedOpening::opening(&opening.red, "red")?;
+    let (blue_open, red_open) = match opening_state {
+        Some(state) => (state.blue, state.red),
+        None => (
+            OpeningStateSide {
+                offers: Vec::new(),
+                constructions: Vec::new(),
+            },
+            OpeningStateSide {
+                offers: Vec::new(),
+                constructions: Vec::new(),
+            },
+        ),
+    };
+    let blue = stated_side(header.blue, blue_open, &opening.blue, "blue")?;
+    let red = stated_side(header.red, red_open, &opening.red, "red")?;
     let ends_on_actions = stream
         .rounds
         .last()
         .is_some_and(|round| round.actions.is_some());
-    let turns = stream
-        .rounds
+    let turns = stated_turns(stream.rounds)?;
+    let stated = Stated {
+        has_opening,
+        build: header.build,
+        source: header.source,
+        reinforce: header.reinforce,
+        max_round,
+        base_core,
+        map_id: header.map_id,
+        seed: header.seed,
+        blue,
+        red,
+        turns,
+        opening,
+        ends_on_actions,
+        result: stream.result,
+    };
+    validate_rules(&stated)?;
+    Ok(Some(stated))
+}
+
+fn stated_header_settings(header: &StatedHeader) -> Result<(i32, i32), String> {
+    let resolved_max = match header.max_round {
+        Some(value) => value,
+        None => max_round(header.map_id)?,
+    };
+    if resolved_max < 1 {
+        return Err(format!("match max_round must be >= 1, not {resolved_max}"));
+    }
+    let resolved_core = match header.base_core {
+        Some(value) => value,
+        None => reactor_core(header.map_id, 0)?,
+    };
+    if resolved_core <= 0 {
+        return Err(format!("match base_core must be > 0, not {resolved_core}"));
+    }
+    Ok((resolved_max, resolved_core))
+}
+
+fn stated_side(
+    header: StatedHeaderSide,
+    open: OpeningStateSide,
+    actions: &[crate::r#match::Action],
+    seat: &str,
+) -> Result<StatedSide, String> {
+    Ok(StatedSide {
+        name: header.name,
+        elo_score: header.elo_score,
+        opening: StatedOpening::opening(actions, seat)?,
+        seed: header.seed,
+        offers: open.offers,
+        constructions: open.constructions,
+        tech_loadout: header.tech_loadout,
+    })
+}
+
+fn stated_turns(rounds: Vec<crate::r#match::RoundSegments>) -> Result<Vec<Turn>, String> {
+    rounds
         .into_iter()
         .map(|round| {
             let mut state: crate::r#match::State = crate::r#match::payload(round.state)
@@ -703,29 +792,13 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
                 actions,
             })
         })
-        .collect::<Result<_, String>>()?;
-    let stated = Stated {
-        has_opening,
-        build: header.build,
-        source: header.source,
-        rules: header.rules,
-        map_id: header.map_id,
-        seed: header.seed,
-        blue,
-        red,
-        turns,
-        opening,
-        ends_on_actions,
-        result: stream.result,
-    };
-    validate_rules(&stated)?;
-    Ok(Some(stated))
+        .collect()
 }
 
 fn validate_rules(stated: &Stated) -> Result<(), String> {
     let economy = crate::economy::Economy::embedded()?;
     for (index, turn) in stated.turns.iter().enumerate() {
-        if !stated.rules.reinforcements
+        if !stated.reinforce
             && (turn.state.reinforce_offers.is_some() || !turn.state.reinforce_pool.is_empty())
         {
             return Err(format!(
@@ -805,35 +878,10 @@ fn validate_technology(
 /// Returns an error for a mismatched deal, layout, invalid choice or unsupported
 /// initialization scope.
 pub fn verify(economy: &Economy, stated: &Stated) -> Result<Prediction, String> {
-    for (name, side) in [("blue", &stated.blue), ("red", &stated.red)] {
-        if side.offers.len() != CHOOSE_COUNT {
-            return Err(format!("{name} opening requires {CHOOSE_COUNT} offers"));
-        }
-        // A match in progress may have one opening and not the other, and a
-        // side that has taken none has nothing here to disagree with. What
-        // the seed deals it is checked below all the same.
-        let Some(opening) = &side.opening else {
-            continue;
-        };
-        let Some(offered) = usize::try_from(opening.choose)
-            .ok()
-            .filter(|at| *at < CHOOSE_COUNT)
-            .map(|at| side.offers[at])
-        else {
-            return Err(format!(
-                "{name} opening offer {} is outside 0..{CHOOSE_COUNT}",
-                opening.choose
-            ));
-        };
-        if opening.taken != offered {
-            return Err(format!(
-                "{name} opening offer {} holds team {} and specialist {}, \
-                 and the decision names {:?}",
-                opening.choose, offered.team, offered.specialist, opening.taken
-            ));
-        }
-    }
     let found = predict(economy, stated.seed, stated.map_id)?;
+    if !stated.has_opening {
+        return Ok(found);
+    }
     for (name, side, offers, constructions) in [
         (
             "blue",
@@ -848,6 +896,31 @@ pub fn verify(economy: &Economy, stated: &Stated) -> Result<Prediction, String> 
             &found.constructions.red,
         ),
     ] {
+        if side.offers.len() != CHOOSE_COUNT {
+            return Err(format!("{name} opening requires {CHOOSE_COUNT} offers"));
+        }
+        // A match in progress may have one opening and not the other, and a
+        // side that has taken none has nothing here to disagree with. What
+        // the seed deals it is checked below all the same.
+        if let Some(opening) = &side.opening {
+            let Some(offered) = usize::try_from(opening.choose)
+                .ok()
+                .filter(|at| *at < CHOOSE_COUNT)
+                .map(|at| side.offers[at])
+            else {
+                return Err(format!(
+                    "{name} opening offer {} is outside 0..{CHOOSE_COUNT}",
+                    opening.choose
+                ));
+            };
+            if opening.taken != offered {
+                return Err(format!(
+                    "{name} opening offer {} holds team {} and specialist {}, \
+                     and the decision names {:?}",
+                    opening.choose, offered.team, offered.specialist, opening.taken
+                ));
+            }
+        }
         if !side.agrees(offers) {
             return Err(format!(
                 "seed {} does not deal the stated {name} opening",

@@ -81,7 +81,7 @@ fn disk_document(path: &str) -> Value {
 
 /// Takes the first opening a side was dealt, as the decision that takes it.
 fn opening(view: &Value, side: &str) -> String {
-    let offer = &view["header"][side]["offers"][0];
+    let offer = &view["state"][side]["offers"][0];
     format!(
         "{{type: choose_advance_team, index: 0, name: {}, specialist: {}}}",
         offer["team"].as_str().unwrap(),
@@ -202,22 +202,22 @@ fn fork_reopens_a_round_and_continues_from_its_original_state() {
     assert_eq!(loaded["rebuilt"], true);
     assert!(loaded["remaining"].as_f64().unwrap() > 99.0);
     let after = disk_document(&target);
-    assert_eq!(after.as_array().unwrap().len(), 6);
-    for index in 0..5 {
+    assert_eq!(after.as_array().unwrap().len(), 7);
+    for index in 0..6 {
         assert_eq!(after[index], before[index]);
     }
     let turn: Value =
         serde_json::from_slice(&fs::read(Path::new(&target).with_extension("turn")).unwrap())
             .unwrap();
     for side in ["blue", "red"] {
-        assert_eq!(after[5][side], serde_json::json!([]));
+        assert_eq!(after[6][side], serde_json::json!([]));
         assert_eq!(loaded["sides"][side]["committed"], false);
         assert_eq!(loaded["sides"][side]["given"], true);
         assert_eq!(turn["sides"][side]["decisions"], serde_json::json!([]));
         decline(&target, side);
         run(&["match", "commit", &target, "--side", side]).ok();
     }
-    assert_eq!(disk_document(&target)[6], before[6]);
+    assert_eq!(disk_document(&target)[7], before[7]);
     assert_eq!(fs::read(&path).unwrap(), original);
     assert_eq!(
         fs::read(Path::new(&path).with_extension("turn")).unwrap(),
@@ -322,7 +322,7 @@ fn fork_can_restart_the_opening_and_refuses_missing_rounds_without_writes() {
     .ok();
     assert_eq!(loaded["round"], 0);
     assert_eq!(loaded["phase"], "opening");
-    assert_eq!(disk_document(&path).as_array().unwrap().len(), 2);
+    assert_eq!(disk_document(&path).as_array().unwrap().len(), 3);
     assert!(
         state(&loaded)["blue"]["units"]
             .as_array()
@@ -594,9 +594,11 @@ fn full_loadout_and_disabled_reinforcements_use_the_header_rules() {
     ])
     .ok();
     assert_eq!(dealt["header"]["source"], "simulator");
-    assert_eq!(dealt["header"]["rules"]["full_tech_loadout"], true);
-    assert_eq!(dealt["header"]["rules"]["reinforcements"], false);
-    assert!(dealt["header"]["blue"].get("tech_loadout").is_none());
+    assert_eq!(dealt["header"]["reinforce"], false);
+    assert_eq!(dealt["header"]["max_round"], 40);
+    assert_eq!(dealt["header"]["base_core"], 4500);
+    assert_eq!(dealt["header"]["blue"]["tech_loadout"], "full");
+    assert_eq!(dealt["header"]["red"]["tech_loadout"], "full");
     run(&["match", "new", &path]).ok();
     open_the_match(&path);
     let mut game = mechcore_document::r#match::read(&fs::read(&path).unwrap())
@@ -790,7 +792,7 @@ fn both_openings_open_the_first_round() {
     assert_eq!(opened["round"], 1);
     // Once it has, both openings are what the board stands on.
     assert_eq!(
-        disk_document(&path)[1]["blue"][0]["type"],
+        disk_document(&path)[2]["blue"][0]["type"],
         "choose_advance_team"
     );
     assert!(opened["remaining"].as_f64().unwrap() > 0.0);
@@ -824,7 +826,7 @@ fn a_view_applies_only_the_callers_decisions_and_adds_runtime_legality() {
         let view = run(&["match", "show", &path, "--side", side]).ok();
         assert_eq!(view["header"], before[0]);
         assert_eq!(state(&view), state(answer));
-        assert_eq!(state(&view)[other], before[2][other]);
+        assert_eq!(state(&view)[other], before[3][other]);
         assert_eq!(state(&view)[side]["shop"]["unlocks_remaining"], 0);
         assert_eq!(state(&view)[side]["reinforce_chosen"], false);
         assert!(
@@ -861,10 +863,10 @@ fn a_view_applies_only_the_callers_decisions_and_adds_runtime_legality() {
     run(&["match", "commit", &path, "--side", "blue"]).ok();
     let next = run(&["match", "show", &path, "--side", "blue"]).ok();
     assert_eq!(next["round"], 2);
-    assert_eq!(state(&next)["red"], disk_document(&path)[4]["red"]);
+    assert_eq!(state(&next)["red"], disk_document(&path)[5]["red"]);
     assert_eq!(
         state(&next)["reinforce_pool"],
-        disk_document(&path)[4]["reinforce_pool"]
+        disk_document(&path)[5]["reinforce_pool"]
     );
     assert_eq!(state(&next)["blue"]["reinforce_chosen"], false);
 }
@@ -1633,7 +1635,7 @@ fn a_request_stream_plays_the_side_its_shell_was_opened_on() {
     let directory = tempfile::tempdir().unwrap();
     let path = dealt(directory.path());
     let view = run(&["match", "show", &path, "--side", "red"]).ok();
-    let offer = &view["header"]["red"]["offers"][0];
+    let offer = &view["state"]["red"]["offers"][0];
     let decision = serde_json::json!({
         "type": "choose_advance_team",
         "index": 0,
@@ -2125,4 +2127,65 @@ fn placement_masks_see_only_the_callers_pending_actions_without_advancing() {
     );
     assert_eq!(document_before, fs::read(&path).unwrap());
     assert_eq!(turn_before, fs::read(&turn_path).unwrap());
+}
+
+#[test]
+fn match_new_supports_max_round_and_base_core_overrides() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("override.yaml").display().to_string();
+    let blue = run(&[
+        "match",
+        "new",
+        &path,
+        "--seed",
+        "7",
+        "--map",
+        "1001",
+        "--reinforcements",
+        "false",
+        "--max-round",
+        "2",
+        "--base-core",
+        "6000",
+    ])
+    .ok();
+    assert_eq!(blue["header"]["max_round"], 2);
+    assert_eq!(blue["header"]["base_core"], 6000);
+    assert_eq!(blue["header"]["reinforce"], false);
+    run(&["match", "new", &path]).ok();
+
+    let offer_core = |side: &str| {
+        blue["state"][side]["offers"][0]["core_modify"]
+            .as_i64()
+            .unwrap()
+    };
+    let blue_modify = offer_core("blue");
+    let red_modify = offer_core("red");
+    open_the_match(&path);
+
+    let r1 = run(&["match", "show", &path, "--side", "blue", "--omniscient"]).ok();
+    assert_eq!(r1["round"], 1);
+    assert_eq!(r1["state"]["blue"]["reactor_core"], 6000 + blue_modify);
+    assert_eq!(r1["state"]["red"]["reactor_core"], 6000 + red_modify);
+
+    for _ in 1..=2 {
+        for side in ["blue", "red"] {
+            run(&["match", "commit", &path, "--side", side]).ok();
+        }
+    }
+    let finished = run(&["match", "show", &path, "--side", "blue"]).ok();
+    assert_eq!(finished["phase"], "over");
+
+    let doc = disk_document(&path);
+    let segments = doc.as_array().unwrap();
+    assert_eq!(segments.last().unwrap()["kind"], "result");
+    assert_eq!(segments.last().unwrap()["round"], 2);
+    assert!(
+        !segments
+            .iter()
+            .any(|s| s["kind"] == "state" && s["round"] == 3),
+        "{doc}"
+    );
+    let report = verify(&path);
+    assert_eq!(report["valid"], true, "{report}");
 }

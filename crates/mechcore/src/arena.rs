@@ -2,11 +2,11 @@
 mod log;
 use crate::{
     cli::{Args, Failure, Outcome, Verdict},
-    r#match::Game,
+    r#match::{Game, MatchOptions},
     turn::Side,
 };
 use log::Log;
-use mechcore_document::r#match::{Action, Rules, TurnActions};
+use mechcore_document::r#match::{Action, TurnActions};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::{
@@ -50,23 +50,7 @@ pub(crate) fn run(mut args: Args) -> Outcome {
     let duration = Duration::try_from_secs_f64(seconds)
         .map_err(|_| Failure::usage("timeout must be finite and nonnegative"))?;
     let timeout = (!duration.is_zero()).then_some(duration);
-    let mut game = if verb == "new" {
-        let seed = args.parsed("--seed", "a match seed")?;
-        let map = args.parsed("--map", "a map ID")?;
-        let rules = Rules {
-            reinforcements: !args.flag("--no-reinforce")?,
-            full_tech_loadout: args.flag("--full-tech")?,
-        };
-        args.finish()?;
-        Game::arena_new(seed, map, rules)?
-    } else {
-        let round = args
-            .parsed::<i32>("--round", "a round number")?
-            .unwrap_or(0);
-        let path = args.path("a source match document")?;
-        args.finish()?;
-        Game::arena_load(&path, round)?
-    };
+    let mut game = open_game(&verb, args)?;
     let log = log_path.as_deref().map(Log::open).transpose()?;
     let log = log.as_ref();
     let runtime = tokio::runtime::Builder::new_current_thread()
@@ -123,6 +107,32 @@ pub(crate) fn run(mut args: Args) -> Outcome {
     })?;
     print!("{game}");
     Ok(Verdict::Yes)
+}
+
+fn open_game(verb: &str, mut args: Args) -> Result<Game, Failure> {
+    if verb == "new" {
+        let seed = args.parsed("--seed", "a match seed")?;
+        let map = args.parsed("--map", "a map ID")?;
+        let max_round = args.parsed("--max-round", "a positive round limit")?;
+        let base_core = args.parsed("--base-core", "a positive base reactor core")?;
+        let options = MatchOptions {
+            reinforce: !args.flag("--no-reinforce")?,
+            full_tech_loadout: args.flag("--full-tech")?,
+            max_round,
+            base_core,
+        };
+        args.finish()?;
+        Game::arena_new(seed, map, options)
+    } else {
+        let round = args
+            .parsed::<i32>("--round", "a round number")?
+            .unwrap_or(0);
+        let max_round = args.parsed("--max-round", "a positive round limit")?;
+        let base_core = args.parsed("--base-core", "a positive base reactor core")?;
+        let path = args.path("a source match document")?;
+        args.finish()?;
+        Game::arena_load(&path, round, max_round, base_core)
+    }
 }
 
 // Used directly by Result::map_err at each subprocess I/O boundary.

@@ -196,46 +196,25 @@ impl Coverage {
     /// opening in onto the one round 1 opens with. The header deals that
     /// position, so it is built rather than read; nothing is fought in between.
     fn opening(&mut self, economy: &Economy, stated: &Stated, first: &Turn) {
-        for (side, seat, header, actions, recorded) in [
+        for (side, header, actions, recorded) in [
             (
                 "blue",
-                0,
                 &stated.blue,
                 &stated.opening.blue,
                 &first.state.blue,
             ),
-            ("red", 1, &stated.red, &stated.opening.red, &first.state.red),
+            ("red", &stated.red, &stated.opening.red, &first.state.red),
         ] {
-            match crate::opening::reactor_core(stated.map_id, seat) {
-                Ok(core) => {
-                    let before = before_opening(core, header.constructions.clone());
-                    let stream = player_stream(header.seed, 0);
-                    self.side(
-                        economy,
-                        (0, None),
-                        &before,
-                        actions,
-                        recorded,
-                        (side, stream),
-                    );
-                }
-                Err(reason) => {
-                    let leaves: Vec<_> = side_leaves(recorded)
-                        .into_keys()
-                        .map(|path| {
-                            let class = fixed(&path, false).unwrap_or(Class::Unimplemented);
-                            (path, class)
-                        })
-                        .collect();
-                    let counts = self.record(&leaves);
-                    self.transitions.push(Transition {
-                        round: 0,
-                        side,
-                        counts,
-                        unpredicted: Some(reason),
-                    });
-                }
-            }
+            let before = before_opening(stated.base_core, header.constructions.clone());
+            let stream = player_stream(header.seed, 0);
+            self.side(
+                economy,
+                (0, None),
+                &before,
+                actions,
+                recorded,
+                (side, stream),
+            );
         }
     }
 
