@@ -875,8 +875,6 @@ pub enum Action {
         #[serde(rename = "name", with = "crate::names::contraption::one")]
         contraption: i32,
         position: Position,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        extra_position: Option<Position>,
     },
     /// Giving up, which ends the match.
     ///
@@ -996,7 +994,6 @@ enum ActionReader {
         #[serde(rename = "name", with = "crate::names::contraption::one")]
         contraption: i32,
         position: Position,
-        extra_position: Option<Position>,
     },
     Concede,
 }
@@ -1931,7 +1928,6 @@ mod tests {
             Action::ReleaseContraption {
                 contraption: 10_001,
                 position: at,
-                extra_position: Some(at),
             },
             Action::Concede,
         ];

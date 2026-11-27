@@ -350,8 +350,6 @@ pub struct ActionRecord {
     /// `PAD_ReleaseContraption` spells it in upper case.
     #[serde(default, rename = "Position")]
     pub release_position: Option<PositionRecord>,
-    #[serde(default, rename = "ExtraPosition")]
-    pub extra_position: Option<PositionRecord>,
     #[serde(default, rename = "Positions")]
     pub positions: Option<MapVectors>,
     #[serde(default, rename = "moveUnitDatas")]

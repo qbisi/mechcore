@@ -1474,11 +1474,6 @@ fn recorded_actions(
             "PAD_ReleaseContraption" => Action::ReleaseContraption {
                 contraption: field("ContraptionID", action.contraption_id)?,
                 position: position(&action.release_position)?,
-                extra_position: action
-                    .extra_position
-                    .as_ref()
-                    .filter(|extra| extra.x != 0 || extra.y != 0)
-                    .map(|extra| seat.position(extra)),
             },
             "PAD_MoveUnit" => {
                 // One recorded move can carry several units. Order is all a turn

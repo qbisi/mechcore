@@ -810,7 +810,6 @@ impl Builder<'_> {
             self.push(Action::ReleaseContraption {
                 contraption: id,
                 position: wanted.position,
-                extra_position: None,
             })?;
         }
         self.infrastructure()?;
@@ -1426,7 +1425,6 @@ mod tests {
         let interceptor = Action::ReleaseContraption {
             contraption: 30_001,
             position,
-            extra_position: None,
         };
         assert!(crate::transition::check_place(&landed, &interceptor).is_err());
         let history = [default_purchase(1), moved(2, -100, -160), interceptor];
@@ -1864,7 +1862,6 @@ mod tests {
                 Action::ReleaseContraption {
                     contraption: 10_001,
                     position: Position { x: -100, y: -100 },
-                    extra_position: None,
                 },
                 moved(0, 100, -160),
                 Action::ReleaseCommanderSkill {

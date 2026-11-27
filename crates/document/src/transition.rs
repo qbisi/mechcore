@@ -516,7 +516,6 @@ pub fn step_placing(
         Action::ReleaseContraption {
             contraption,
             position,
-            ..
         } => {
             next.supply -= economy
                 .contraption(*contraption)
@@ -926,7 +925,6 @@ pub fn check_place(state: &SideState, action: &Action) -> Result<(), Unsettled> 
         Action::ReleaseContraption {
             contraption,
             position,
-            ..
         } => {
             let type_name =
                 contraption_type_from_id(*contraption).ok_or(Unsettled::Unpriced("contraption"))?;
@@ -1643,7 +1641,6 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let shield = |x| Action::ReleaseContraption {
             contraption: 10_001,
             position: Position { x, y: -100 },
-            extra_position: None,
         };
         let eight: Vec<_> = (0..8).map(|at| shield(at * 20)).collect();
         let released = fold(economy, &opened, &eight).unwrap();
@@ -2449,12 +2446,10 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             Action::ReleaseContraption {
                 contraption: 20001,
                 position: Position { x: 0, y: 0 },
-                extra_position: None,
             },
             Action::ReleaseContraption {
                 contraption: 10001,
                 position: crate::layout::Position { x: 10, y: 10 },
-                extra_position: None,
             },
         ];
         assert_eq!(
