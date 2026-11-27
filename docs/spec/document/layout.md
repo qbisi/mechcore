@@ -355,7 +355,7 @@ names another kind, and a name the build does not carry.
 ### Names
 
 A layout names what it holds rather than numbering it, as a match's
-[state](state.md#names) does, and writes the key `name` for a placement and a
+[state](state.md#命名约定) does, and writes the key `name` for a placement and a
 released skill. A unit, construction or contraption type is the catalog's name,
 and an officer, a technology, a blueprint, an Energy Tower skill, a commander
 skill and an equipment item are the game's English names in snake case, which
