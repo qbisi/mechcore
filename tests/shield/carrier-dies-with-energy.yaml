@@ -29,7 +29,7 @@ red:
     sandworm: [burrow_maintenance, armor_enhancement, anti_aerial, replicate, sandstorm, strike, mechanical_rage, mechanical_division]
   blueprints: [defense_enhancement_ii]
   energy_tower_skills: [enhanced_range, high_mobility]
-  tower_strengthen_levels: [4, 1]
+  tower_strengthen_levels: [1, 4]
   units:
   - {name: sandworm, index: 0, position: {x: -260, y: -40}, level: 7, exp: 12593/12593/12593, rotated: true, equipments: [mustang_production_line]}
   - {name: marksman, index: 1, position: {x: -130, y: -70}, level: 3, exp: 0/1700/2315, source: delivered}

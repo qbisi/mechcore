@@ -57,8 +57,8 @@ unless the contraption spans two points, and `move_unit` omits `rotated` when it
 is false.
 
 `index` is a unit's deployment index, or a panel slot in
-`release_commander_skill`. `tower` is a position in `BuildingManager.buildings`,
-the key `tower_strengthen_levels` uses.
+`release_commander_skill`. `tower` is the document tower index (`0` for
+`energy_tower`, `1` for `research_center`), matching `tower_strengthen_levels`.
 
 ## What a transition writes
 
@@ -277,12 +277,13 @@ this round, which makes every later purchase dearer.
 - {type: strengthen_tower, tower: 0}
 ```
 
-Raises the tower at building-manager position `tower` by one level, writing
-`tower_strengthen_levels[tower]`. Costs the price of the level reached.
+Raises tower `tower` (`0` = `energy_tower`, `1` = `research_center`) by one
+level, updating `tower_strengthen_levels[tower]`. Costs the price of the level
+reached.
 
-A position keys a tower and does not name one: the two sides order their towers
-oppositely, so nothing may read a tower's identity out of its position.
-[`state.md`](state.md) carries the measurement.
+Document actions keep `0` as `energy_tower` and `1` as `research_center` for
+both sides; replay conversion and export translate red's index (`0 <-> 1`) to
+native `PAD_StrengthenTower.Index`, as [`state.md`](state.md) explains.
 
 ### `use_equipment`
 

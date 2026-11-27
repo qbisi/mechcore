@@ -30,7 +30,7 @@ red:
   officers: [advanced_offensive_tactics, advanced_targeting_system, speed_specialist]
   blueprints: [defense_enhancement_ii]
   energy_tower_skills: [high_mobility]
-  tower_strengthen_levels: [2, 1]
+  tower_strengthen_levels: [1, 2]
   units:
   - {name: hacker, index: 0, position: {x: -215, y: -125}, level: 8, exp: 1883/2457/3767, rotated: true, equipments: [secondary_heavy_armor]}
   - {name: hacker, index: 1, position: {x: -155, y: -105}, level: 2, exp: 0/586/1262, source: joined}

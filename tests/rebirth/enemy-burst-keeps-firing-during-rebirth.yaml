@@ -31,7 +31,7 @@ red:
     overlord: [range_enhancement]
   blueprints: [defense_enhancement]
   energy_tower_skills: [enhanced_range, high_mobility]
-  tower_strengthen_levels: [4, 2]
+  tower_strengthen_levels: [2, 4]
   units:
   - {name: overlord, index: 0, position: {x: 95, y: -35}, level: 4, exp: 7858/7858/7858, equipments: [steel_ball_production_line]}
   - {name: rhino, index: 1, position: {x: -25, y: -195}, level: 2, exp: 0/800/2591, source: delivered}

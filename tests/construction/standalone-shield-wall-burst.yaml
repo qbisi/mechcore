@@ -35,7 +35,7 @@ red:
   techs:
     mountain: [saturation_bombardment, mountain_plating, anti_aircraft_ammunition, range_enhancement, extended_range_ammo, gun_launched_missile, smoke_bomb, photon_loop]
   blueprints: [attack_enhancement_ii]
-  tower_strengthen_levels: [1, 2]
+  tower_strengthen_levels: [2, 1]
   units:
   - {name: mountain, index: 0, position: {x: 225, y: -125}, level: 7, exp: 0/1630/20148}
   - {name: rhino, index: 1, position: {x: -15, y: -265}, level: 2, exp: 0/120/2591, source: joined}

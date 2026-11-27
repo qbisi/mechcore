@@ -6,9 +6,11 @@ losing one in a fight writes a debuff on the side.
 
 ## Strengthening
 
-`tower_strengthen_levels` holds one level per tower, 0 to 4, in the order the
-map lists a side's towers (`BuildingManager.buildings`, and
-[`docs/spec/document/layout.md`](../spec/document/layout.md)). A level adds
+In documents ([`docs/spec/document/layout.md`](../spec/document/layout.md)),
+`tower_strengthen_levels` holds one level per tower, 0 to 4, ordered `[0 =
+Energy Tower, 1 = Research Center]` on both sides, while the simulator and
+native `BuildingManager.buildings` use each seat's map order (`red` orders
+Research Center first, see [Registration order](#registration-order)). A level adds
 life and chooses the buff the tower's loss writes. Both are
 `ConfigDataContainer.towerStrengthenDatas`: each row adds its `life` on top of
 the levels below it, and names the `buffDatas` row a loss writes. Level 0 is

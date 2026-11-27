@@ -21,10 +21,12 @@ pub(crate) const OIL_TERRAIN_POINT_COUNT: u32 = 7;
 /// A 1v1 side holds exactly this many fixed towers, which `docs/spec/document/state.md`
 /// states.
 ///
-/// A position in that list is a key, not a name. `tower_strengthen_levels` is
-/// keyed by it, the same key `PAD_StrengthenTower.Index` uses, so a layout and
-/// a state say the levels the same way and a level is always applied to the
-/// tower it was read from.
+/// A position in that list is a key, not a name: in documents (`state`,
+/// `layout`, `fight`), `0` is always the Energy Tower and `1` is always the
+/// Research Center on both sides. Native `BuildingManager.buildings` and MCFR
+/// order the two towers oppositely on red (`[ResearchCenter, EnergyTower]`), so
+/// conversion, replay export, compilation, and capture translate between document
+/// order and native order.
 ///
 /// The two sides do not agree on which position is which tower. A live capture
 /// of round 7 of the TUFF replay reads `BuildingData.BuildingType` at each
@@ -645,9 +647,10 @@ impl Layout {
     /// and Officer IDs and Energy Tower skills ascending, and the standing
     /// `battle_skills` entries first, by skill name and then by where they
     /// stand. The releases after them are the one exception, because release
-    /// order is what they record, and `tower_strengthen_levels` is not a collection whose order is
-    /// free: it is keyed by building-manager position, so an all-zero list is
-    /// dropped as a default rather than sorted.
+    /// order is what they record, and `tower_strengthen_levels` is not a
+    /// collection whose order is free: index `0` is the Energy Tower and index
+    /// `1` is the Research Center, so an all-zero list is dropped as a default
+    /// rather than sorted.
     ///
     /// Applying this twice changes nothing the first pass did not already do.
     #[must_use]

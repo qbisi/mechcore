@@ -31,7 +31,7 @@ red:
   techs:
     overlord: [armor_enhancement]
   blueprints: [attack_enhancement_ii]
-  tower_strengthen_levels: [2, 3]
+  tower_strengthen_levels: [3, 2]
   units:
   - {name: overlord, index: 0, position: {x: -175, y: -35}, level: 6, exp: 0/8314/10148, equipments: [mustang_production_line], source: joined}
   - {name: steel_ball, index: 1, position: {x: -245, y: -40}, level: 3, exp: 0/2297/3562, source: joined}

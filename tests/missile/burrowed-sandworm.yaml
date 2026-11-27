@@ -28,7 +28,7 @@ red:
   techs:
     wraith: [high_explosive_ammo]
   energy_tower_skills: [enhanced_range]
-  tower_strengthen_levels: [1, 2]
+  tower_strengthen_levels: [2, 1]
   units:
   - {name: wraith, index: 0, position: {x: -175, y: -235}, level: 9, exp: 15137/15137/15137, equipments: [deployment_module]}
   - {name: stormcaller, index: 1, position: {x: 265, y: -140}, level: 4, exp: 0/240/4939}

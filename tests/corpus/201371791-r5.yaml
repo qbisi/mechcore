@@ -42,7 +42,7 @@ red:
   techs:
     hound: [incendiary_bomb]
     centurion: [range_enhancement]
-  tower_strengthen_levels: [1, 0]
+  tower_strengthen_levels: [0, 1]
   units:
   - {name: void_eye, index: 0, position: {x: 110, y: -170}, level: 2, exp: 104/561/1465}
   - {name: void_eye, index: 1, position: {x: -110, y: -170}, exp: 650/650/650}

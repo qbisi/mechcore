@@ -33,7 +33,7 @@ red:
     vortex: [grid_integration, field_maintenance, electromagnetic_cloud, machine_learning, range_enhancement, electromagnetic_twin, mobile_power_station, accumulator_shield, emergency_armor]
   blueprints: [defense_enhancement_ii]
   energy_tower_skills: [high_mobility]
-  tower_strengthen_levels: [1, 2]
+  tower_strengthen_levels: [2, 1]
   units:
   - {name: vortex, index: 0, position: {x: 170, y: -180}, level: 6, exp: 4349/4349/4349, rotated: true, equipments: [absorption_module]}
   - {name: typhoon, index: 1, position: {x: -130, y: -60}, source: delivered}

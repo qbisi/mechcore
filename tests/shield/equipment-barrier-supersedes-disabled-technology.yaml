@@ -33,7 +33,7 @@ red:
     stormcaller: [high_explosive_ammo, incendiary_bomb, electromagnetic_explosion, range_enhancement, launcher_overload, heavy_missile]
   blueprints: [attack_enhancement_ii]
   energy_tower_skills: [enhanced_range]
-  tower_strengthen_levels: [4, 2]
+  tower_strengthen_levels: [2, 4]
   units:
   - {name: typhoon, index: 0, position: {x: -50, y: -110}, exp: 0/150/1950, source: delivered}
   - {name: stormcaller, index: 1, position: {x: 245, y: -210}, level: 3, exp: 0/320/3918, equipments: [portable_shield], source: joined}

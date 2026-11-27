@@ -34,7 +34,7 @@ red:
     tarantula: [high_explosive_ammo, field_maintenance, armor_enhancement, anti_aircraft_ammunition, range_enhancement, mechanical_rage, armor_piercing_bullets, spider_mine]
   blueprints: [defense_enhancement_ii]
   energy_tower_skills: [enhanced_range, high_mobility]
-  tower_strengthen_levels: [2, 1]
+  tower_strengthen_levels: [1, 2]
   units:
   - {name: sabertooth, index: 0, position: {x: -145, y: -65}, exp: 0/124/1300, source: delivered}
   - {name: tarantula, index: 1, position: {x: 105, y: -35}, level: 4, exp: 0/3077/6735, equipments: [improved_firepower_control_system], source: joined}

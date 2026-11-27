@@ -29,7 +29,7 @@ red:
   officers: [quick_teleport, advanced_offensive_tactics, improved_sandworm]
   techs:
     sandworm: [burrow_maintenance, armor_enhancement, anti_aerial, replicate, sandstorm, strike, mechanical_rage, mechanical_division]
-  tower_strengthen_levels: [1, 2]
+  tower_strengthen_levels: [2, 1]
   units:
   - {name: sandworm, index: 0, position: {x: 320, y: 80}, level: 5, exp: 0/1262/10421, rotated: true, equipments: [mustang_production_line], travelling: true, source: joined}
   - {name: centurion, index: 1, position: {x: -285, y: -25}, exp: 0/752/2250, source: joined}

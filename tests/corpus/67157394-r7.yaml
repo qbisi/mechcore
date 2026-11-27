@@ -58,7 +58,7 @@ red:
     centurion: [range_enhancement]
   blueprints: [attack_enhancement, defense_enhancement]
   energy_tower_skills: [high_mobility]
-  tower_strengthen_levels: [0, 1]
+  tower_strengthen_levels: [1, 0]
   units:
   - {name: void_eye, index: 0, position: {x: -140, y: -70}, exp: 631/650/650}
   - {name: void_eye, index: 1, position: {x: -230, y: -70}, exp: 650/650/650}

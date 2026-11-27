@@ -28,7 +28,7 @@ red:
   techs:
     marksman: [doubleshot, shooting_squad, electromagnetic_shot, aerial_specialization, assault_mode, range_enhancement, quick_reload, elite_marksman]
   energy_tower_skills: [enhanced_range]
-  tower_strengthen_levels: [4, 3]
+  tower_strengthen_levels: [3, 4]
   units:
   - {name: marksman, index: 0, position: {x: 90, y: -230}, level: 9, exp: 4373/4373/4373, equipments: [portable_shield]}
   - {name: marksman, index: 1, position: {x: 70, y: -20}, level: 3, exp: 0/2315/2315, source: delivered}

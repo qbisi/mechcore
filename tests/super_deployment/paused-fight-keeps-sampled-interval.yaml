@@ -26,7 +26,7 @@ blue:
 red:
   core_damage: 688
   officers: [advanced_shield_device, advanced_targeting_system, marksman_specialist, extended_range_arclight]
-  tower_strengthen_levels: [2, 4]
+  tower_strengthen_levels: [4, 2]
   units:
   - {name: marksman, index: 0, position: {x: 240, y: -100}, level: 3, source: delivered}
   - {name: arclight, index: 1, position: {x: 30, y: -70}, equipments: [dominion_core], source: joined}

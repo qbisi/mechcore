@@ -30,7 +30,7 @@ red:
   officers: [advanced_missile_device, quick_teleport, rhino_specialist, improved_phoenix]
   blueprints: [attack_enhancement]
   energy_tower_skills: [enhanced_range, high_mobility]
-  tower_strengthen_levels: [4, 1]
+  tower_strengthen_levels: [1, 4]
   units:
   - {name: rhino, index: 0, position: {x: 245, y: -255}, level: 2, source: delivered}
   - {name: phoenix, index: 1, position: {x: -320, y: 40}, level: 5, equipments: [dominion_core], travelling: true, source: joined}

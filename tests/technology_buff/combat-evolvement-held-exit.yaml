@@ -32,7 +32,7 @@ red:
   techs:
     hacker: [barrier, enhanced_control, electromagnetic_interference, range_enhancement, multi_control]
   blueprints: [attack_enhancement_ii]
-  tower_strengthen_levels: [4, 1]
+  tower_strengthen_levels: [1, 4]
   units:
   - {name: hacker, index: 0, position: {x: 155, y: -255}, rotated: true, equipments: [dominion_core], source: joined}
   - {name: centurion, index: 1, position: {x: 75, y: -55}, level: 7, source: joined}

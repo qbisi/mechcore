@@ -1206,6 +1206,7 @@ mod tests {
         let mut opened = SideState {
             reactor_core: 4800,
             random_state: [1, 2, 3, 4],
+            tower_strengthen_levels: vec![0, 0],
             ..Default::default()
         };
         crate::transition::open_allowances(&mut opened);

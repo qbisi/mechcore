@@ -27,7 +27,7 @@ red:
   techs:
     centurion: [summon_hounds, reactive_armor, melee_mode, range_enhancement, dual_wield, homing_missile]
   energy_tower_skills: [enhanced_range, high_mobility]
-  tower_strengthen_levels: [4, 3]
+  tower_strengthen_levels: [3, 4]
   units:
   - {name: centurion, index: 0, position: {x: -135, y: -215}, level: 7, exp: 0/7234/14167, rotated: true, equipments: [dominion_core], source: joined}
   - {name: melting_point, index: 1, position: {x: 60, y: -240}, level: 2, source: joined}

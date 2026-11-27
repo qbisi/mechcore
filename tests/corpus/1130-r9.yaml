@@ -73,7 +73,7 @@ red:
     hound: [range_enhancement, incendiary_bomb]
   blueprints: [attack_enhancement_ii, defense_enhancement_ii]
   energy_tower_skills: [enhanced_range, high_mobility]
-  tower_strengthen_levels: [2, 1]
+  tower_strengthen_levels: [1, 2]
   units:
   - {name: hound, index: 0, position: {x: -120, y: -190}, level: 2, exp: 951/1106/1690}
   - {name: hound, index: 1, position: {x: 0, y: -190}, level: 2, exp: 1690/1690/1690}

@@ -1061,6 +1061,25 @@ red:
     }
 
     #[test]
+    fn compiles_red_tower_levels_from_document_to_native_order() {
+        let plan = compile(&json!({
+            "kind": "layout",
+            "round": 1,
+            "blue": {
+                "tower_strengthen_levels": [1, 3],
+                "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
+            },
+            "red": {
+                "tower_strengthen_levels": [1, 3],
+                "units": [{"index": 0, "name": "marksman", "position": {"x": 0, "y": -50}}]
+            }
+        }))
+        .unwrap();
+        assert_eq!(plan.blue.tower_strengthen_levels, [1, 3]);
+        assert_eq!(plan.red.tower_strengthen_levels, [3, 1]);
+    }
+
+    #[test]
     fn rejects_an_energy_tower_skill_no_fight_can_see() {
         let error = compile(&json!({
             "kind": "layout",

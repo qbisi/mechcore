@@ -29,7 +29,7 @@ red:
   officers: [advanced_targeting_system, speed_specialist]
   techs:
     centurion: [summon_hounds, reactive_armor, melee_mode, range_enhancement, dual_wield, homing_missile]
-  tower_strengthen_levels: [1, 2]
+  tower_strengthen_levels: [2, 1]
   units:
   - {name: centurion, index: 0, position: {x: 195, y: -35}, level: 2, exp: 0/474/5070, equipments: [secondary_laser_sight], source: joined}
   - {name: vulcan, index: 1, position: {x: -260, y: -220}, level: 3, source: joined}

@@ -26,7 +26,7 @@ red:
   officers: [advanced_missile_device, advanced_offensive_tactics, cost_control_specialist]
   blueprints: [defense_enhancement_ii]
   energy_tower_skills: [high_mobility]
-  tower_strengthen_levels: [2, 3]
+  tower_strengthen_levels: [3, 2]
   units:
   - {name: void_eye, index: 0, position: {x: 210, y: -280}, level: 3, exp: 2315/2315/2315, rotated: true, equipments: [anti_interference_module]}
   - {name: mustang, index: 1, position: {x: -45, y: -30}, level: 4, source: joined}

@@ -27,7 +27,7 @@ red:
   techs:
     farseer: [range_enhancement]
   energy_tower_skills: [enhanced_range]
-  tower_strengthen_levels: [1, 2]
+  tower_strengthen_levels: [2, 1]
   units:
   - {name: farseer, index: 0, position: {x: 135, y: -295}, level: 9, exp: 6054/6054/12109, equipments: [super_heavy_armor]}
   - {name: sabertooth, index: 1, position: {x: 55, y: -255}, exp: 0/174/1300, source: delivered}

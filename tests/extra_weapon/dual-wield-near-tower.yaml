@@ -28,7 +28,7 @@ red:
     centurion: [summon_hounds, reactive_armor, melee_mode, range_enhancement, dual_wield, homing_missile]
   blueprints: [defense_enhancement_ii]
   energy_tower_skills: [enhanced_range]
-  tower_strengthen_levels: [2, 4]
+  tower_strengthen_levels: [4, 2]
   units:
   - {name: centurion, index: 0, position: {x: -165, y: -35}, level: 7, exp: 7083/14167/14167, equipments: [nano_repair_kit]}
   - {name: steel_ball, index: 1, position: {x: 225, y: -20}, exp: 0/200/1000, source: joined}

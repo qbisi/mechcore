@@ -26,7 +26,7 @@ red:
   techs:
     tarantula: [anti_aircraft_ammunition]
   energy_tower_skills: [high_mobility]
-  tower_strengthen_levels: [2, 4]
+  tower_strengthen_levels: [4, 2]
   units:
   - {name: tarantula, index: 0, position: {x: 325, y: 255}, level: 3, rotated: true, equipments: [super_heavy_armor], travelling: true, source: joined}
   - {name: fang, index: 1, position: {x: 135, y: -90}, level: 8, exp: 0/3600/4036, source: joined}

@@ -29,7 +29,7 @@ red:
     melting_point: [energy_absorption, electromagnetic_barrage, energy_diffraction, crawler_production, armor_enhancement, range_enhancement]
   blueprints: [attack_enhancement_ii]
   energy_tower_skills: [enhanced_range]
-  tower_strengthen_levels: [3, 4]
+  tower_strengthen_levels: [4, 3]
   units:
   - {name: melting_point, index: 0, position: {x: 150, y: -250}, level: 5, exp: 3647/7295/7295, equipments: [super_heavy_armor]}
   - {name: wraith, index: 1, position: {x: 85, y: -225}, level: 6, exp: 0/1352/13047, source: joined}

@@ -62,7 +62,7 @@ red:
     sandworm: [replicate, sandstorm]
   blueprints: [attack_enhancement]
   energy_tower_skills: [enhanced_range, high_mobility]
-  tower_strengthen_levels: [1, 0]
+  tower_strengthen_levels: [0, 1]
   units:
   - {name: void_eye, index: 0, position: {x: -130, y: -110}, level: 2, exp: 999/1230/1465}
   - {name: void_eye, index: 1, position: {x: -40, y: -110}, exp: 650/650/650}

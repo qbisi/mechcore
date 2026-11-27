@@ -34,7 +34,7 @@ blue:
 red:
   core_damage: 0
   officers: [fortified_specialist]
-  tower_strengthen_levels: [1, 0]
+  tower_strengthen_levels: [0, 1]
   units:
   - {name: vortex, index: 0, position: {x: -240, y: -70}, level: 2, exp: 0/183/1690}
   - {name: vortex, index: 1, position: {x: -80, y: -90}, exp: 318/333/750}

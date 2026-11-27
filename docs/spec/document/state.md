@@ -127,8 +127,9 @@ Projection checks identities and sources against the opening roster and
 allocator. Each unit carries its fitted equipment in slot order onto the
 layout, and `Layout.recovered` lists recovered `delivered` squads.
 
-The side copies `officers`, `techs`, `constructions`, `contraptions` and
-`tower_strengthen_levels`. Two more fields are filtered:
+The side copies `officers`, `techs`, `tower_strengthen_levels`, `constructions`
+and `contraptions`, omitting an all-zero `tower_strengthen_levels` list on a
+layout. Two more fields are filtered:
 
 | State source | Layout target | Projection |
 | --- | --- | --- |
@@ -314,27 +315,22 @@ carries its own `index`, which is its identity and is unaffected.
 
 ### The two fixed towers
 
-`tower_strengthen_levels` is a per-tower counter, keyed by the tower's position
-in `BuildingManager.buildings`. A layout holds the same two numbers under the
-same name keyed the same way, so the projection copies the list. Both key by
-that position because it is what `PAD_StrengthenTower.Index` names and what the
-restore path resolves.
+`tower_strengthen_levels` holds two strengthening levels, keyed by document
+tower index: **`0` is always the Energy Tower (`energy_tower`) and `1` is
+always the Research Center (`research_center`) for both sides.** Each level is
+in `0..=4`, from the shared strengthening catalogue that raises the tower's
+life.
 
-**A position keys a tower; it does not name one.** The two sides do not agree on
-which position holds which tower: on map 1021 blue holds the Energy Tower at
-position 0 and red holds it at position 1. A side's buildings are appended in
-the order its own territory lists them, nothing on that path sorts or compares
-the building kind, and the two territories are mirror images. The order is map
-data per side, so it may also differ from map to map.
+Native `BuildingManager.buildings` and MCFR order the two towers oppositely on
+the two seats: blue holds `[EnergyTower, ResearchCenter]`, while red holds
+`[ResearchCenter, EnergyTower]`. Document formats (`state`, `layout`, `fight`,
+and `strengthen_tower`) separate their tower index from the native building
+order: replay conversion, replay export, layout compilation, and live capture
+translate red's tower indices and level pairs (`0 <-> 1`) against
+[`config/maps.yaml`](../../../config/maps.yaml) at the boundary.
 
-So no constant names a position, and no code may assume one. A capture writes
-each level under the position it read it from, and an installer strengthens the
-tower at the position the layout keyed. Both check only that a side holds one
-tower of each kind, in whichever order, so a side that lost a tower or grew one
-fails loudly instead of having its levels written to the wrong building.
-
-A side holds exactly two towers. Both draw from one shared catalogue whose four
-rows raise the crystal's life, so a level is in `0..=4` for either tower.
+Projecting onto a layout copies `tower_strengthen_levels` directly, omitting
+an all-zero list.
 
 ### Equipment is stock plus what is fitted
 
@@ -447,10 +443,10 @@ and a name the build does not carry is refused.
 
 ### The research centre and the energy tower
 
-Three native lists sit here. `blueprints` names what the research centre has
-activated, `energy_tower_skills` which of the energy tower's skills this round
-has activated, and `tower_strengthen_levels` how far each tower has been
-reinforced.
+Three native lists sit here. `blueprints` names what the research centre
+has activated, `energy_tower_skills` which of the energy tower's skills this
+round has activated, and `tower_strengthen_levels` how far each tower has been
+reinforced (`[energy_tower, research_center]`).
 
 The blueprint catalogue has two kinds. One is an upgrade chain: `4` and its
 successor `401`, `5` and its successor `501`. The other grants a commander
@@ -614,7 +610,7 @@ or upgrade.
 | `reinforce_pool.removed`, `reinforce_pool.added` | ascending card ID, sets |
 | a slot's `standing` | a shield by ascending `(x, y)`, an oil area by its control points |
 | `reinforce_offers` | as dealt, then the decline; a choice names a position in it |
-| `tower_strengthen_levels` | by building-manager position |
+| `tower_strengthen_levels` | `[energy_tower, research_center]` (`0` = Energy Tower, `1` = Research Center) |
 
 The rule behind the first rows is that a collection is ordered by the key
 the actions use to reference it, so document order and action resolution can

@@ -29,7 +29,7 @@ red:
   techs:
     melting_point: [energy_absorption, electromagnetic_barrage, energy_diffraction, crawler_production, armor_enhancement, range_enhancement]
   blueprints: [attack_enhancement_ii]
-  tower_strengthen_levels: [4, 1]
+  tower_strengthen_levels: [1, 4]
   units:
   - {name: sabertooth, index: 0, position: {x: 25, y: -25}, exp: 0/200/1300, source: delivered}
   - {name: melting_point, index: 1, position: {x: 320, y: 260}, level: 9, exp: 0/802/9418, rotated: true, equipments: [tank_production_line], travelling: true, source: joined}

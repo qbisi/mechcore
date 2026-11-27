@@ -49,6 +49,7 @@ pub fn read_state(bytes: &[u8]) -> Result<Layout, String> {
     let seed = optional(fields, "seed")?;
     let state: State = crate::r#match::payload(value).map_err(|e| e.to_string())?;
     state.check_reinforcement(false)?;
+    state.check_towers(false)?;
     Ok(Layout {
         kind: DocumentKind::Layout,
         game_build: crate::economy::game_build().to_owned(),
@@ -448,8 +449,9 @@ pub fn energy_tower_skills(activated: &[i32]) -> Vec<i32> {
 
 /// The tower levels a layout carries, in normal form.
 ///
-/// The list is copied, keyed the same way in both documents. An all-zero list
-/// is what a layout omits, so it projects onto nothing.
+/// The list is copied, keyed the same way in both documents (`0 = energy_tower`,
+/// `1 = research_center`). An all-zero list is what a layout omits, so it
+/// projects onto nothing.
 #[must_use]
 pub fn tower_strengthen_levels(levels: &[i32]) -> Vec<i32> {
     if levels.iter().all(|level| *level == 0) {

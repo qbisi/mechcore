@@ -29,7 +29,7 @@ red:
     steel_ball: [fortified_target_lock]
   blueprints: [attack_enhancement_ii]
   energy_tower_skills: [high_mobility]
-  tower_strengthen_levels: [4, 3]
+  tower_strengthen_levels: [3, 4]
   units:
   - {name: steel_ball, index: 0, position: {x: -205, y: -180}, level: 7, exp: 3148/6296/6296, equipments: [super_heavy_armor]}
   constructions:

@@ -32,7 +32,7 @@ red:
     void_eye: [energy_shield, energy_absorption, aerial_mode, range_enhancement, charged_shot, suppression_shots, electromagnetic_armor]
   blueprints: [defense_enhancement]
   energy_tower_skills: [enhanced_range]
-  tower_strengthen_levels: [4, 2]
+  tower_strengthen_levels: [2, 4]
   units:
   - {name: void_eye, index: 0, position: {x: 130, y: -20}, level: 4, exp: 0/1000/2919, source: joined}
   - {name: abyss, index: 1, position: {x: 65, y: -65}, level: 8, exp: 0/714/32291, source: joined}

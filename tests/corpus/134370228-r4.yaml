@@ -38,7 +38,7 @@ red:
   techs:
     tarantula: [range_enhancement]
     void_eye: [suppression_shots]
-  tower_strengthen_levels: [0, 1]
+  tower_strengthen_levels: [1, 0]
   units:
   - {name: crawler, index: 0, position: {x: 240, y: -135}, exp: 450/450/450, rotated: true}
   - {name: crawler, index: 1, position: {x: 130, y: -135}, exp: 450/450/450, rotated: true}

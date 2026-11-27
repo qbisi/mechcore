@@ -29,7 +29,7 @@ red:
   techs:
     marksman: [doubleshot, shooting_squad, electromagnetic_shot, aerial_specialization, assault_mode, range_enhancement, quick_reload, elite_marksman]
   blueprints: [attack_enhancement]
-  tower_strengthen_levels: [1, 2]
+  tower_strengthen_levels: [2, 1]
   units:
   - {name: marksman, index: 0, position: {x: 320, y: 100}, level: 3, exp: 1157/1157/2315, equipments: [dominion_core]}
   - {name: vortex, index: 1, position: {x: 230, y: -130}, level: 4, source: joined}

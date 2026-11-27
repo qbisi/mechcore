@@ -30,7 +30,7 @@ red:
     fortress: [doubleshot, barrier, anti_air_barrage, fang_production, armor_enhancement, range_enhancement, launcher_overload, solid_shot, elite_marksman, rocket_punch]
   blueprints: [defense_enhancement_ii]
   energy_tower_skills: [high_mobility]
-  tower_strengthen_levels: [2, 4]
+  tower_strengthen_levels: [4, 2]
   units:
   - {name: rhino, index: 0, position: {x: -235, y: -185}, level: 2, source: delivered}
   - {name: fortress, index: 1, position: {x: 320, y: 220}, level: 4, exp: 0/7041/7184, equipments: [laser_sights], travelling: true, source: joined}
