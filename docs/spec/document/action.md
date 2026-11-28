@@ -287,7 +287,7 @@ stock(R+1) = stock(R) + 本回合增援卡获得 + 本回合军官交付 + 回�
 | 决策段字段 | `kind` → `round` → `blue` → `red` |
 | `blue` / `red` 序列 | 按[标准 12 阶段规范化](#3-标准-12-阶段规范化convert-与-format)排序 |
 
-每条决策均按 [match.md#normal-form](match.md#normal-form) 的拼写规则写为单行 flow mapping。
+每条决策均按 [match.md#规范形式](match.md#规范形式) 的拼写规则写为单行 flow mapping。
 
 ---
 

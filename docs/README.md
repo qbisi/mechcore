@@ -196,7 +196,7 @@ being specified.
 
 | Kind | Documents | Required sections |
 | --- | --- | --- |
-| Document format | [layout](spec/document/layout.md), [fight](spec/document/fight.md), [state](spec/document/state.md), [match](spec/document/match.md), [action](spec/document/action.md), [layout replay](spec/document/layout-replay.md), [match replay](spec/document/match-replay.md), [turn](spec/mechcore/turn.md), [mcfr](spec/mcfr/mcfr.md), [unit-rules](spec/simulation/unit-rules.md) | the shape of the document, `Normal form`, `Excluded fields` |
+| Document format | [layout](spec/document/layout.md), [fight](spec/document/fight.md), [state](spec/document/state.md), [match](spec/document/match.md), [action](spec/document/action.md), [layout replay](spec/document/layout-replay.md), [turn](spec/mechcore/turn.md), [mcfr](spec/mcfr/mcfr.md), [unit-rules](spec/simulation/unit-rules.md) | the shape of the document, `Normal form`, `Excluded fields` |
 | Interface contract | [adapter](spec/adapter/adapter.md), [cli](spec/mechcore/cli.md), [session](spec/mechcore/session.md) | each operation with its arguments, its result and what it refuses; an error taxonomy |
 | Algorithm contract | [architecture](spec/simulation/architecture.md), [rvo](spec/simulation/rvo.md), [quadtree](spec/simulation/quadtree.md) | the determinism invariants; the fidelity boundary |
 
@@ -281,8 +281,8 @@ is written for.
 
 ## Worked examples
 
-For a document format spec see [match.md](spec/document/match.md), or
-[state.md](spec/document/state.md) and [action.md](spec/document/action.md)
+For a document format spec see [match.md](spec/document/match.md),
+[state.md](spec/document/state.md), and [action.md](spec/document/action.md)
 (Chinese); for an interface contract
 [adapter.md](spec/adapter/adapter.md), whose error taxonomy is the fullest; for
 an algorithm contract [rvo.md](spec/simulation/rvo.md), whose fidelity boundary
