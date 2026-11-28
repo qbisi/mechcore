@@ -38,7 +38,7 @@ Server downloads are also local inputs: the game keeps the original protobuf
 as `.rep.bak` and writes its reconstructed GRBR as `.rep.grbr`. Convert the
 latter with `mechcore convert <download.rep.grbr> --to match <match.yaml>`.
 The converter restores the server snapshot conventions described in
-[`match.md`](../../docs/spec/document/match.md#server-snapshot-reconstruction),
+[`match.md`](../../docs/spec/document/match.md#转换重算项与服务端重建快照差异),
 including paid income and omitted action operands; it checks the random
 streams and offers rather than treating `Seat = -1` as grounds for refusal.
 Only the resulting match YAML is eligible for corpus publication.

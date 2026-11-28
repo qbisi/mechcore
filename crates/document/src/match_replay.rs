@@ -12,7 +12,7 @@
 //! onto the match's is refused rather than written.
 //!
 //! The random streams a replay records are where the match's seeds put them.
-//! `docs/spec/document/match-replay.md` states what the file holds.
+//! `docs/spec/document/match.md` states what the file holds.
 
 use crate::economy::Economy;
 use crate::layout::{Position, Standing};

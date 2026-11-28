@@ -139,7 +139,7 @@ sibling fields. `units`, `constructions` and `contraptions` carry it as
 standing oil area's `control_points` are lists of the same value.
 
 The canonical writer spells a layout by the three rules a
-[match](match.md#normal-form) is spelled by, and none of them names a field:
+[match](match.md#规范形式) is spelled by, and none of them names a field:
 
 - a sequence item is written on one line, in flow style;
 - a mapping or sequence whose members are all scalars is written in flow style

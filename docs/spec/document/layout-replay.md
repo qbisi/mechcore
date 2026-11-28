@@ -36,7 +36,7 @@ the other transitions normally.
 This document defines what such a file states. It is not a definition of the
 `.grbr` format, which is the game's: a layout replay is one file the game
 reads, written with the members the game's own replays carry. Reading a
-replay the game saved is [match.md](match.md#converting-a-replay).
+replay the game saved is [match.md](match.md#1-原生回放转对局convert---to-match).
 
 ## Reading a layout replay
 
@@ -74,7 +74,7 @@ The record is the XML `XmlSerializer` writes for a `BattleRecord`.
 
 `BattleInfo` holds the layout's `seed` as `SystemSeed`, the map, and the 1v1
 constants a match states once by being that format
-([match.md](match.md#the-header)): `VS_1_1`, the phase durations, the round
+([match.md](match.md#对局头文件kind-match)): `VS_1_1`, the phase durations, the round
 cap. Advance teams, reinforcement and unit reinforcement are off, as they are in
 the Training Ground; construction is on. `Version` is the build number and
 `Seat` is 0.

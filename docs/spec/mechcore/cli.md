@@ -271,7 +271,7 @@ properties it stands on.
 
 **`match` to `grbr`, a transcode.** Writes a match back to `<out>` as the replay
 it converts from, which converts to the same match again byte for byte, and
-whose rounds the game fights ([match-replay.md](../document/match-replay.md)
+whose rounds the game fights ([match.md](../document/match.md#2-对局写回原生回放convert---to-grbr)
 says where such a fight parts from the match's). A match it cannot write is
 refused, naming why. It answers the replay's path, map, seed and rounds.
 Both whole-match transcodes refuse `--round`. A partial match without the

@@ -254,7 +254,7 @@ reinforce_pool:
 | --- | --- | --- |
 | `reactor_core` | 必填，正整数 | 第 0 回合选队前的初始核心血量（标准 1v1 地图默认 4500）。选队后按所选 offer 的 `core_modify` 加减并写入 `round: 1` 的 `reactor_core`。 |
 | `seed` | 可选，`i32` | 玩家个人随机流 `PlayerRecord.seed`。用于第 0 → 第 1 回合初始化玩家 `random_state`（支持无损导出回原生 GRBR）；省略时无法预测会随机抽取物品的军官交付。 |
-| `offers` | 必填列表（4 项） | 本局开局发给该阵营的 4 组先遣队与专家组合 `{team, specialist, core_modify}`，详见 [match.md](match.md#the-opening-is-round-zero)。 |
+| `offers` | 必填列表（4 项） | 本局开局发给该阵营的 4 组先遣队与专家组合 `{team, specialist, core_modify}`，详见 [match.md](match.md#1-第-0-回合语义state0-action0)。 |
 | `constructions` | 必填列表 | 地图在第 0 回合发牌前就位的基础建筑（如 `defensive_wall`、`rapid_fire_turret`）。 |
 | `tech_loadout` | 独立状态允许/推荐 | 与 `match` 头文件中的定义相同，声明各单位允许研发的科技集合。 |
 
@@ -282,7 +282,7 @@ reinforce_pool:
 - **`blueprints`**：研发中心已激活蓝图列表（空列表省略），按 ID 升序排列。
   - 标准 1v1 蓝图目录仅含 `[1, 2, 3, 4, 5]`（以及链式升级后的二阶 `401`、`501`）：`1`/`2`/`3` 发放战场技能（`sticky_oil_bomb`、`field_recovery`、`mobile_beacon`），`4->401` 与 `5->501` 为增强连锁。连锁二阶激活后直接**替换**一阶条目，同一条链不可同时出现两个等级。
   - **为何保留该字段而不从 `battle_skills` 与 `officers` 反推**：战场技能面板同时汇集开局专家、增援卡牌与研发中心蓝图三路来源且共用技能 ID 空间，蓝图与卡牌的互斥仅靠游戏数据规则人工维持，单独看状态无从可靠拆解来源；而增强连锁由 `blueprints` 唯一持有则避免了与 `officers` 的双重真值冲突。
-  - 不包含 `research_queue`：仅在启用特殊游戏规则「战场技能研发」（`999917`，见 [match.md](match.md#game-rules-are-the-premise-so-the-match-carries-them)）时才会启用蓝图异步研发队列；标准 1v1 赛制中所有蓝图均为即时生效。
+  - 不包含 `research_queue`：仅在启用特殊游戏规则「战场技能研发」（`999917`，见 [match.md](match.md#4-标准-1v1-赛制前提)）时才会启用蓝图异步研发队列；标准 1v1 赛制中所有蓝图均为即时生效。
 - **`energy_tower_skills`**：**本回合内已激活**的能量塔技能列表（空列表省略），按 ID 升序排列。
   - 能量塔技能均仅限当回合有效，因此所有回合开局态均为空并省略，随后在本回合依次执行 `active_energy_tower_skill` 时填入。
   - 状态完整保留标准 1v1 全部五项技能（不同于 `layout` 只保留战斗可见的 `5`、`6`）：其中 `rapid_resupply`（`1`）虽属纯经济技能，却自带“当回合提前支取、下一回合开启时从回合收入抵扣”的跨回合债务，状态若丢弃它就无法正确结算下一回合的开局 `supply`。原生快照会在下一回合延迟一行记录该标志，只能用于辅助反推上一回合补给，绝不可直接抄入新回合的 `energy_tower_skills`。
@@ -421,7 +421,7 @@ layout = project(state)
 
 - 单位经验 `exp` 写作 `current/maximum`，当前经验为 `0` 时省略；
 - 所有可选空列表（`blueprints`、`energy_tower_skills`、`equipments`、`battle_skills`、`techs`、`constructions`、`contraptions`、`standing`、`reinforce_pool`、`record*`）均在为空时省略；
-- 数值格式与行内折叠遵循 [match.md](match.md#normal-form) 的统一三条拼写规则（列表项与全标量映射写作单行 flow 样式）。
+- 数值格式与行内折叠遵循 [match.md](match.md#规范形式) 的统一三条拼写规则（列表项与全标量映射写作单行 flow 样式）。
 
 ### 2. 跨字段不变式
 
@@ -436,7 +436,7 @@ layout = project(state)
 
 ## 从原生回放重建状态
 
-原生 GRBR 中绝大部分回合状态可直接读取，但有两类差异需要转换器结合 [match.md#what-conversion-rebuilds](match.md#what-conversion-rebuilds) 重建：
+原生 GRBR 中绝大部分回合状态可直接读取，但有两类差异需要转换器结合 [match.md#转换重算项与服务端重建快照差异](match.md#转换重算项与服务端重建快照差异) 重建：
 
 1. **三项不可直接照抄的字段**：原生每回合快照采集于游戏“回合开启重置（发收入、冷却倒计时、清除过回合标志）”**之前**，因此：
    - `supply` 需在旧结余上叠加当回合收入、军官收益与上一回合 `rapid_resupply` 欠款后再减去本回合已执行动作开销；
@@ -456,7 +456,7 @@ layout = project(state)
 | --- | --- |
 | `playerData.preRoundFightResult` | 既非玩家决策也非下一回合输入 |
 | `playerData.IsSpecialSupply` | 仅在安装状态时防止游戏重复发收入的一次性内部锁存器，标准 1v1 正常对局不产生 |
-| `playerData.researchQueue` | 仅在启用特殊游戏规则「战场技能研发」（`999917`，见 [match.md](match.md#game-rules-are-the-premise-so-the-match-carries-them)）时使用，标准 1v1 下永不可达 |
+| `playerData.researchQueue` | 仅在启用特殊游戏规则「战场技能研发」（`999917`，见 [match.md](match.md#4-标准-1v1-赛制前提)）时使用，标准 1v1 下永不可达 |
 | `matchDatas.deadCount` | 无任何状态校验或战斗规则读取 |
 | `NewUnitData.EquipmentID` | 恒为 `0`，实际佩戴已记录于编队 `equipments` 列表 |
 | `NewUnitData.Durability` | 当前版本对单位无生效语义 |

@@ -39,7 +39,7 @@ left on three of its seven points, each whole.
 
 A fight is one edge of a [match](match.md): the layout is what a round's
 deployment projects to, and the result is what the fight hands the next round,
-the fields [match.md](match.md#transition-coverage) puts in the `fight` class.
+the fields [match.md](match.md#1-回合间演进与覆盖率分类) puts in the `fight` class.
 This document defines how the result is written and how it relates to the
 layout it is written onto. The layout's own fields are
 [layout.md](layout.md)'s and are not restated here; the trajectory hash is
