@@ -6,7 +6,10 @@ use std::{fs, process::Command};
 fn previews_empty_states_and_layouts_with_explicit_seed_provenance() {
     let dir = tempfile::tempdir().unwrap();
     let file = dir.path().join("state.yaml");
-    let side = mechcore_document::r#match::SideState::default();
+    let side = mechcore_document::r#match::SideState {
+        random_state: [1, 2, 3, 4],
+        ..Default::default()
+    };
     let input =
         json!({"kind":"state","round":1,"seed":17,"random_state":[1,2,3,4],"blue":side,"red":side});
     fs::write(&file, input.to_string()).unwrap();

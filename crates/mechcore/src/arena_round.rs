@@ -1,8 +1,8 @@
-//! The arena's immutable round opening and complete, side-local answers.
-use super::{
-    Action, Draw, Failure, Game, MatchOptions, Side, SideState, State, TurnActions, Value,
-    dealt_game,
-};
+//! The arena's immutable round opening, pure-JSON `problem`, and official settlement.
+
+use mechcore_document::standalone::{StandaloneState, problem_json};
+
+use super::{Draw, Failure, Game, MatchOptions, Side, TurnActions, Value, dealt_game};
 
 impl Game {
     pub(crate) fn arena_new(
@@ -72,52 +72,12 @@ impl Game {
         mechcore_document::r#match::canonical_yaml(&self.r#match).map_err(Failure::failed)
     }
 
-    pub(crate) fn problem_yaml(&self) -> Result<String, Failure> {
-        mechcore_document::r#match::round_problem_yaml(&self.r#match).map_err(Failure::failed)
+    pub(crate) fn standalone_opening(&self) -> Result<StandaloneState, Failure> {
+        StandaloneState::from_match_round(&self.r#match, self.round()).map_err(Failure::failed)
     }
 
-    pub(crate) fn answer_actions(
-        &self,
-        side: Side,
-        input: &[Value],
-    ) -> Result<(Vec<Action>, SideState), Failure> {
-        let mut position = self.opened(side);
-        let mut actions = Vec::with_capacity(input.len());
-        for (index, value) in input.iter().enumerate() {
-            let context = |failure: Failure| {
-                failure.with_details(serde_json::json!({"side":side,"action_index":index}))
-            };
-            let action = Action::read_in_round(value, self.round())
-                .map_err(|e| context(Failure::usage(e.to_string())))?;
-            if actions.last() == Some(&Action::Concede) {
-                return Err(context(Failure::refused("concede ends the sequence")));
-            }
-            position = self
-                .apply_action(side, &position, &action)
-                .map_err(context)?;
-            actions.push(action);
-        }
-        self.check_answer(side, &actions, &position)
-            .map_err(|e| e.with_details(serde_json::json!({"side":side})))?;
-        Ok((actions, position))
-    }
-
-    pub(crate) fn trial_state(&self, blue: SideState, red: SideState) -> Result<Value, Failure> {
-        let mut state = self
-            .r#match
-            .turns
-            .last()
-            .map_or_else(State::default, |turn| turn.state.clone());
-        state.blue = blue;
-        state.red = red;
-        let mut value = serde_json::to_value(&state).map_err(|e| Failure::failed(e.to_string()))?;
-        for (side, pos) in [("blue", &state.blue), ("red", &state.red)] {
-            value[side]["reinforce_chosen"] =
-                Value::Bool(pos.reinforce_choice.is_some_and(|i| i >= 0));
-            value[side]["shop"] = serde_json::json!({"buys_remaining":pos.shop.buys_remaining,
-                "unlocks_remaining":pos.shop.unlocks_remaining,"contraptions_remaining":pos.shop.contraptions_remaining});
-        }
-        Ok(value)
+    pub(crate) fn problem_json(&self, ref_id: &str) -> Result<Value, Failure> {
+        problem_json(&self.r#match, self.round(), Some(ref_id)).map_err(Failure::failed)
     }
 
     pub(crate) fn advance_answers(&mut self, actions: TurnActions) -> Result<(), Failure> {
@@ -126,6 +86,6 @@ impl Game {
             seat.decisions = seq;
             seat.committed = true;
         }
-        self.advance().map_err(Failure::failed)
+        self.advance_outcome()
     }
 }

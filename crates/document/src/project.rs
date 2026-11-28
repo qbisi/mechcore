@@ -27,97 +27,19 @@ use crate::r#match::{Action, Offers, SideState, SkillTarget, State, TurnActions}
 ///
 /// Returns a malformed state or a side whose effects cannot be projected.
 pub fn read_state(bytes: &[u8]) -> Result<Layout, String> {
-    let mut value: serde_yaml::Value = serde_yaml::from_slice(bytes).map_err(|e| e.to_string())?;
-    if value.get("kind").and_then(serde_yaml::Value::as_str) != Some("state") {
-        return Err("expected kind: state".into());
-    }
-    let round = value
-        .get("round")
-        .and_then(serde_yaml::Value::as_i64)
-        .and_then(|n| i32::try_from(n).ok())
-        .filter(|n| *n >= 1)
-        .ok_or("state needs round >= 1")?;
-    let fields = value.as_mapping_mut().ok_or("state must be a mapping")?;
-    let remove_opt = |mapping: &mut serde_yaml::Mapping, key: &str| {
-        mapping.remove(serde_yaml::Value::String(key.into()))
+    let standalone = crate::standalone::StandaloneState::from_yaml_bytes(bytes)?;
+    let build = standalone.effective_build().to_owned();
+    let crate::standalone::StandaloneBody::Round(round_body) = standalone.body else {
+        return Err("state needs round >= 1".into());
     };
-    let optional_i32 = |mapping: &mut serde_yaml::Mapping,
-                        name: &str|
-     -> Result<Option<i32>, String> {
-        remove_opt(mapping, name)
-            .map(|v| serde_yaml::from_value::<Option<i32>>(v).map_err(|e| format!("{name}: {e}")))
-            .transpose()
-            .map(Option::flatten)
-    };
-    let build = remove_opt(fields, "build")
-        .map(|v| serde_yaml::from_value::<Option<String>>(v).map_err(|e| format!("build: {e}")))
-        .transpose()?
-        .flatten();
-    if let Some(ref b) = build
-        && b.trim().is_empty()
-    {
-        return Err("state build must not be empty".into());
-    }
-    let reinforce = remove_opt(fields, "reinforce")
-        .map(|v| serde_yaml::from_value::<Option<bool>>(v).map_err(|e| format!("reinforce: {e}")))
-        .transpose()?
-        .flatten();
-    if let Some(max_round) = optional_i32(fields, "max_round")?
-        && max_round < 1
-    {
-        return Err(format!("state max_round must be >= 1, not {max_round}"));
-    }
-    let map_id = optional_i32(fields, "map_id")?;
-    let seed = optional_i32(fields, "seed")?;
-    let pool_key = serde_yaml::Value::String("reinforce_pool".into());
-    if fields
-        .get(&pool_key)
-        .is_some_and(serde_yaml::Value::is_sequence)
-        && let Some(seq) = fields.remove(&pool_key)
-    {
-        if reinforce == Some(false) {
-            return Err("state states reinforce_pool while reinforcements are disabled".into());
-        }
-        let members = crate::names::card::many::deserialize(seq)
-            .map_err(|e| format!("reinforce_pool: {e}"))?;
-        if let Some(seed) = seed {
-            crate::reinforcement::compact_pool(seed, &members)?;
-        } else {
-            crate::reinforcement::validate_members(&members)?;
-        }
-    }
-    for side_name in ["blue", "red"] {
-        if let Some(side_map) = fields
-            .get_mut(serde_yaml::Value::String(side_name.into()))
-            .and_then(serde_yaml::Value::as_mapping_mut)
-        {
-            if let Some(loadout) = remove_opt(side_map, "tech_loadout") {
-                crate::names::loadout::deserialize(loadout)
-                    .map_err(|e| format!("{side_name} tech_loadout: {e}"))?;
-            }
-            if let Some(shop_val) = remove_opt(side_map, "shop") {
-                let shop: crate::r#match::Allowances = serde_yaml::from_value(shop_val)
-                    .map_err(|e| format!("{side_name} shop: {e}"))?;
-                if shop.buys_remaining < 0
-                    || shop.unlocks_remaining < 0
-                    || shop.contraptions_remaining < 0
-                {
-                    return Err(format!("{side_name} shop counts must be >= 0"));
-                }
-            }
-        }
-    }
-    let state: State = crate::r#match::payload(value).map_err(|e| e.to_string())?;
-    state.check_reinforcement(false)?;
-    state.check_towers(false)?;
     Ok(Layout {
         kind: DocumentKind::Layout,
-        game_build: build.unwrap_or_else(|| crate::economy::game_build().to_owned()),
-        map_id,
-        seed,
-        round,
-        blue: project_side(&state.blue, "blue")?,
-        red: project_side(&state.red, "red")?,
+        game_build: build,
+        map_id: standalone.map_id,
+        seed: Some(standalone.seed),
+        round: standalone.round,
+        blue: project_side(&round_body.state.blue, "blue")?,
+        red: project_side(&round_body.state.red, "red")?,
     })
 }
 
@@ -204,13 +126,13 @@ fn deploy_side(
 /// Initialization effects that cannot be reconstructed from endpoint state.
 /// Record these while stepping the actual history, before normalizing actions.
 #[derive(Clone, Default)]
-pub(crate) struct InitializationHistory {
+pub struct InitializationHistory {
     cloak_after_flank: std::collections::BTreeSet<i32>,
     landed_extra_weapons: bool,
 }
 
 impl InitializationHistory {
-    pub(crate) fn record(&mut self, before: &SideState, after: &SideState, action: &Action) {
+    pub fn record(&mut self, before: &SideState, after: &SideState, action: &Action) {
         if matches!(action, Action::UpgradeTechnology { tech: 3925, .. }) {
             self.cloak_after_flank.extend(
                 before
@@ -233,7 +155,8 @@ impl InitializationHistory {
         });
     }
 
-    pub(crate) fn warnings(&self, opened: &SideState, position: &SideState) -> Vec<String> {
+    #[must_use]
+    pub fn warnings(&self, opened: &SideState, position: &SideState) -> Vec<String> {
         let mut warnings = Vec::new();
         if !self.cloak_after_flank.is_empty() {
             warnings.push(format!(
@@ -302,15 +225,63 @@ pub fn project(
     map_id: i32,
     seed: i32,
 ) -> Result<Layout, String> {
+    project_standalone(
+        opening,
+        state,
+        round,
+        crate::economy::game_build(),
+        Some(map_id),
+        Some(seed),
+    )
+}
+
+/// Projects one round's position onto a layout for standalone `state` inputs
+/// where `map_id` and `seed` may be omitted.
+///
+/// # Errors
+///
+/// Returns an error when a released skill has no layout type or aims at a
+/// target a layout cannot state.
+pub fn project_standalone(
+    opening: &State,
+    state: &State,
+    round: i32,
+    build: &str,
+    map_id: Option<i32>,
+    seed: Option<i32>,
+) -> Result<Layout, String> {
     Ok(Layout {
         kind: DocumentKind::Layout,
-        game_build: crate::economy::game_build().to_owned(),
-        map_id: Some(map_id),
-        seed: Some(seed),
+        game_build: build.to_owned(),
+        map_id,
+        seed,
         round,
         blue: with_opening(&opening.blue, &state.blue, "blue")?,
         red: with_opening(&opening.red, &state.red, "red")?,
     })
+}
+
+/// Preserves original round-opening pose on moved `Legacy` units across
+/// intermediate deployment states (`act` chaining).
+pub fn record_legacy_pose(before: &SideState, after: &mut SideState) {
+    let earlier: std::collections::BTreeMap<_, _> = before
+        .active_units()
+        .map(|unit| (unit.index, unit))
+        .collect();
+    for unit in &mut after.units {
+        if !unit.recovered
+            && unit.source == UnitSource::Legacy
+            && let Some(prev) = earlier.get(&unit.index)
+        {
+            let orig_pos = prev.record_position.or(prev.position);
+            let orig_rot = prev
+                .record_rotated
+                .unwrap_or_else(|| prev.rotated.unwrap_or(false));
+            unit.record_position = orig_pos.filter(|pos| Some(*pos) != unit.position);
+            unit.record_rotated =
+                Some(orig_rot).filter(|rot| *rot != unit.rotated.unwrap_or(false));
+        }
+    }
 }
 
 /// Each unit's source and the side's recovered squads, from where the side's
@@ -354,12 +325,16 @@ pub fn assign_sources(side: &mut Side, allocator: i32, round: i32) -> Result<(),
 fn with_opening(opening: &SideState, closed: &SideState, side_name: &str) -> Result<Side, String> {
     let mut side = project_side(closed, side_name)?;
     let earlier: std::collections::BTreeMap<_, _> = opening
-        .active_units()
+        .units
+        .iter()
         .map(|unit| (unit.index, unit))
         .collect();
     for unit in &closed.units {
         match earlier.get(&unit.index) {
-            Some(before) if before.source == unit.source && before.type_name == unit.type_name => {}
+            Some(before)
+                if before.source == unit.source
+                    && before.type_name == unit.type_name
+                    && (!before.recovered || unit.recovered) => {}
             None if unit.index >= opening.next_index.unit && unit.source == UnitSource::Joined => {}
             _ => {
                 return Err(format!(
@@ -380,11 +355,13 @@ fn with_opening(opening: &SideState, closed: &SideState, side_name: &str) -> Res
         if unit.source == UnitSource::Legacy
             && let Some(before) = earlier.get(&unit.index)
         {
-            unit.record_position = before
-                .position
-                .filter(|position| *position != unit.position);
-            unit.record_rotated = Some(before.rotated.unwrap_or(false))
-                .filter(|rotated| *rotated != unit.rotated.unwrap_or(false));
+            let orig_pos = before.record_position.or(before.position);
+            let orig_rot = before
+                .record_rotated
+                .unwrap_or_else(|| before.rotated.unwrap_or(false));
+            unit.record_position = orig_pos.filter(|position| *position != unit.position);
+            unit.record_rotated =
+                Some(orig_rot).filter(|rotated| *rotated != unit.rotated.unwrap_or(false));
         }
     }
     Ok(side)

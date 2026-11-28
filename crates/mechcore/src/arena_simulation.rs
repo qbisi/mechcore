@@ -1,41 +1,21 @@
-//! Collects requested observations and reads final facts through the match settlement reader.
-use crate::cli::Failure;
-use mechcore_document::{Fight, Layout};
-use mechcore_simulation::ObservationPlan;
-use serde_json::{Value, json};
+//! Runs official in-memory arena battle simulation and settlement extraction.
+
 use std::sync::atomic::AtomicBool;
 
-pub(crate) fn run(
-    layout: &Layout,
-    plan: ObservationPlan,
-    cancel: &AtomicBool,
-) -> Result<Value, Failure> {
-    let names = plan.settlement_names();
-    let mut observation = plan
-        .run(layout, cancel)
-        .map_err(|e| Failure::unsimulated(&e).with_details(json!({"status":"unresolved"})))?;
-    if let Some(evidence) = observation.evidence {
-        let fight = crate::outcome::observed(layout.clone(), evidence, observation.tick)?;
-        for name in names {
-            observation
-                .values
-                .insert(name, json!({"blue":fight.blue,"red":fight.red}));
-        }
-    }
-    Ok(
-        json!({"tick":observation.tick,"stop":observation.stop,"settled":observation.settled,"collect":observation.values}),
-    )
-}
+use mechcore_document::{Fight, Layout};
+use mechcore_simulation::ObservationPlan;
 
-pub(crate) fn fight(layout: Layout) -> Result<Fight, String> {
-    let plan = ObservationPlan::parse(None, None)?;
+use crate::cli::Failure;
+
+/// Simulates `layout` to completion and returns its settled `Fight`, preserving
+/// simulator source `sites` when refused for unmodeled mechanics.
+pub(crate) fn fight(layout: Layout) -> Result<Fight, Failure> {
+    let plan = ObservationPlan::parse(None, None).map_err(Failure::failed)?;
     let observation = plan
         .run(&layout, &AtomicBool::new(false))
-        .map_err(|e| e.to_string())?;
-    crate::outcome::observed(
-        layout,
-        observation.evidence.ok_or("fight did not settle")?,
-        observation.tick,
-    )
-    .map_err(|e| e.reason().to_owned())
+        .map_err(|e| Failure::unsimulated(&e))?;
+    let evidence = observation
+        .evidence
+        .ok_or_else(|| Failure::failed("fight did not settle"))?;
+    crate::outcome::observed(layout, evidence, observation.tick)
 }

@@ -36,7 +36,7 @@
 | 所属层级 | 字段 | 段内状态 | 独立状态 |
 | --- | --- | --- | --- |
 | 根级共享 | `kind`, `round` | 必填 | 必填 |
-| 根级公共头 | `build`, `reinforce`, `max_round`, `map_id`, `seed` | **省略**（由前置 `match` 头文件声明；段内出现即拒绝） | **允许/推荐**（不带 `match` 头文件时用于补全规则与目录上下文） |
+| 根级公共头 | `build`, `reinforce`, `max_round`, `map_id`, `seed` | **省略**（由前置 `match` 头文件声明；段内出现即拒绝） | **允许/推荐**（不带 `match` 头文件时用于补全规则与目录上下文；`seed` 省略时默认取 `1`，显式写 `0` 拒绝） |
 | 根级演化态 | `random_state`, `reinforce_pool`, `reinforce_offers` | `random_state` 与 `reinforce_offers` 在 `round >= 1` 出现（`offers` 仅发牌回合存在）；`reinforce_pool` 在 `round >= 1` 出现，展开态且 `reinforce: true` 时亦在 `round: 0` 出现 | 同段内 |
 | 阵营公共配置 | `blue/red.tech_loadout` | **省略**（由前置 `match` 头文件声明） | **允许/推荐**（用于校验 `upgrade_technology` 合法动作集） |
 | 阵营第 0 回合 | `reactor_core`, `seed`, `offers`, `constructions` | `round: 0` 出现（`seed` 可选） | 同段内（`round: 0`） |
@@ -193,7 +193,7 @@ red: {...}
   - `build`：可选字符串（非空），标识数据表版本；省略时默认取当前程序绑定的 `GAME_VERSION`。
   - `reinforce`：可选布尔值，默认 `true`，意义同 [match.md](match.md)。
   - `max_round`：可选正整数（`>= 1`），决定终局回合上限；省略时按 `map_id` 对应地图预设取值。
-  - `map_id` 与 `seed`：可选整数，语义与可选性与 [layout.md](layout.md#种子与地图) 完全一致。两者置于根级而非阵营下，因为整场战斗与初始增援池由双方共享。
+  - `map_id` 与 `seed`：可选整数（置于根级而非阵营下，因为整场战斗与初始增援池由双方共享）。`map_id` 语义同 [layout.md](layout.md#种子与地图)；独立状态的 `seed` 若省略则默认取 `1`（显式 `0` 拒绝），保证 `reinforce_pool` 展开/紧缩双向无损互转及模拟开战均具备确定性种子。
 
 ### 2. 共享随机流与普通增援池
 

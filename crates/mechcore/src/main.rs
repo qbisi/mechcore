@@ -18,9 +18,11 @@ mod preview;
 mod profile;
 mod query;
 mod requests;
+mod rpc;
 mod scene;
 mod session;
 mod shell;
+mod solve;
 mod turn;
 mod verify;
 
@@ -50,10 +52,14 @@ fn usage(program: &str) {
     eprintln!("       {program} match act <match.yaml> --side blue|red <decision> [--dry-run]");
     eprintln!("       {program} match commit <match.yaml> --side blue|red");
     eprintln!(
-        "       {program} arena new --blue <command> --red <command> [--seed <n>] [--map <id>] [--no-reinforce] [--full-tech] [--timeout <seconds>] [--parallel <n>] [--log <file.jsonl>]"
+        "       {program} arena new --blue <command> --red <command> [--seed <n>] [--map <id>] [--max-round <n>] [--base-core <n>] [--no-reinforce] [--full-tech] [--timeout <seconds>] [--parallel <n>] [--log <file.jsonl>]"
     );
     eprintln!(
-        "       {program} arena load <match.yaml> [--round <n>] --blue <command> --red <command> [--timeout <seconds>] [--parallel <n>] [--log <file.jsonl>]"
+        "       {program} arena load <match.yaml> [--round <n>] --blue <command> --red <command> [--max-round <n>] [--base-core <n>] [--timeout <seconds>] [--parallel <n>] [--log <file.jsonl>]"
+    );
+    eprintln!("       {program} rpc [--parallel <n>]");
+    eprintln!(
+        "       {program} solve <match.yaml|state.yaml> --side blue|red --bot <command> [--round <n>] [--timeout <seconds>] [--parallel <n>] [--log <file.jsonl>]"
     );
     eprintln!("       {program} game launch [--gui] [--online] [--level <0-4>]");
     eprintln!("       {program} game <operation> [--level <0-4>]");
@@ -98,6 +104,8 @@ pub(crate) fn dispatch(command: &str, arguments: Args) -> Option<Outcome> {
         "preview" => preview::run(arguments),
         "match" => r#match::run(arguments),
         "arena" => arena::run(arguments),
+        "rpc" => rpc::run(arguments),
+        "solve" => solve::run(arguments),
         "game" => game::run(arguments),
         "shell" => run_shell(arguments),
         _ => return None,

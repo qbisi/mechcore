@@ -1316,18 +1316,6 @@ pub fn canonical_yaml_with(r#match: &Match, format: MatchFormat) -> Result<Strin
     write_values(&segment_values_with(r#match, format)?)
 }
 
-/// The problem presented to both arena seats, ending at the current opening.
-///
-/// # Errors
-/// Returns an error for a closed match or an unserializable segment.
-pub fn round_problem_yaml(game: &Match) -> Result<String, String> {
-    let mut segments = segments_of(game, MatchFormat::Compact)?;
-    if !matches!(segments.pop(), Some(Segment::Action(_))) {
-        return Err("a round problem needs an open action segment".into());
-    }
-    write_values(&values_of(&segments)?)
-}
-
 fn write_values(values: &[Value]) -> Result<String, String> {
     let mut yaml = String::new();
     for (at, value) in values.iter().enumerate() {

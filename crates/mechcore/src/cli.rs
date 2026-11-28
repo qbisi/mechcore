@@ -79,6 +79,15 @@ impl Failure {
         Self::new(Kind::Failed, reason)
     }
 
+    pub(crate) const fn kind(&self) -> Kind {
+        self.kind
+    }
+
+    pub(crate) fn with_sites(mut self, sites: Vec<String>) -> Self {
+        self.sites = sites;
+        self
+    }
+
     fn new(kind: Kind, reason: impl Into<String>) -> Self {
         Self {
             kind,
