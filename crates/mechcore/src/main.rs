@@ -10,7 +10,6 @@ mod format;
 mod game;
 mod instant;
 mod kind;
-mod mask;
 mod r#match;
 mod outcome;
 mod play;
@@ -40,7 +39,6 @@ fn usage(program: &str) {
         "       {program} play <file> [--seed <i32>] [--port <u16>] [--no-open] [--no-cache]"
     );
     eprintln!("       {program} format <document.yaml> [--write] [--expanded]");
-    eprintln!("       {program} mask <layout|state|match> --side blue|red --unit <type>");
     eprintln!("       {program} preview <layout|state> [--seed <i32>]");
     eprintln!(
         "       {program} match new <match.yaml> [--name <name>] [--seed <i32>] [--map <i32>]"
@@ -100,7 +98,6 @@ pub(crate) fn dispatch(command: &str, arguments: Args) -> Option<Outcome> {
         "query" => query::run(arguments),
         "play" => play::run(arguments),
         "format" => format::run(arguments),
-        "mask" => mask::run(arguments),
         "preview" => preview::run(arguments),
         "match" => r#match::run(arguments),
         "arena" => arena::run(arguments),

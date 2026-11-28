@@ -148,8 +148,12 @@ mechcore solve <match.yaml|state.yaml> --side blue|red --bot '<command>' \
       "unlocked_units": ["crawler", "arclight"],
       "next_index": { "unit": 5, "contraption": 0 },
       "officers": ["supply_specialist"],
+      "towers": [
+        { "name": "energy_tower", "index": 0, "position": { "x": -140, "y": -170 }, "size": { "width": 20, "depth": 20 }, "level": 0 },
+        { "name": "research_center", "index": 1, "position": { "x": 140, "y": -170 }, "size": { "width": 20, "depth": 20 }, "level": 0 }
+      ],
       "units": [
-        { "name": "crawler", "index": 0, "value": 100, "position": { "x": -140, "y": -135 } }
+        { "name": "crawler", "index": 0, "value": 100, "position": { "x": -140, "y": -135 }, "rotated": true, "size": { "width": 20, "depth": 50 } }
       ]
     },
     "red": {
@@ -190,6 +194,7 @@ mechcore solve <match.yaml|state.yaml> --side blue|red --bot '<command>' \
 
 - **`tech_loadout` 恒展开**：`problem.state.blue.tech_loadout` 与 `problem.state.red.tech_loadout` 一律写为 `{unit: [tech, ...]}` 映射（外层按单位 ID 升序、内层按科技 ID 升序），即使属于全科技配置也完整展开，不使用 `"full"` 或 Base64url 位图；
 - **`reinforce_pool` 恒展开**：当 `reinforce: true` 时，`problem.state.reinforce_pool`（含 `round: 0` 开局态的初始普通增援池与 `round >= 1` 常规回合的当前活跃池）以及 `problem.history` 中各回合 `state.reinforce_pool` 一律写为完整卡牌名数组 `[card_name, ...]`（按卡牌 ID 升序，对应 [state.md](../document/state.md#2-共享随机流与普通增援池) 定义的展开形态），不使用 `{removed, added}` 差值；当 `reinforce: false` 时省略；
+- **空间实体恒展开**：`problem.state`（与 `problem.history`）中的 `round >= 1` 阵营改用 `towers` 实体列表替代 `tower_strengthen_levels`，且所有具占位体积的存活实体（`round: 0`/`round >= 1` 的 `constructions[]`、存活 `units[]`、`contraptions[]` 中的 `interceptor` 与 `towers[]`）均直接附带当前坐标系下的实际占宽占深 `size: {width, depth}`（参见 [state.md](../document/state.md#4-展开态空间实体与-size-字段)）。
 - **信息隔离不变量**：`problem` 仅包含当前回合开局态与已完成的历史回合，绝不暴露对手在本回合的任何未结算或已提交决策。
 
 ---

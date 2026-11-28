@@ -1235,7 +1235,25 @@ struct OpeningStateSide<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     seed: Option<i32>,
     offers: &'a [OpeningOffer],
-    constructions: &'a [StaticPlacement],
+    #[serde(serialize_with = "serialize_opening_constructions")]
+    constructions: OpeningConstructions<'a>,
+}
+
+struct OpeningConstructions<'a> {
+    items: &'a [StaticPlacement],
+    format: MatchFormat,
+}
+
+fn serialize_opening_constructions<S: serde::Serializer>(
+    value: &OpeningConstructions<'_>,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    match value.format {
+        MatchFormat::Compact => value.items.serialize(serializer),
+        MatchFormat::Expanded => {
+            crate::board::serialize_expanded_constructions(value.items, serializer)
+        }
+    }
 }
 
 enum StatePool<'a> {
@@ -1264,6 +1282,11 @@ impl Serialize for StatePool<'_> {
     }
 }
 
+struct MatchRoundSide<'a> {
+    side: &'a SideState,
+    format: MatchFormat,
+}
+
 #[derive(Serialize)]
 struct StateSegment<'a> {
     round: i32,
@@ -1273,18 +1296,21 @@ struct StateSegment<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     reinforce_offers: Option<&'a Offers>,
     #[serde(serialize_with = "serialize_opening_side")]
-    blue: &'a SideState,
+    blue: MatchRoundSide<'a>,
     #[serde(serialize_with = "serialize_opening_side")]
-    red: &'a SideState,
+    red: MatchRoundSide<'a>,
 }
 
 fn serialize_opening_side<S: serde::Serializer>(
-    side: &SideState,
+    wrapped: &MatchRoundSide<'_>,
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
-    let mut opening = side.clone();
+    let mut opening = wrapped.side.clone();
     opening.reinforce_choice = None;
-    opening.serialize(serializer)
+    match wrapped.format {
+        MatchFormat::Compact => opening.serialize(serializer),
+        MatchFormat::Expanded => crate::board::serialize_expanded_round_side(&opening, serializer),
+    }
 }
 
 #[derive(Serialize)]
@@ -1455,7 +1481,11 @@ fn header_of(r#match: &Match, format: MatchFormat) -> Header<'_> {
     }
 }
 
-fn opening_side_of<'a>(side: &'a MatchSide, name: &str) -> Result<OpeningStateSide<'a>, String> {
+fn opening_side_of<'a>(
+    side: &'a MatchSide,
+    name: &str,
+    format: MatchFormat,
+) -> Result<OpeningStateSide<'a>, String> {
     let reactor_core = side
         .reactor_core
         .filter(|&core| core > 0)
@@ -1464,7 +1494,10 @@ fn opening_side_of<'a>(side: &'a MatchSide, name: &str) -> Result<OpeningStateSi
         reactor_core,
         seed: side.seed,
         offers: &side.opening.offers,
-        constructions: &side.constructions,
+        constructions: OpeningConstructions {
+            items: &side.constructions,
+            format,
+        },
     })
 }
 
@@ -1481,8 +1514,8 @@ fn opening_state_of(
     Ok(OpeningStateSegment {
         round: 0,
         reinforce_pool,
-        blue: opening_side_of(&r#match.blue, "blue")?,
-        red: opening_side_of(&r#match.red, "red")?,
+        blue: opening_side_of(&r#match.blue, "blue", format)?,
+        red: opening_side_of(&r#match.red, "red", format)?,
     })
 }
 
@@ -1512,8 +1545,14 @@ fn segments_of(r#match: &Match, format: MatchFormat) -> Result<Vec<Segment<'_>>,
             random_state: turn.state.random_state,
             reinforce_pool,
             reinforce_offers: turn.state.reinforce_offers.as_ref(),
-            blue: &turn.state.blue,
-            red: &turn.state.red,
+            blue: MatchRoundSide {
+                side: &turn.state.blue,
+                format,
+            },
+            red: MatchRoundSide {
+                side: &turn.state.red,
+                format,
+            },
         })));
         // A destroyed reactor core ends the match on the state that states
         // it, so the round it opens has no decisions to write.
@@ -1539,6 +1578,16 @@ pub(crate) fn read_round_state(
     seed: i32,
     reinforce: bool,
 ) -> Result<State, String> {
+    if let Some(fields) = value.as_mapping_mut() {
+        for side_name in ["blue", "red"] {
+            if let Some(side_map) = fields
+                .get_mut(Value::String(side_name.into()))
+                .and_then(Value::as_mapping_mut)
+            {
+                crate::board::normalize_expanded_round_side(side_map, side_name)?;
+            }
+        }
+    }
     let expanded = value.as_mapping_mut().and_then(|fields| {
         let key = Value::String("reinforce_pool".into());
         fields
@@ -2772,6 +2821,98 @@ mod tests {
         assert!(expanded.contains("  tech_loadout:\n    fortress: ["));
         assert!(expanded.contains("round: 0\nreinforce_pool: ["));
         assert_eq!(super::read(expanded.as_bytes()).unwrap().unwrap(), game);
+    }
+
+    #[test]
+    fn canonical_match_expanded_towers_and_entity_sizes_round_trip_and_refuse_mismatch() {
+        let economy = crate::economy::Economy::embedded().unwrap();
+        let pred = crate::opening::predict(economy, 7, 1001).unwrap();
+        let side = || super::MatchSide {
+            name: "side".into(),
+            elo_score: None,
+            opening: super::Opening {
+                choose: Some(0),
+                offers: pred.deal.blue.clone(),
+            },
+            constructions: pred.constructions.blue.clone(),
+            tech_loadout: economy.unit_technologies(),
+            reactor_core: Some(4500),
+            seed: None,
+        };
+        let mut deployed_side: super::SideState = serde_json::from_value(serde_json::json!({
+            "random_state": [1, 2, 3, 4],
+            "reactor_core": 4500,
+            "supply": 200,
+            "unlocked_units": [],
+            "tower_strengthen_levels": [1, 2],
+            "next_index": {"unit": 2, "contraption": 2},
+            "units": [
+                {"name": "steel_ball", "index": 0, "value": 200, "position": {"x": -330, "y": 50}, "rotated": true},
+                {"name": "steel_ball", "index": 1, "value": 200, "position": {"x": -330, "y": 150}},
+            ],
+            "constructions": pred.constructions.blue.clone(),
+            "contraptions": [
+                {"name": "shield", "index": 0, "position": {"x": 0, "y": -80}},
+                {"name": "interceptor", "index": 1, "position": {"x": 60, "y": -80}},
+            ],
+        }))
+        .unwrap();
+        deployed_side.shop = super::Allowances {
+            buys_remaining: 2,
+            unlocks_remaining: 1,
+            contraptions_remaining: 8,
+        };
+        let game = super::Match {
+            has_opening: true,
+            game_build: crate::game_build().to_owned(),
+            source: super::Source::Simulator,
+            reinforce: true,
+            max_round: 40,
+            map_id: 1001,
+            seed: 7,
+            blue: side(),
+            red: side(),
+            turns: vec![super::Turn {
+                round: 1,
+                state: super::State {
+                    random_state: [5, 6, 7, 8],
+                    reinforce_pool: super::PoolDelta::default(),
+                    reinforce_offers: None,
+                    blue: deployed_side.clone(),
+                    red: deployed_side,
+                },
+                actions: super::TurnActions::default(),
+            }],
+            result: None,
+        };
+        let expanded = super::canonical_yaml_with(&game, super::MatchFormat::Expanded).unwrap();
+        assert!(!expanded.contains("tower_strengthen_levels"));
+        assert!(expanded.contains("  towers:\n  - {name: energy_tower, index: 0, position: {x: -140, y: -170}, size: {width: 20, depth: 20}, level: 1}"));
+        assert!(expanded.contains("size: {width: 50, depth: 20}"));
+        assert!(expanded.contains("size: {width: 20, depth: 50}"));
+        assert!(expanded.contains(
+            "{name: interceptor, index: 1, position: {x: 60, y: -80}, size: {width: 30, depth: 30}}"
+        ));
+        assert!(!expanded.contains("{name: shield, index: 0, position: {x: 0, y: -80}, size:"));
+        assert_eq!(super::read(expanded.as_bytes()).unwrap().unwrap(), game);
+
+        for broken in [
+            expanded.replace(
+                "size: {width: 20, depth: 50}",
+                "size: {width: 50, depth: 20}",
+            ),
+            expanded.replace("name: research_center", "name: energy_tower"),
+            expanded.replace(
+                "shield, index: 0, position: {x: 0, y: -80}",
+                "shield, index: 0, position: {x: 0, y: -80}, size: {width: 20, depth: 20}",
+            ),
+            expanded.replace(
+                "  towers:\n",
+                "  tower_strengthen_levels: [1, 2]\n  towers:\n",
+            ),
+        ] {
+            assert!(super::read(broken.as_bytes()).is_err(), "{broken}");
+        }
     }
 
     fn pool_fixture_match(reinforce: bool) -> super::Match {

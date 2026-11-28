@@ -11,8 +11,6 @@
 //! `docs/spec/document/match.md` states what a transition reproduces, and
 //! [`crate::coverage`] measures it against a match's recorded positions.
 
-use std::collections::BTreeSet;
-
 use crate::catalog::{contraption_type_from_id, unit_id_from_type, unit_type_from_id};
 use crate::economy::{CardKind, Economy, OpeningKind};
 use crate::layout::{ContraptionPlacement, Experience, Position, Region, StaticPlacement};
@@ -841,27 +839,6 @@ pub fn deployed(
         position = step_placing(economy, &position, action, offers, &mut placement)?;
     }
     Ok(position)
-}
-
-/// Standing formations that can move and have yet to be moved this round.
-///
-/// Movement permission persists for a standing formation through deployment.
-/// A new formation or one freed by a decision joins this set until it moves.
-/// The interactive caller can also pin a formation in place with a private
-/// round edit. Neither this set nor those edits belong to a match position.
-#[must_use]
-pub fn unpinned_units(state: &SideState, actions: &[Action]) -> BTreeSet<i32> {
-    let mut units = state
-        .active_units()
-        .filter(|unit| unit.movable(state))
-        .map(|unit| unit.index)
-        .collect::<BTreeSet<_>>();
-    for action in actions {
-        if let Action::MoveUnit { index, .. } = action {
-            units.remove(index);
-        }
-    }
-    units
 }
 
 /// Checks native prerequisites when accepting a new operation. Historical
@@ -2827,13 +2804,12 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
     }
 
     #[test]
-    fn default_purchase_avoids_unpinned_formations_and_arrives_unpinned() {
+    fn default_purchase_avoids_standing_formations() {
         let economy = Economy::embedded().unwrap();
         let vacant_landing =
             crate::landing::landing(&side_holding(&[]), "marksman", false).unwrap();
         let mut opened = side_holding(&[(0, vacant_landing)]);
         opened.next_index.unit = 1;
-        assert_eq!(super::unpinned_units(&opened, &[]), [0].into());
         let landing = crate::landing::landing(&opened, "marksman", false).unwrap();
         assert_ne!(landing, vacant_landing);
 
@@ -2845,9 +2821,6 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         let after =
             super::deployed(economy, &opened, std::slice::from_ref(&buy), false, None).unwrap();
         assert_eq!(after.units[1].position, Some(landing));
-        assert_eq!(super::unpinned_units(&after, &[buy]), [0, 1].into());
-        let written = serde_yaml::to_string(&after).unwrap();
-        assert!(!written.contains("unpinned"));
         assert_eq!(after.units[0].position, opened.units[0].position);
     }
 
@@ -2886,7 +2859,6 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         )
         .unwrap();
         assert!(fitted.units[0].movable(&fitted));
-        assert_eq!(super::unpinned_units(&fitted, &[]), [0].into());
         let fitted: SideState =
             serde_yaml::from_str(&serde_yaml::to_string(&fitted).unwrap()).unwrap();
         assert!(step(economy, &fitted, &shift).is_ok());
@@ -2905,7 +2877,6 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         )
         .unwrap();
         assert!(redeployed.units[0].movable(&redeployed));
-        assert_eq!(super::unpinned_units(&redeployed, &[]), [0].into());
         assert_eq!(
             redeployed.battle_skills[0].release,
             Some(Release {
@@ -2917,7 +2888,6 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
             serde_yaml::from_str(&serde_yaml::to_string(&redeployed).unwrap()).unwrap();
         let moved = step(economy, &redeployed, &shift).unwrap();
         assert!(moved.units[0].movable(&moved));
-        assert!(super::unpinned_units(&moved, std::slice::from_ref(&shift)).is_empty());
         let next_round =
             super::open_round(economy, &redeployed, 2, &mut |_, _| None, None).unwrap();
         assert!(!next_round.units[0].movable(&next_round));
@@ -2942,7 +2912,6 @@ hash: 23:0000000000000000000000000000000000000000000000000000000000000000
         )
         .unwrap();
         assert!(researched.units[0].movable(&researched));
-        assert_eq!(super::unpinned_units(&researched, &[]), [0].into());
         assert!(!researched.units[1].movable(&researched));
         let researched: SideState =
             serde_yaml::from_str(&serde_yaml::to_string(&researched).unwrap()).unwrap();

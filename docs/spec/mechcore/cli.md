@@ -91,19 +91,19 @@ a bot over the shared bidirectional RPC protocol ([solve.md](solve.md)).
 A YAML document that names no kind, or one this binary does not read, is
 refused rather than guessed at.
 
-| Kind | `verify` | `convert --to` | `diff` | `query` | `play` | `format` | `mask` | `preview` |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `layout` | yes | `grbr` (transcode), `mcfr` (computation), `fight` (computation), `html` (computation) | yes | — | yes (computation) | yes | yes | yes |
-| `fight` | yes | `layout` (projection), `grbr` (transcode), `mcfr` (computation), `html` (computation) | yes | — | yes (computation) | yes | — | — |
-| `match` | yes | `grbr` (transcode), `layout` (projection), `fight`, `mcfr`, and `html` (computation) | — | — | yes (computation) | — | yes | — |
-| `state` | — | — | — | — | — | — | yes | yes |
-| `action` | — | — | — | — | — | — | — | — |
-| `mcfr` | yes | `fight`, `layout`, and `html` (projection), `grbr` (transcode) | yes | yes | yes | — | — | — |
-| `grbr` | — | `match` (transcode), `layout` (projection), `mcfr`, `fight`, and `html` (computation) | — | — | yes (computation) | — | — | — |
-| `html` | — | — | — | — | — | — | — | — |
+| Kind | `verify` | `convert --to` | `diff` | `query` | `play` | `format` | `preview` |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `layout` | yes | `grbr` (transcode), `mcfr` (computation), `fight` (computation), `html` (computation) | yes | — | yes (computation) | yes | yes |
+| `fight` | yes | `layout` (projection), `grbr` (transcode), `mcfr` (computation), `html` (computation) | yes | — | yes (computation) | yes | — |
+| `match` | yes | `grbr` (transcode), `layout` (projection), `fight`, `mcfr`, and `html` (computation) | — | — | yes (computation) | yes | — |
+| `state` | — | — | — | — | — | — | yes |
+| `action` | — | — | — | — | — | — | — |
+| `mcfr` | yes | `fight`, `layout`, and `html` (projection), `grbr` (transcode) | yes | yes | yes | — | — |
+| `grbr` | — | `match` (transcode), `layout` (projection), `mcfr`, `fight`, and `html` (computation) | — | — | yes (computation) | — | — |
+| `html` | — | — | — | — | — | — | — |
 
-A state and an action are verified inside a match. A standalone state also
-takes `mask`, which projects its stated position without replaying decisions.
+A state and an action are verified inside a match. A standalone state also takes
+`preview` (and `solve`).
 
 ## One operation, four callers
 
@@ -677,11 +677,13 @@ exports a deterministic vector snapshot at any frame.
 `--write`. Layouts, fights and matches are the kinds it takes. The leading comment
 block and its blank lines are preserved verbatim; comments within the document
 are not retained. Leading blank lines without a comment are removed. For a
-match document, `--expanded` writes both each side's `tech_loadout` as an
+match document, `--expanded` writes each side's `tech_loadout` as an
 expanded unit-to-technology mapping (instead of `"full"` or the compact
-Base64url bitset) and each round's `reinforce_pool` (including round 0, when
+Base64url bitset), each round's `reinforce_pool` (including round 0, when
 reinforcements are enabled) as the full active ordinary reinforcement pool card
-list (instead of the `{removed, added}` delta); passing `--expanded` to a
+list (instead of the `{removed, added}` delta), `towers` in place of
+`tower_strengthen_levels`, and occupied `size` (`{width, depth}`) on standing
+units, constructions, and colliding contraptions; passing `--expanded` to a
 non-match document is refused.
 
 Fight assertion SQL is formatted with `syntaqlite`'s built-in SQLite dialect
@@ -696,55 +698,6 @@ opening and closing states, as [action.md](../document/action.md#3-标准-12-阶
 defines. Historical action sequences remain readable; formatting rewrites them
 only after the new sequence reproduces the deployment endpoint. It does not
 rewrite the recorded states or run a fight.
-
-## `mask`
-
-```sh
-mechcore mask <layout|state|match> --side blue|red --unit <type>
-```
-
-Answers geometric positions for a newly purchased formation of the named unit,
-in JSON by default or YAML with `--format yaml`. It does not buy, unlock or
-reserve anything, and ignores supply and shop allowances. An empty side is
-admitted before its first purchase; this does not make an empty fight executable.
-Existing geometry must compile. Unknown units and unsupported input kinds are
-refused. The final `buy_unit` action still checks its economic prerequisites.
-
-A layout supplies its stated placements. A standalone state carries `kind:
-state`, `round` and the state fields; optional `map_id` and `seed` have their
-usual document meaning. A match supplies the caller's current decision position,
-including its pending actions, while the opponent stays at its round opening.
-The query takes the turn lock and may rebuild a missing turn cache, but does not
-settle a fight, advance a round, change an existing turn or write the match.
-Round zero is refused because it has no deployment position.
-
-The result has `schema: mechcore.mask`, `side`, `unit`, `step: 10` and `grids`.
-Each grid contains:
-
-| Field | Meaning |
-| --- | --- |
-| `region` | `main`, `left_flank` or `right_flank` |
-| `rotated` | the value to use in the purchase action |
-| `offset` | `{x, y}` of the first candidate formation centre, in own-side metres |
-| `size_x`, `size_y` | column and row counts |
-| `rows` | `size_y` unsigned 32-bit integers, low bit first along x |
-
-Bit `x` of `rows[y]` is one exactly when that candidate centre and orientation
-pass the compiler's footprint, region and collision checks. Its position is
-`{x: offset.x + 10*x, y: offset.y + 10*y}`. A cell represents an entire formation
-placement, not one unoccupied ground square. Shields and missiles do not block
-deployment space. Both orientations are returned even for square footprints.
-Round-one flanks are omitted. A footprint too large for a region has no grid;
-an occupied grid keeps its dimensions even if every row is zero.
-
-Each region/orientation spans its in-bounds, aligned candidate centres. A span
-wider than 32 columns is split left-to-right into blocks with separate offsets;
-the region/orientation can therefore repeat. No word uses bits beyond `size_x`.
-Blocks are ordered main, left flank, right flank; within a region, unrotated
-before rotated, then increasing x. Rows increase along own-side y. This uses
-ordinary spatial rows, without the native terrain grid's transpose or reversed
-bit order. It shares the current compiler's geometric coverage, not an additional
-claim about native inactive deployment cells.
 
 ## `preview`
 
@@ -1038,7 +991,6 @@ written into the match document:
 | `shop.contraptions_remaining` | remaining deployments shared by contraptions and constructions |
 | `reinforce_chosen` | whether the side's `reinforce_choice` contains an offer index |
 | `units[].movable` | whether this formation currently has deployment movement permission |
-| `units[].unpinned` | whether this standing formation may move and has yet to be moved or pinned this round, shown while its side is deploying and uncommitted |
 
 `movable` uses the executor's movement rule, including newly arrived units,
 movement technologies and equipment, and Redeploy already used this round.
@@ -1094,12 +1046,12 @@ it is still in, which is an answer rather than an error.
 
 ### `match act`
 
-Takes one deployment edit or an ordered sequence of edits for one side.
+Takes one deployment action or an ordered sequence of actions for one side.
 
-Pass the match document and one edit or a nonempty array of edits as YAML or
-JSON. Each edit is an [action](../document/action.md) or an in-place `pin`.
+Pass the match document and one action or a nonempty array of actions as YAML or
+JSON. Each element is an [action](../document/action.md).
 Options: `--side blue|red`, `--force-push`, and `--dry-run` to answer without keeping the
-requested edits.
+requested actions.
 
 Each decision runs against the position left by its predecessors, including
 that side's existing uncommitted decisions. The whole request holds the turn
@@ -1108,18 +1060,14 @@ turn file; a failure keeps none of them and leaves earlier pending decisions
 intact. `act` does not commit the round.
 
 ```sh
-mechcore match act m.yaml --side blue '{type: pin, index: 7}'
+mechcore match act m.yaml --side blue '{type: buy_unit, name: marksman}'
 ```
 
-Standing formations with movement permission start deployment unpinned.
-Formations that arrive or gain movement permission during deployment become
-unpinned as well. A successful move pins the formation at its destination.
-`pin` keeps a movable formation in place, with its movement permission intact,
-and adds no action or event. All standing formations occupy their footprints
-throughout deployment, including when the shop picks a default purchase position.
+All standing formations occupy their footprints throughout deployment, including
+when the shop picks a default purchase position.
 
 `--force-push` requires an array and replaces all of the caller's uncommitted
-actions and pins. `[]` clears them. Replacement replays from the
+actions. `[]` clears them. Replacement replays from the
 round-opening state, restoring budgets, indices and technology prices through
 the existing action rules. All steps must pass before saving; failure keeps
 the old sequence. `--dry-run` also applies to replacement. Editing a sealed
@@ -1187,8 +1135,7 @@ last N effective actions (default 1). N must be positive and no greater than
 the sequence length. The retained prefix is replayed and validated before
 saving. Its answer includes the new observation and effective `actions`.
 Only the current uncommitted round can be edited, before its deployment
-deadline. Undo discards the tail and any in-place pins made after a discarded
-action. No redo history is stored. A caller can
+deadline. Undo discards the tail. No redo history is stored. A caller can
 restore a saved sequence with `act --force-push`.
 
 ### `match candidates`
@@ -1215,7 +1162,7 @@ listed with `legal: false`.
 Purchase legality checks the default landing through the same action path as
 `act`. The intent's level is a target result, not a field accepted by
 `buy_unit`: execute its dependencies, remove `level`, and optionally provide
-position and rotation using `mask`. A true legality flag does not validate an
+position and rotation. A true legality flag does not validate an
 arbitrary supplied position. Query again after acting; costs and dependencies
 are relative to that exact decision state, not additive across cached choices.
 
@@ -1237,8 +1184,7 @@ Operands: the match document. Options: `--side blue|red`.
 
 Before sealing a deployment, commit checks the caller's final formation
 positions against the board and the opponent's opening positions. A refusal
-preserves the draft. A successful commit clears the side's in-place pins and
-the view stops showing `unpinned` for that side. When both sides have committed,
+preserves the draft. When both sides have committed,
 the caller settles the round with both final deployments and writes both action
 lists in normal form and the next state to the match in one atomic replacement.
 A failed settlement keeps the match unchanged and retains both sealed lists
@@ -1415,7 +1361,6 @@ options as its fields:
 {"op": "match.show"}
 {"op": "match.show", "wait": 30}
 {"op": "match.act", "decision": {"type": "buy_unit", "name": "marksman"}, "dry_run": true}
-{"op": "match.act", "decision": {"type": "pin", "index": 7}}
 {"op": "match.act", "decision": [], "force_push": true}
 {"op": "match.undo", "count": 1}
 {"op": "match.candidates", "stage": "buy_unit"}
@@ -1423,7 +1368,7 @@ options as its fields:
 ```
 
 `wait` is `--wait`: `true` waits as long as it takes and a number of seconds
-bounds it. `decision` is one [deployment edit](#match-act) mapping or an
+bounds it. `decision` is one [action](../document/action.md) mapping or an
 ordered array of those mappings (empty only with `force_push`), and `dry_run` is `--dry-run`, false
 when left out. A field the operation does not take is refused rather than
 ignored. The result is what the

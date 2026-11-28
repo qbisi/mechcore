@@ -153,12 +153,10 @@ impl Kind {
     /// reaches.
     pub(crate) const fn verbs(self) -> &'static [&'static str] {
         match self {
-            Self::Layout => &[
-                "verify", "convert", "diff", "play", "format", "mask", "preview",
-            ],
+            Self::Layout => &["verify", "convert", "diff", "play", "format", "preview"],
             Self::Fight => &["verify", "convert", "diff", "play", "format"],
-            Self::Match => &["verify", "convert", "play", "format", "mask", "solve"],
-            Self::State => &["mask", "preview", "solve"],
+            Self::Match => &["verify", "convert", "play", "format", "solve"],
+            Self::State => &["preview", "solve"],
             Self::Action | Self::Html => &[],
             Self::Mcfr => &["verify", "convert", "diff", "query", "play"],
             Self::Grbr => &["convert", "play"],
@@ -246,7 +244,7 @@ mod tests {
 
     /// The file verbs the command line holds.
     const VERBS: &[&str] = &[
-        "verify", "convert", "diff", "query", "play", "format", "mask", "preview", "solve",
+        "verify", "convert", "diff", "query", "play", "format", "preview", "solve",
     ];
 
     #[test]

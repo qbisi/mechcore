@@ -142,9 +142,10 @@ red: {reactor_core: -240}
 ```
 
 - **规范紧凑编码**：当本构建支持的标准 1v1 全科技均开启时写为字面量 `"full"`；任意真子集（含空集）编码为无 `=` 填充的 RFC 4648 §5 **Base64url 字符串**（共 `42` 个字符，对应按 `tech_id` 升序排列的 `241` 条标准 `(tech_id, unit_id)` 目录项，采用字节内低位优先 `i / 8`、`1 << (i % 8)` 的小端位序；末尾多余填充位必须为 `0`，全 `1` 位图必须写作 `"full"` 而禁止写字符串位图）。
-- **展开形态（`mechcore format --expanded`）**：将对局文档中两项为可读性而简化的字段同时完整展开，且与紧凑形态可无损往返互转：
+- **展开形态（`mechcore format --expanded`）**：将对局文档中三项为可读性或空间查询而简化的字段同时完整展开，且与紧凑形态可无损往返互转：
   1. 双方 `tech_loadout` 全部按单位 ID 升序、每单位内部按科技 ID 升序写为嵌套 YAML 映射 `{unit: [tech, ...]}`（全科技配置同样完整展开而非写为 `"full"`）；
-  2. 当 `reinforce: true` 时，各回合（含 `round: 0` 开局与 `round >= 1` 常规回合）`state` 中的 `reinforce_pool` 展开为当前活跃普通增援池的完整有序卡牌名列表 `[card_name, ...]`（`round: 0` 为由 `seed` 初始化的初始普通增援池，详见 [state.md](state.md#2-共享随机流与普通增援池)）。
+  2. 当 `reinforce: true` 时，各回合（含 `round: 0` 开局与 `round >= 1` 常规回合）`state` 中的 `reinforce_pool` 展开为当前活跃普通增援池的完整有序卡牌名列表 `[card_name, ...]`（`round: 0` 为由 `seed` 初始化的初始普通增援池，详见 [state.md](state.md#2-共享随机流与普通增援池)）；
+  3. 双方棋盘几何：`round >= 1` 中以固定两项 `towers` 实体列表替代 `tower_strengthen_levels`，并为双边存活 `units`、`constructions`（含 `round: 0`）与 `interceptor` 附带实际占位 `size: {width, depth}`（详见 [state.md](state.md#4-展开态空间实体与-size-字段)）。
   读取器无歧义兼容紧凑与展开两种形态；[`solve.md`](../mechcore/solve.md#问题表达problem) 传递问题时统一采用完整展开形态。原生记录中不属于标准 1v1 赛制的单位（如 Death Knell `2001`、Experimental Death Knell `4001`）在导入时过滤丢弃。
 
 ### 4. 标准 1v1 赛制前提
@@ -225,7 +226,7 @@ state(R) ──[action(R)]──▶ 部署终态 ──[project → fight]──
 | 已研发科技 `techs` 持续保留，且恒不越过头文件 `tech_loadout` 与单单位上限（4 项；War Factory / Abyss / Mountain 为 6 项） |
 | 战场技能面板 `battle_skills` 仅在尾部追加扩展，永不重排或缩短 |
 | `unlocked_units` 持续保留 |
-| `tower_strengthen_levels` 各塔等级单调不减 |
+| `tower_strengthen_levels`（展开态写作 `towers`）各塔等级单调不减 |
 | `blueprints` 持续保留，或被同链更高阶替换（产物军官随同替换） |
 | 其余 `officers` 持续保留（军官多重集不丢失） |
 | `constructions` 只减不增或保留，第 1 回合初值承自 `state(0)`（技能新建除外） |

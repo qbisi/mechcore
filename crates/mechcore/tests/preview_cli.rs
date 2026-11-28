@@ -8,6 +8,7 @@ fn previews_empty_states_and_layouts_with_explicit_seed_provenance() {
     let file = dir.path().join("state.yaml");
     let side = mechcore_document::r#match::SideState {
         random_state: [1, 2, 3, 4],
+        tower_strengthen_levels: vec![0, 0],
         ..Default::default()
     };
     let input =

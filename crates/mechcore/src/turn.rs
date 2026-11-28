@@ -6,7 +6,6 @@
 //! — so everything here belongs to the round in progress.
 
 use std::{
-    collections::BTreeMap,
     fs::{File, OpenOptions},
     io::{Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
@@ -105,9 +104,6 @@ pub(crate) struct SideTurn<A = Action> {
     pub(crate) committed: bool,
     /// This side's pending or sealed decisions, in order.
     pub(crate) decisions: Vec<A>,
-    /// In-place pins by formation index, marked at the current action count.
-    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
-    pub(crate) pins: BTreeMap<i32, usize>,
 }
 
 impl Turn<serde_json::Value> {
@@ -117,7 +113,6 @@ impl Turn<serde_json::Value> {
             Ok(SideTurn {
                 given: side.given,
                 committed: side.committed,
-                pins: side.pins,
                 decisions: side
                     .decisions
                     .into_iter()
@@ -151,7 +146,6 @@ impl Turn {
             given,
             committed: false,
             decisions: Vec::new(),
-            pins: BTreeMap::new(),
         };
         Self {
             schema: SCHEMA.to_owned(),

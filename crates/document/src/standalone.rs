@@ -292,6 +292,7 @@ impl StandaloneState {
             let side_map = side_val
                 .as_mapping_mut()
                 .ok_or_else(|| format!("state side {side_name} must be a mapping"))?;
+            crate::board::normalize_expanded_round_side(side_map, side_name)?;
             side_has_random_state[idx] = extract_random_state(side_map, side_name)?;
             if let Some(loadout) = remove_opt(side_map, "tech_loadout") {
                 tech_loadout[idx] = Some(
@@ -315,6 +316,16 @@ impl StandaloneState {
             let unlocked_key = YamlValue::String("unlocked_units".into());
             if !side_map.contains_key(&unlocked_key) {
                 side_map.insert(unlocked_key, YamlValue::Sequence(Vec::new()));
+            }
+            let towers_key = YamlValue::String("tower_strengthen_levels".into());
+            if !side_map.contains_key(&towers_key) {
+                side_map.insert(
+                    towers_key,
+                    YamlValue::Sequence(vec![
+                        YamlValue::Number(0.into());
+                        crate::layout::TOWER_COUNT
+                    ]),
+                );
             }
         }
 
@@ -427,7 +438,7 @@ impl StandaloneState {
                     crate::reinforcement::expand_pool(self.seed, &s.reinforce_pool)?;
                 }
                 s.check_reinforcement(false)?;
-                s.check_towers(false)?;
+                s.check_towers(true)?;
                 s.blue.check_board(false)?;
                 s.red.check_board(false)?;
                 for (idx, (side_name, side)) in
@@ -491,6 +502,11 @@ impl StandaloneState {
             .find(|t| t.round == round)
             .ok_or_else(|| format!("this match has no round {round}"))?;
         let mut state = turn.state.clone();
+        for side in [&mut state.blue, &mut state.red] {
+            if side.tower_strengthen_levels.is_empty() {
+                side.tower_strengthen_levels = vec![0; crate::layout::TOWER_COUNT];
+            }
+        }
         state.open_reinforcement();
         crate::transition::open_allowances(&mut state.blue);
         crate::transition::open_allowances(&mut state.red);
@@ -871,6 +887,7 @@ fn parse_opening_body(
                     .map_err(|e| format!("{side_name} tech_loadout: {e}"))?,
             );
         }
+        crate::board::normalize_expanded_opening_side(side_map, side_name)?;
     }
 
     let wire: OpeningWire = serde_yaml::from_value(YamlValue::Mapping(std::mem::take(fields)))
@@ -1001,7 +1018,14 @@ fn opening_side_to_json(
     );
     map.insert(
         "constructions".into(),
-        serde_json::to_value(&side.constructions).map_err(|e| e.to_string())?,
+        match format {
+            MatchFormat::Compact => {
+                serde_json::to_value(&side.constructions).map_err(|e| e.to_string())?
+            }
+            MatchFormat::Expanded => JsonValue::Array(crate::board::expanded_constructions_json(
+                &side.constructions,
+            )?),
+        },
     );
     Ok(JsonValue::Object(map))
 }
@@ -1022,7 +1046,9 @@ fn match_opening_side_to_json(side: &MatchSide, name: &str) -> Result<JsonValue,
     );
     map.insert(
         "constructions".into(),
-        serde_json::to_value(&side.constructions).map_err(|e| e.to_string())?,
+        JsonValue::Array(crate::board::expanded_constructions_json(
+            &side.constructions,
+        )?),
     );
     Ok(JsonValue::Object(map))
 }
@@ -1083,6 +1109,9 @@ fn round_side_to_json(
     }
     for (k, v) in std::mem::take(obj) {
         ordered.insert(k, v);
+    }
+    if opts.format == MatchFormat::Expanded {
+        crate::board::expand_round_side_json(&mut ordered, side)?;
     }
     Ok(JsonValue::Object(ordered))
 }
@@ -1411,6 +1440,7 @@ mod tests {
         assert!(p0.get("history").is_none());
         assert!(p0["state"]["reinforce_pool"].is_array());
         assert!(p0["state"]["blue"]["tech_loadout"].is_object());
+        assert!(p0["state"]["blue"]["constructions"][0]["size"]["width"].is_i64());
         assert!(p0["state"]["blue"].get("name").is_none());
         assert!(p0["state"]["blue"].get("elo_score").is_none());
 
@@ -1422,6 +1452,133 @@ mod tests {
         let p0_no_reinf = problem_json(&r#match, 0, None).unwrap();
         assert!(p0_no_reinf["state"].get("reinforce_pool").is_none());
         assert!(p0_no_reinf.get("ref").is_none());
+    }
+
+    #[test]
+    fn standalone_expanded_state_emits_and_validates_towers_and_entity_sizes() {
+        let doc = json!({
+            "kind": "state",
+            "round": 2,
+            "seed": 7,
+            "blue": {
+                "reactor_core": 4500,
+                "supply": 200,
+                "tower_strengthen_levels": [0, 3],
+                "next_index": {"unit": 2, "contraption": 2},
+                "battle_skills": [
+                    {"index": 0, "name": "field_recovery", "cooldown": 0, "release": {"target": {"unit": 1}}}
+                ],
+                "units": [
+                    {"name": "phantom_ray", "index": 0, "value": 200, "position": {"x": 320, "y": 55}},
+                    {"name": "crawler", "index": 1, "value": 100, "recovered": true}
+                ],
+                "constructions": [
+                    {"name": "defensive_wall", "index": 0, "position": {"x": 140, "y": -55}}
+                ],
+                "contraptions": [
+                    {"name": "missile", "index": 0, "position": {"x": 0, "y": -80}},
+                    {"name": "interceptor", "index": 1, "position": {"x": 50, "y": -80}}
+                ]
+            },
+            "red": {
+                "reactor_core": 4500,
+                "supply": 200,
+                "next_index": {"unit": 0, "contraption": 0},
+                "units": []
+            }
+        });
+        let parsed = StandaloneState::from_json_value(&doc).unwrap();
+        let expanded = parsed.to_json_value(MatchFormat::Expanded, false).unwrap();
+        assert!(expanded["blue"].get("tower_strengthen_levels").is_none());
+        assert_eq!(expanded["blue"]["towers"][1]["level"], 3);
+        assert_eq!(
+            expanded["blue"]["towers"][0]["size"],
+            json!({"width": 20, "depth": 20})
+        );
+        // Phantom Ray 50x20 in right flank becomes 20x50
+        assert_eq!(
+            expanded["blue"]["units"][0]["size"],
+            json!({"width": 20, "depth": 50})
+        );
+        assert!(expanded["blue"]["units"][1].get("size").is_none());
+        assert_eq!(
+            expanded["blue"]["constructions"][0]["size"],
+            json!({"width": 60, "depth": 10})
+        );
+        assert!(expanded["blue"]["contraptions"][0].get("size").is_none());
+        assert_eq!(
+            expanded["blue"]["contraptions"][1]["size"],
+            json!({"width": 30, "depth": 30})
+        );
+
+        // Round-trips cleanly through from_json_value -> compact -> expanded
+        let reparsed = StandaloneState::from_json_value(&expanded).unwrap();
+        assert_eq!(
+            reparsed
+                .to_json_value(MatchFormat::Expanded, false)
+                .unwrap(),
+            expanded
+        );
+        let compact = reparsed.to_json_value(MatchFormat::Compact, false).unwrap();
+        assert_eq!(compact["blue"]["tower_strengthen_levels"], json!([0, 3]));
+        assert!(compact["blue"].get("towers").is_none());
+        assert!(compact["blue"]["units"][0].get("size").is_none());
+
+        // Mismatched size is rejected
+        let mut wrong_size = expanded.clone();
+        wrong_size["blue"]["units"][0]["size"] = json!({"width": 50, "depth": 20});
+        assert!(StandaloneState::from_json_value(&wrong_size).is_err());
+
+        // Tombstone with size is rejected
+        let mut tomb_size = expanded;
+        tomb_size["blue"]["units"][1]["size"] = json!({"width": 60, "depth": 20});
+        assert!(StandaloneState::from_json_value(&tomb_size).is_err());
+    }
+
+    #[test]
+    fn standalone_omitted_tower_levels_default_to_zero() {
+        let economy = crate::economy::Economy::embedded().unwrap();
+        let doc = json!({
+            "kind": "state",
+            "round": 1,
+            "seed": 7,
+            "blue": {
+                "reactor_core": 4500,
+                "supply": 400,
+                "next_index": {"unit": 0, "contraption": 0},
+                "units": []
+            },
+            "red": {
+                "reactor_core": 4500,
+                "supply": 400,
+                "next_index": {"unit": 0, "contraption": 0},
+                "units": []
+            }
+        });
+        let parsed = StandaloneState::from_json_value(&doc).unwrap();
+        let state = match &parsed.body {
+            StandaloneBody::Round(round) => &round.state,
+            StandaloneBody::Opening(_) => panic!("expected round state"),
+        };
+        assert_eq!(state.blue.tower_strengthen_levels, vec![0, 0]);
+        assert_eq!(state.red.tower_strengthen_levels, vec![0, 0]);
+        let expanded = parsed.to_json_value(MatchFormat::Expanded, false).unwrap();
+        let reparsed = StandaloneState::from_json_value(&expanded).unwrap();
+        assert_eq!(parsed, reparsed);
+
+        let after_compact = crate::transition::deployed(
+            economy,
+            &state.blue,
+            &[crate::r#match::Action::StrengthenTower { tower: 0 }],
+            false,
+            None,
+        )
+        .unwrap();
+        assert_eq!(after_compact.tower_strengthen_levels, vec![1, 0]);
+
+        let mut explicit_empty = doc;
+        explicit_empty["blue"]["tower_strengthen_levels"] = json!([]);
+        assert!(StandaloneState::from_json_value(&explicit_empty).is_err());
     }
 
     #[test]

@@ -335,11 +335,15 @@ fn rpc_convert_variants() {
     let s_last = &by_id(3)["result"]["state"];
     assert_eq!(s_last["round"], 2);
     assert!(s_last["reinforce_offers"].is_array());
+    assert!(s_last["blue"].get("tower_strengthen_levels").is_none());
+    assert_eq!(s_last["blue"]["towers"].as_array().unwrap().len(), 2);
+    assert!(s_last["blue"]["units"][0]["size"]["width"].is_i64());
 
     let s1_applied = &by_id(4)["result"]["state"];
     assert_eq!(s1_applied["round"], 1);
     assert!(s1_applied["blue"]["shop"].is_object());
     assert!(!s1_applied["blue"]["units"].as_array().unwrap().is_empty());
+    assert!(s1_applied["blue"]["units"][0]["size"]["depth"].is_i64());
 
     assert_eq!(by_id(5)["error"]["code"], -32001);
     assert_eq!(by_id(6)["error"]["code"], -32602);
@@ -545,4 +549,63 @@ fn rpc_rejects_second_opening_choice_terminal_state_and_null_action_list() {
     assert_eq!(by_id(5)["error"]["code"], -32602);
     assert_eq!(by_id(6)["error"]["code"], -32001);
     assert_eq!(by_id(7)["error"]["code"], -32001);
+}
+
+#[test]
+fn rpc_act_strengthen_tower_matches_when_tower_levels_omitted_or_expanded() {
+    let state = json!({
+        "kind": "state",
+        "round": 1,
+        "seed": 7,
+        "blue": {
+            "reactor_core": 4500,
+            "supply": 400,
+            "next_index": {"unit": 0, "contraption": 0},
+            "units": []
+        },
+        "red": {
+            "reactor_core": 4500,
+            "supply": 400,
+            "next_index": {"unit": 0, "contraption": 0},
+            "units": []
+        }
+    });
+    let state_yaml = format!(
+        "kind: state\nround: 1\nseed: 7\nblue: {}\nred: {}\n",
+        state["blue"], state["red"]
+    );
+
+    let conv = json!({"jsonrpc": "2.0", "id": 1, "method": "convert", "params": {"input": state_yaml, "to": "state"}});
+    let act_compact = json!({"jsonrpc": "2.0", "id": 2, "method": "act", "params": {"context": {"state": state}, "actions": {"blue": [{"type": "strengthen_tower", "tower": 0}]}}});
+    let (r1, _, st1) = roundtrip(&[&conv.to_string(), &act_compact.to_string()], &[]);
+    assert!(st1.success());
+    let find1 = |id: i64| r1.iter().find(|r| r["id"] == id).unwrap().clone();
+    let expanded_state = find1(1)["result"]["state"].clone();
+    assert!(expanded_state.is_object(), "convert failed: {}", find1(1));
+    let act_expanded = json!({"jsonrpc": "2.0", "id": 3, "method": "act", "params": {"context": {"state": expanded_state}, "actions": {"blue": [{"type": "strengthen_tower", "tower": 0}]}}});
+    let (r2, _, st2) = roundtrip(&[&act_expanded.to_string()], &[]);
+    assert!(st2.success());
+    let resp_compact = find1(2);
+    let resp_expanded = r2.iter().find(|r| r["id"] == 3).unwrap().clone();
+    assert!(
+        resp_compact.get("result").is_some(),
+        "compact act failed: {resp_compact}"
+    );
+    assert!(
+        resp_expanded.get("result").is_some(),
+        "expanded act failed: {resp_expanded} from {expanded_state}"
+    );
+
+    assert_eq!(
+        resp_compact["result"]["state"]["blue"]["towers"],
+        resp_expanded["result"]["state"]["blue"]["towers"]
+    );
+    assert_eq!(
+        resp_compact["result"]["state"]["blue"]["towers"][0]["level"],
+        1
+    );
+    assert_eq!(
+        resp_compact["result"]["state"]["blue"]["towers"][1]["level"],
+        0
+    );
 }

@@ -89,7 +89,6 @@ One entry each for `blue` and `red`.
 | `given` | that side has been handed to a player by `match new`, or reopened by `match fork`; a third `new` caller is refused |
 | `committed` | that side has sealed this round's decisions and cannot change them |
 | `decisions` | pending or sealed decisions for this round, in the order taken |
-| `pins` | optional mapping from formation index to the number of actions taken when it was pinned in place |
 
 A side's `decisions` are the [action](../document/action.md) spec's actions.
 Before commitment and the deployment deadline, `match undo` truncates this
@@ -97,9 +96,7 @@ list and `match act --force-push` replaces it. Both validate the resulting
 sequence by replaying from the round's opening before writing. Failed edits
 preserve the list, and successful edits preserve `opened`, the other side's
 list and the public match file. Removed decisions are discarded; the turn
-file stores no undo or redo journal. Undo drops pins beyond the retained
-action count. Replacement starts with no pins and applies any in its request.
-Committing retains the action list, clears the pins and sets `committed`.
+file stores no undo or redo journal. Committing retains the action list and sets `committed`.
 Both action lists remain here until
 settlement succeeds, when the match publishes both in normal form together
 with the next state and resets this file for the next round. Failed settlement

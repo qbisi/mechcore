@@ -59,14 +59,6 @@ fn state(view: &Value) -> &Value {
     &view["state"]
 }
 
-fn without_unpinned(view: &Value, side: &str) -> Value {
-    let mut written = state(view).clone();
-    for unit in written[side]["units"].as_array_mut().unwrap() {
-        unit.as_object_mut().unwrap().remove("unpinned");
-    }
-    written
-}
-
 fn disk_document(path: &str) -> Value {
     use serde::Deserialize as _;
     let yaml = fs::read_to_string(path).unwrap();
@@ -856,7 +848,7 @@ fn a_view_applies_only_the_callers_decisions_and_adds_runtime_legality() {
     assert_eq!(blue["sides"]["red"]["committed"], true);
     assert_eq!(state(&blue), state(&acted[1]));
     let red = run(&["match", "show", &path, "--side", "red"]).ok();
-    assert_eq!(*state(&red), without_unpinned(&acted[0], "red"));
+    assert_eq!(*state(&red), *state(&acted[0]));
     assert_eq!(disk_document(&path), before);
     let all = run(&["match", "show", &path, "--omniscient"]).ok();
     assert!(all.get("side").is_none());
@@ -926,7 +918,6 @@ fn movement_permission_is_recomputed_from_equipment_and_redeploy_actions() {
         let before = fs::read(&path).unwrap();
         let view = run(&["match", "show", &path, "--side", "blue"]).ok();
         assert_eq!(state(&view)["blue"]["units"][0]["movable"], false);
-        assert_eq!(state(&view)["blue"]["units"][0]["unpinned"], false);
         let written = serde_json::to_string(&action).unwrap();
         let trial = run(&[
             "match",
@@ -939,7 +930,6 @@ fn movement_permission_is_recomputed_from_equipment_and_redeploy_actions() {
         ])
         .ok();
         assert_eq!(state(&trial)["blue"]["units"][0]["movable"], true);
-        assert_eq!(state(&trial)["blue"]["units"][0]["unpinned"], true);
         if redeploy {
             let slot = state(&trial)["blue"]["battle_skills"]
                 .as_array()
@@ -956,7 +946,7 @@ fn movement_permission_is_recomputed_from_equipment_and_redeploy_actions() {
         let applied = run(&["match", "act", &path, "--side", "blue", &written]).ok();
         assert_eq!(state(&applied), state(&trial));
         let sealed = run(&["match", "commit", &path, "--side", "blue"]).ok();
-        assert_eq!(*state(&sealed), without_unpinned(&trial, "blue"));
+        assert_eq!(*state(&sealed), *state(&trial));
         let opponent = run(&["match", "show", &path, "--side", "red"]).ok();
         assert!(
             state(&opponent)["blue"]["units"][0]
@@ -968,115 +958,7 @@ fn movement_permission_is_recomputed_from_equipment_and_redeploy_actions() {
 }
 
 #[test]
-fn in_place_pin_is_private_and_keeps_movement_permission() {
-    let directory = tempfile::tempdir().unwrap();
-    let path = dealt(directory.path());
-    open_the_match(&path);
-    let shared = fs::read(&path).unwrap();
-    let turn_path = Path::new(&path).with_extension("turn");
-    let pending = fs::read(&turn_path).unwrap();
-    let show = |side| run(&["match", "show", &path, "--side", side]).ok();
-    let view = show("blue");
-    let unit = &state(&view)["blue"]["units"][0];
-    let index = unit["index"].as_i64().unwrap();
-    let x = unit["position"]["x"].as_i64().unwrap();
-    let pin = format!("{{type: pin, index: {index}}}");
-    assert_eq!(unit["unpinned"], true);
-    let trial = run(&["match", "act", &path, "--side", "blue", "--dry-run", &pin]).ok();
-    assert_eq!(state(&trial)["blue"]["units"][0]["unpinned"], false);
-    assert_eq!(fs::read(&turn_path).unwrap(), pending);
-
-    let invalid = format!("[{pin}, {{type: pin, index: 99999}}]");
-    run(&["match", "act", &path, "--side", "blue", &invalid]).refused();
-    assert_eq!(fs::read(&turn_path).unwrap(), pending);
-
-    let pinned = &requests(
-        &path,
-        "blue",
-        &[
-            serde_json::json!({"op": "match.act", "decision": {"type": "pin", "index": index}})
-                .to_string(),
-        ],
-    )[0];
-    assert_eq!(pinned["actions"], serde_json::json!([]));
-    assert_eq!(pinned["events"], serde_json::json!([]));
-    assert_eq!(state(pinned)["blue"]["units"][0]["movable"], true);
-    assert_eq!(state(pinned)["blue"]["units"][0]["unpinned"], false);
-    assert_eq!(
-        state(pinned)["blue"]["units"][0]["position"],
-        unit["position"]
-    );
-    assert_eq!(state(&show("blue")), state(pinned));
-    assert!(
-        state(&show("red"))["blue"]["units"][0]
-            .get("unpinned")
-            .is_none()
-    );
-    assert_eq!(fs::read(&path).unwrap(), shared);
-
-    let move_unit = format!("{{type: move_unit, index: {index}, position: {{x: {x}, y: -280}}}}");
-    let moved = run(&["match", "act", &path, "--side", "blue", &move_unit]).ok();
-    assert_eq!(moved["actions"][0]["type"], "move_unit");
-    assert_eq!(state(&moved)["blue"]["units"][0]["unpinned"], false);
-    let undone = run(&["match", "undo", &path, "--side", "blue"]).ok();
-    assert_eq!(state(&undone), state(pinned));
-
-    let sealed = run(&["match", "commit", &path, "--side", "blue"]).ok();
-    assert!(state(&sealed)["blue"]["units"][0].get("unpinned").is_none());
-    let pending: Value = serde_json::from_slice(&fs::read(&turn_path).unwrap()).unwrap();
-    assert!(pending["sides"]["blue"].get("pins").is_none());
-    assert_eq!(pending["sides"]["blue"]["decisions"], serde_json::json!([]));
-    assert_eq!(fs::read(&path).unwrap(), shared);
-    let next_round = run(&["match", "commit", &path, "--side", "red"]).ok();
-    assert_eq!(next_round["round"], 2, "{next_round}");
-    let written = fs::read_to_string(&path).unwrap();
-    assert_ne!(written.as_bytes(), shared);
-    assert!(!written.contains("unpinned"));
-    assert!(!written.contains("type: pin"));
-}
-
-#[test]
-fn undo_and_replacement_discard_pins_from_removed_draft_edits() {
-    let directory = tempfile::tempdir().unwrap();
-    let path = dealt(directory.path());
-    open_the_match(&path);
-    let buy = "{type: buy_unit, name: arclight}";
-    let bought = run(&["match", "act", &path, "--side", "blue", buy]).ok();
-    let index = bought["events"][0]["created"]["index"].as_i64().unwrap();
-    let pin = format!("{{type: pin, index: {index}}}");
-    let formation = |view: &Value| {
-        state(view)["blue"]["units"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .find(|unit| unit["index"] == index)
-            .unwrap()["unpinned"]
-            .clone()
-    };
-    assert_eq!(formation(&bought), true);
-    let pinned = run(&["match", "act", &path, "--side", "blue", &pin]).ok();
-    assert_eq!(formation(&pinned), false);
-    run(&["match", "undo", &path, "--side", "blue"]).ok();
-    let repurchased = run(&["match", "act", &path, "--side", "blue", buy]).ok();
-    assert_eq!(formation(&repurchased), true);
-
-    run(&["match", "act", &path, "--side", "blue", &pin]).ok();
-    let replace = format!("[{buy}]");
-    let replaced = run(&[
-        "match",
-        "act",
-        &path,
-        "--side",
-        "blue",
-        "--force-push",
-        &replace,
-    ])
-    .ok();
-    assert_eq!(formation(&replaced), true);
-}
-
-#[test]
-fn commit_refuses_a_colliding_board_before_sealing_or_clearing_pins() {
+fn commit_refuses_a_colliding_board_before_sealing() {
     let directory = tempfile::tempdir().unwrap();
     let path = dealt(directory.path());
     open_the_match(&path);
@@ -1085,13 +967,11 @@ fn commit_refuses_a_colliding_board_before_sealing_or_clearing_pins() {
         .unwrap();
     let blue = &mut game.turns[0].state.blue;
     blue.units[1].position = blue.units[0].position;
-    let pin = format!("{{type: pin, index: {}}}", blue.units[0].index);
     fs::write(
         &path,
         mechcore_document::r#match::canonical_yaml(&game).unwrap(),
     )
     .unwrap();
-    run(&["match", "act", &path, "--side", "blue", &pin]).ok();
     let turn_path = Path::new(&path).with_extension("turn");
     let before = fs::read(&turn_path).unwrap();
     let reason = run(&["match", "commit", &path, "--side", "blue"]).refused();
@@ -1135,7 +1015,7 @@ fn recovery_reports_a_removal_and_returns_fitted_equipment_to_stock() {
     let blue = &state(&recovered)["blue"];
     let tombstone = &blue["units"][0];
     assert_eq!(tombstone["recovered"], true);
-    for field in ["position", "exp", "movable", "unpinned"] {
+    for field in ["position", "exp", "movable"] {
         assert!(tombstone.get(field).is_none(), "{tombstone}");
     }
     assert_eq!(blue["equipments"], serde_json::json!(["laser_sights"]));
@@ -1272,7 +1152,6 @@ fn a_failed_sequence_keeps_prior_decisions_and_reports_the_first_failed_step() {
         &unchanged.to_string(),
     ])
     .ok();
-    assert_eq!(state(&kept)["blue"]["units"][0]["unpinned"], false);
     let document = fs::read(&path).unwrap();
     let turn = fs::read(Path::new(&path).with_extension("turn")).unwrap();
     let buy = serde_json::json!({
@@ -2078,57 +1957,6 @@ fn playing_a_match_keeps_each_completed_round() {
             .unwrap();
         assert_eq!(seed.status.code(), Some(2));
     }
-}
-
-#[test]
-fn placement_masks_see_only_the_callers_pending_actions_without_advancing() {
-    let directory = tempfile::tempdir().unwrap();
-    let path = dealt(directory.path());
-    open_the_match(&path);
-    let view = run(&["match", "show", &path, "--side", "red"]).ok();
-    let unit = &view["state"]["red"]["units"][0];
-    let name = unit["name"].as_str().unwrap();
-    let blue_before = run(&["mask", &path, "--side", "blue", "--unit", "rhino"]).ok();
-    let red_before = run(&["mask", &path, "--side", "red", "--unit", name]).ok();
-    let grid = red_before["grids"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|g| {
-            g["rows"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|r| r.as_u64().unwrap() != 0)
-        })
-        .unwrap();
-    let (row, word) = grid["rows"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .enumerate()
-        .find(|(_, r)| r.as_u64().unwrap() != 0)
-        .unwrap();
-    let column = word.as_u64().unwrap().trailing_zeros();
-    let decision = serde_json::json!({"type":"move_unit","index":unit["index"],
-        "position":{"x":grid["offset"]["x"].as_i64().unwrap()+i64::from(column)*10,
-        "y":grid["offset"]["y"].as_i64().unwrap()+i64::try_from(row).unwrap()*10},
-        "rotated":grid["rotated"]})
-    .to_string();
-    run(&["match", "act", &path, "--side", "red", &decision]).ok();
-    let document_before = fs::read(&path).unwrap();
-    let turn_path = Path::new(&path).with_extension("turn");
-    let turn_before = fs::read(&turn_path).unwrap();
-    assert_eq!(
-        blue_before,
-        run(&["mask", &path, "--side", "blue", "--unit", "rhino"]).ok()
-    );
-    assert_ne!(
-        red_before,
-        run(&["mask", &path, "--side", "red", "--unit", name]).ok()
-    );
-    assert_eq!(document_before, fs::read(&path).unwrap());
-    assert_eq!(turn_before, fs::read(&turn_path).unwrap());
 }
 
 #[test]

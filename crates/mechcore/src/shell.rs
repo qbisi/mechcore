@@ -55,8 +55,6 @@ without the game
                                   serve interactive playback over HTTP
   format <document.yaml> [--write] [--expanded]
                                   write documents in normal form
-  mask <file> --side blue|red --unit <type>
-                                  geometric purchase placement grids
   preview <layout|state>           effective attributes and initial target relations
 a match, once a line has opened one or the shell was opened on it
   match new <match.yaml>          deal a match, or join one, and play the side handed out
@@ -76,9 +74,7 @@ shell
   quit | exit                     leave the shell";
 
 /// The commands a line may name beside the game's, which need no session.
-const SESSIONLESS: &[&str] = &[
-    "verify", "convert", "diff", "play", "format", "mask", "preview",
-];
+const SESSIONLESS: &[&str] = &["verify", "convert", "diff", "play", "format", "preview"];
 
 /// A match and the side a shell plays of it.
 pub(crate) type Bound = (PathBuf, Side);

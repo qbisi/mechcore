@@ -681,7 +681,19 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
     }
     let opening_state: Option<OpeningState> = stream
         .opening_state
-        .map(crate::r#match::payload)
+        .map(|mut value| {
+            if let Some(fields) = value.as_mapping_mut() {
+                for side_name in ["blue", "red"] {
+                    if let Some(side_map) = fields
+                        .get_mut(serde_yaml::Value::String(side_name.into()))
+                        .and_then(serde_yaml::Value::as_mapping_mut)
+                    {
+                        crate::board::normalize_expanded_opening_side(side_map, side_name)?;
+                    }
+                }
+            }
+            crate::r#match::payload(value).map_err(|error| error.to_string())
+        })
         .transpose()
         .map_err(|error| format!("round 0 state segment is not readable: {error}"))?;
     if let Some(members) = opening_state

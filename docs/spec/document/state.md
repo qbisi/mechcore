@@ -290,8 +290,14 @@ reinforce_pool: [supply_specialist, laser_sights, extended_range_fortress]
 - **`energy_tower_skills`**：**本回合内已激活**的能量塔技能列表（空列表省略），按 ID 升序排列。
   - 能量塔技能均仅限当回合有效，因此所有回合开局态均为空并省略，随后在本回合依次执行 `active_energy_tower_skill` 时填入。
   - 状态完整保留标准 1v1 全部五项技能（不同于 `layout` 只保留战斗可见的 `5`、`6`）：其中 `rapid_resupply`（`1`）虽属纯经济技能，却自带“当回合提前支取、下一回合开启时从回合收入抵扣”的跨回合债务，状态若丢弃它就无法正确结算下一回合的开局 `supply`。原生快照会在下一回合延迟一行记录该标志，只能用于辅助反推上一回合补给，绝不可直接抄入新回合的 `energy_tower_skills`。
-- **`tower_strengthen_levels`**：固定长度为 2 的数组，记录两座基础设施的强化等级（各取值 `0..=4`）。
-  - **统一规范下标**：对红蓝双方一律规定 **`0` 为能量塔（`energy_tower`），`1` 为研发中心（`research_center`）**。
+- **`tower_strengthen_levels`**（紧凑态） / **`towers`**（展开态，两者在输入时互斥）：
+  - 紧凑态固定为长度 2 的数组，记录两座基础设施的强化等级（各取值 `0..=4`），**统一规范下标**：**`0` 为能量塔（`energy_tower`），`1` 为研发中心（`research_center`）**。
+  - 展开态以实体列表 `towers` 替代 `tower_strengthen_levels`（即使等级全 `0` 仍固定写出两项）：
+    ```yaml
+    towers:
+    - {name: energy_tower, index: 0, position: {x: -140, y: -170}, size: {width: 20, depth: 20}, level: 0}
+    - {name: research_center, index: 1, position: {x: 140, y: -170}, size: {width: 20, depth: 20}, level: 0}
+    ```
   - 游戏原生 `BuildingManager.buildings` 对红蓝双方的内部排序相反（蓝方 `[EnergyTower, ResearchCenter]`，红方 `[ResearchCenter, EnergyTower]`）；文档格式在转换、导出、编译与采集边界自动完成红方的 `0 <-> 1` 映射（依据 [`config/maps.yaml`](../../../config/maps.yaml)）。
 - **`equipments`**：本阵营当前持有、尚未被任何存活编队穿戴的装备库存（按装备 ID 升序排列的多重集；空列表省略）。
   - 状态采用**未穿戴库存 + 各编队穿戴列表**的差分化存储，两者互斥且共同完备所有装备资产（不同于原生 `equipmentDatas` 把已穿戴和未穿戴全部写在一起）。
@@ -322,7 +328,7 @@ units:
   - 军官在常规回合开启时交付的小队在当回合开局为 `delivered`；
   - 幸存至下一回合开局的所有编队（含上一回合的 `joined` / `delivered` / 新购编队）统一转为 `legacy`；
   - 部署阶段通过增援卡或商店购买加入的编队在部署态中标记为 `joined`。
-- **部署移动权限不落盘**：`movable` 不是文档字段，而是由 `source` 与其他状态推导的派生性质——当回合 `joined`/`delivered` 的编队可移动；`legacy` 编队仅当装备 Deployment Module、所属单位已研究 Jump Drive、或本回合被 `redeployment` 技能指定为目标时才可移动（规则见 [rules/mobility.md](../../rules/mobility.md)）。CLI 交互部署视图（见 [cli.md#match-act](../mechcore/cli.md#match-act)）额外展示的 `movable` 与 `unpinned` 属于临时界面字段，不写入 `state`。
+- **部署移动权限不落盘**：`movable` 不是文档字段，而是由 `source` 与其他状态推导的派生性质——当回合 `joined`/`delivered` 的编队可移动；`legacy` 编队仅当装备 Deployment Module、所属单位已研究 Jump Drive、或本回合被 `redeployment` 技能指定为目标时才可移动（规则见 [rules/mobility.md](../../rules/mobility.md)）。CLI 交互部署视图（见 [cli.md#match-act](../mechcore/cli.md#match-act)）额外展示的 `movable` 属于临时界面字段，不写入 `state`。
 - **部署期专属字段**（仅部署态允许出现，段内开局态禁止）：
   - `travelling`：`true` 表示跨区域（进入侧翼）待传送标记，回合战斗结算后清空；
   - `recovered`：`true` 表示本回合已被 `field_recovery` 回收的墓碑。墓碑**仅保留** `name`、`index`、`value`、`level`、`source` 与 `recovered: true`，**必须清空且禁止携带** `position`、`exp`、`rotated`、`equipments`、`travelling`、`recordPosition`、`recordRotated`。该墓碑在下一回合开局时被清理，而它占用的编号在 `next_index.unit` 中保持已消耗。
@@ -369,6 +375,17 @@ battle_skills:
   - 战斗释放（投放战场技能）：包含 0-based 释放顺序号 `order` 与 `target`；
   - 部署期释放（`field_recovery`、`redeployment`、`intensive_training`）：已即时改写状态，只保留 `target` 而省略 `order`。
   - **`target` 三态互斥**：采用 `{area: [...]}`、`{unit: <index>}`、`{construction: <index>}` 三种纯 YAML 单键映射之一（见 [action.md](action.md)）。指向单位/建筑时状态只保存已解析的对象 `index`，不保留原生回放里的鼠标点击坐标 `Positions`；`area` 点列长度须匹配 [rules/battle_skill.md](../../rules/battle_skill.md) 定义。
+
+#### 4. 展开态空间实体与 `size` 字段
+
+为使 Bot 在无需二次查询单位表的前提下直接依据 `state` 计算全部棋盘占用与 AABB 碰撞，展开态（`mechcore format --expanded`、`mechcore rpc convert`/`act` `expanded: true`、以及 `mechcore solve`/`arena` 传入的 `problem`）额外展开下列空间几何字段（紧凑态省略 `size` 并保留 `tower_strengthen_levels`）：
+
+- **`size: {width, depth}`**：直接给出实体在本方局部坐标系中的实际空间跨度（`width` 沿 `x` 轴 $\Delta x$、`depth` 沿 `y` 轴 $\Delta y$，单位米），已对编队折算 `rotated ^ is_flank`（侧翼坐标轴顺时针旋转 90° 后宽高对调）：
+  - 存活 **`units[]`**：写出当前坐标下的实际占用 `{width, depth}`；`recovered: true` 墓碑无位置，不写 `size`；
+  - **`constructions[]`**（含 `round: 0` 与 `round >= 1`）：写出建筑占用尺寸（`defensive_wall` 为 `60×10`，炮台为 `20×20`）；
+  - **`contraptions[]`**：仅具部署碰撞体的 **`interceptor`** 写出 `{width: 30, depth: 30}`；`shield` 与 `missile` 不阻挡部署占位，省略 `size`；
+  - **`towers[]`**（仅 `round >= 1`）：固定写出两座基础设施及其 `{width: 20, depth: 20}` 占用与 `level`。
+- 读入侧严格校验上述实体几何：若输入携带了 `size` 但与当前目录/旋转/区域推导结果不一致、给 `recovered` 墓碑或 `shield`/`missile` 附带 `size`、修改 `towers` 的固定名称/索引/位置/尺寸、或在同一阵营中同时写出 `towers` 与 `tower_strengthen_levels`，一律拒绝。
 
 ---
 
@@ -421,7 +438,7 @@ layout = project(state)
 | `reinforce_pool` | 紧凑态：`removed` / `added` 按卡牌 ID 升序集合；展开态：全量活跃卡牌名列表按卡牌 ID 升序 |
 | `battle_skills[].standing` | 护盾按 `(x, y)` 升序；油田按控制点序 |
 | `reinforce_offers` | 保持发牌原序，末尾接 `supply` 退款项 |
-| `tower_strengthen_levels` | `[energy_tower, research_center]`（下标 0 为能量塔，下标 1 为研发中心） |
+| `tower_strengthen_levels` / `towers` | 紧凑态：`[energy_tower, research_center]`（下标 0 为能量塔，1 为研发中心）；展开态：`towers` 固定两项 `{name, index, position, size, level}` |
 
 - 单位经验 `exp` 写作 `current/maximum`，当前经验为 `0` 时省略；
 - 所有可选空列表（`blueprints`、`energy_tower_skills`、`equipments`、`battle_skills`、`techs`、`constructions`、`contraptions`、`standing`、`reinforce_pool`、`record*`）均在为空时省略；
@@ -432,7 +449,7 @@ layout = project(state)
 - `next_index.unit` 必须严格大于 `units` 中的最大 `index`（无冲突且不复用历史槽位）；`next_index.contraption` 必须严格大于 `contraptions` 中的最大 `index`；
 - `state(0)` 中双方 `reactor_core` 必须 `> 0`；独立状态 `max_round` 若写出必须 `>= 1`；
 - 所有出现的 `random_state` 均须恰好为 4 个 `u64` 且不可全为 `0`；
-- `tower_strengthen_levels` 存在时长度必须为 2，且每项在 `0..=4`；
+- `tower_strengthen_levels`（或 `towers[].level`）存在时必须对应 2 座基础设施，且每项强化等级在 `0..=4`；`towers` 与 `tower_strengthen_levels` 不得同时出现，`size` 与 `towers` 几何须与目录及坐标系严格一致；
 - `reinforce_choice` 与 `reinforce_offers` 严格一致：无牌面回合不得有 `reinforce_choice`，段内开局不得显式写 `reinforce_choice`，已选下标须落在 `0..offers.len()`；
 - `recovered: true` 的墓碑编队仅限部署态出现，且不得残留位置、朝向、经验、穿戴装备或 `travelling` 标记。
 

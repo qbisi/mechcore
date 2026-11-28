@@ -110,7 +110,7 @@ mechcore rpc [--parallel <N>]
   - `to`（必填，常量 `"state"`）：目标导出形态；
   - `round`（可选 `i32`）：仅当 `input` 为 `kind: match` 时合法（对 `kind: state` 传入按 `-32602` `usage` 拒绝）。指定提取第 `round` 回合（完整对局支持 `0`，截断对局支持流内存在的任意回合）；省略时选取流中最后一个 `state` 段（无论流止于 `state`、`action` 还是 `result`）；
   - `apply_actions`（可选布尔值，默认 `false`）：仅当 `input` 为 `kind: match` 时合法（对 `kind: state` 传入按 `-32602` `usage` 拒绝）。`false` 导出所选回合的**开局态**；`true` 将所选回合已记录的 `action` 序列应用于该回合开局态，导出**部署终态**（若所选回合尚无 `action` 段或决策不合法按 `refused` 拒绝）；
-  - `expanded`（可选布尔值，默认 `true`）：`true` 时完整展开 `tech_loadout`（`{unit: [tech, ...]}`，含全科技展开）与各回合 `reinforce_pool`（活跃普通增援池完整卡牌 ID 升序数组 `[card_name, ...]`）；`false` 时输出规范紧凑形态。
+  - `expanded`（可选布尔值，默认 `true`）：控制返回的 `state` 形态；`true` 输出展开 `tech_loadout`、完整 `reinforce_pool`、用 `towers` 替代 `tower_strengthen_levels` 并为占位实体附带 `size`（见 [state.md](../document/state.md#4-展开态空间实体与-size-字段)）；`false` 输出规范紧凑形态（保留 `tower_strengthen_levels` 且省略 `size`）。
 - **转换与展开规则**：
   - **`match` → `state`**：将对局头文件中的规则不变量（`build`、`reinforce`、`max_round`、`map_id`、`seed`、双边 `tech_loadout`）并入所选回合的 `state`，丢弃展示溯源字段（`source`、`name`、`elo_score`）。当 `round == 0` 且 `apply_actions == false` 时产出第 0 回合独立开局态；当 `reinforce == true` 且 `expanded == true` 时，`round == 0` 导出由 `seed` 初始化的初始普通增援池，`round >= 1` 依据初始池与当回合 `reinforce_pool` 差值展开完整活跃列表 `initial \ removed ∪ added`；当 `reinforce == false` 时省略 `reinforce_pool`。允许导出流内任意合法存在的回合（包括末回合核心已归零的终局状态）。
   - **`state` → `state`**：解析并校验独立 `kind: state`。`expanded == true` 时若存在 `tech_loadout` 则完整展开（原文档省略时保持省略）；当 `reinforce == true` 时，若源文档已有展开数组 `reinforce_pool` 则校验排序后输出，若为紧凑差值映射或省略则依据 `state.seed` 展开全量列表（缺失 `seed` 时无法推算初始池，按 `-32001` `refused` 拒绝）。
@@ -159,7 +159,7 @@ mechcore rpc [--parallel <N>]
     - 对 `actions` 中**显式出现**的阵营键，从 `context` 对应回合状态出发依次应用该阵营的每条决策并执行回合末序列完备性检查（如 `round: 0` 必须恰好包含一条匹配的 `choose_advance_team`，存在 `reinforce_offers` 时除非 `concede` 首条必须选择增援项或退款项，详见 [action.md](../document/action.md)）；
     - 对**省略**的阵营键，保持 `context` 中的原有状态不变且不对其执行空序列末检；若显式传入 `"red": []` 则按空序列校验红方（例如在有增援牌面回合传入空数组会被拒绝）；
     - 当双边同时出现且双方均包含 `concede` 时返回 `refused`（一回合在首个认输处终止）；
-  - `expanded`（可选布尔值，默认 `true`）：控制返回的 `result.state` 中 `tech_loadout` 与 `reinforce_pool` 是否以展开形式序列化（`true` 输出展开映射与完整增援卡列表，`false` 输出紧凑编码）。
+  - `expanded`（可选布尔值，默认 `true`）：控制返回的 `result.state` 形态；`true` 输出展开 `tech_loadout`、完整 `reinforce_pool`、用 `towers` 替代 `tower_strengthen_levels` 并为占位实体附带 `size`（见 [state.md](../document/state.md#4-展开态空间实体与-size-字段)）；`false` 输出规范紧凑编码（保留 `tower_strengthen_levels` 且省略 `size`）。
 - **Result**：
   ```json
   {
@@ -308,7 +308,7 @@ mechcore rpc [--parallel <N>]
 
 ## 待决问题
 
-1. **静态目录、几何掩码、候选动作与跨回合推进方法**：是否在 `mechcore rpc` 中增设无状态的目录导出（`catalog`）、部署合法格位掩码（`mask`）、合法动作及依存费用枚举（`candidates`）以及给定双方终态动作结算下一回合开局的转移函数（`advance`）。
+1. **静态目录、候选动作与跨回合推进方法**：是否在 `mechcore rpc` 中增设无状态的目录导出（`catalog`）、合法动作及依存费用枚举（`candidates`）以及给定双方终态动作结算下一回合开局的转移函数（`advance`）。
 2. **`convert` 扩展目标与 `layout` 直通**：`convert` 未来是否增设 `"problem"`（一次导出 `state` 与 `history`）或 `"layout"` 目标，以及 `simulate` 是否支持直接传入 `context: {"layout": <JSON object>}` 以便无需构造经济字段即可模拟孤立布局。
 3. **独立服务端的只读快照缓存（`context/pin` 与 `context/unpin`）**：当独立调用方在同一局面上发起数百次反事实推演时，是否提供显式内容寻址句柄注册接口以省去重复解析开销。
 4. **`simulate` 编队标识对齐**：`simulate` 中的 `group_by: "formation"` 与 `opening_deaths` 是否应统一或并行提供与 `preview` 一致的布局编队标识（如 `"blue/unit/<index>"`），避免消费方在 MCFR 内部编号与部署索引之间二次映射。
