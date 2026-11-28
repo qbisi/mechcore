@@ -575,6 +575,8 @@ struct StatedHeaderSide {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct OpeningState {
+    #[serde(default, with = "crate::names::card::many_opt")]
+    reinforce_pool: Option<Vec<i32>>,
     blue: OpeningStateSide,
     red: OpeningStateSide,
 }
@@ -682,6 +684,21 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
         .map(crate::r#match::payload)
         .transpose()
         .map_err(|error| format!("round 0 state segment is not readable: {error}"))?;
+    if let Some(members) = opening_state
+        .as_ref()
+        .and_then(|state| state.reinforce_pool.as_deref())
+    {
+        if !header.reinforce {
+            return Err("round 0 states reinforce_pool while reinforcements are disabled".into());
+        }
+        let delta = crate::reinforcement::compact_pool(header.seed, members)
+            .map_err(|error| format!("round 0: {error}"))?;
+        if !delta.is_empty() {
+            return Err(
+                "round 0 reinforce_pool disagrees with the match seed's initial pool".into(),
+            );
+        }
+    }
     let opening: TurnActions = stream
         .opening
         .map(crate::r#match::payload)
@@ -698,7 +715,7 @@ pub fn stated(bytes: &[u8]) -> Result<Option<Stated>, String> {
         .rounds
         .last()
         .is_some_and(|round| round.actions.is_some());
-    let turns = stated_turns(stream.rounds)?;
+    let turns = stated_turns(stream.rounds, header.seed, header.reinforce)?;
     let stated = Stated {
         has_opening,
         build: header.build,
@@ -764,12 +781,18 @@ fn stated_side(
     })
 }
 
-fn stated_turns(rounds: Vec<crate::r#match::RoundSegments>) -> Result<Vec<Turn>, String> {
+fn stated_turns(
+    rounds: Vec<crate::r#match::RoundSegments>,
+    seed: i32,
+    reinforce: bool,
+) -> Result<Vec<Turn>, String> {
     rounds
         .into_iter()
         .map(|round| {
-            let mut state: crate::r#match::State = crate::r#match::payload(round.state)
-                .map_err(|error| format!("round {} state is not readable: {error}", round.round))?;
+            let mut state: crate::r#match::State =
+                crate::r#match::read_round_state(round.state, seed, reinforce).map_err(
+                    |error| format!("round {} state is not readable: {error}", round.round),
+                )?;
             state
                 .check_reinforcement(true)
                 .map_err(|error| format!("round {}: {error}", round.round))?;

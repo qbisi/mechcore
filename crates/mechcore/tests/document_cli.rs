@@ -568,20 +568,26 @@ fn format_expanded_writes_mapping_loadout_and_round_trips_compact() {
         );
         String::from_utf8(out.stdout).unwrap()
     };
-    let assert_expanded_round_trip = |path: &std::path::Path, compact_text: &str| {
-        let expanded_yaml = run_ok(&["format", "--expanded", path.to_str().unwrap()]);
-        assert!(
-            expanded_yaml.contains("tech_loadout:\n    fortress: ["),
-            "{expanded_yaml}"
-        );
-        assert!(!expanded_yaml.contains("tech_loadout: full"));
-        let expanded_path = path.with_extension("expanded.yaml");
-        fs::write(&expanded_path, &expanded_yaml).unwrap();
-        assert_eq!(
-            run_ok(&["format", expanded_path.to_str().unwrap()]),
-            compact_text
-        );
-    };
+    let assert_expanded_round_trip =
+        |path: &std::path::Path, compact_text: &str, expect_pool: bool| {
+            let expanded_yaml = run_ok(&["format", "--expanded", path.to_str().unwrap()]);
+            assert!(
+                expanded_yaml.contains("tech_loadout:\n    fortress: ["),
+                "{expanded_yaml}"
+            );
+            assert!(!expanded_yaml.contains("tech_loadout: full"));
+            assert_eq!(
+                expanded_yaml.contains("round: 0\nreinforce_pool: ["),
+                expect_pool,
+                "{expanded_yaml}"
+            );
+            let expanded_path = path.with_extension("expanded.yaml");
+            fs::write(&expanded_path, &expanded_yaml).unwrap();
+            assert_eq!(
+                run_ok(&["format", expanded_path.to_str().unwrap()]),
+                compact_text
+            );
+        };
 
     let path = directory.path().join("match.yaml");
     run_ok(&[
@@ -600,7 +606,7 @@ fn format_expanded_writes_mapping_loadout_and_round_trips_compact() {
     let compact_text = fs::read_to_string(&path).unwrap();
     assert!(!compact_text.contains("tech_loadout: full"));
     assert!(!compact_text.contains("tech_loadout:\n"));
-    assert_expanded_round_trip(&path, &compact_text);
+    assert_expanded_round_trip(&path, &compact_text, false);
 
     let full_path = directory.path().join("full.yaml");
     run_ok(&[
@@ -616,7 +622,7 @@ fn format_expanded_writes_mapping_loadout_and_round_trips_compact() {
     ]);
     let full_text = fs::read_to_string(&full_path).unwrap();
     assert!(full_text.contains("tech_loadout: full"));
-    assert_expanded_round_trip(&full_path, &full_text);
+    assert_expanded_round_trip(&full_path, &full_text, true);
 
     let layout = directory.path().join("layout.yaml");
     fs::write(

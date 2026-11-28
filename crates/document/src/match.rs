@@ -43,9 +43,9 @@ pub struct Match {
     pub result: Option<MatchResult>,
 }
 
-/// How `tech_loadout` is written in a match header.
+/// How compactable fields (`tech_loadout` and `reinforce_pool`) are written in a match.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub enum TechLoadoutFormat {
+pub enum MatchFormat {
     #[default]
     Compact,
     Expanded,
@@ -1205,13 +1205,13 @@ impl Serialize for HeaderLoadout<'_> {
 }
 
 impl<'a> HeaderSide<'a> {
-    fn of(side: &'a MatchSide, format: TechLoadoutFormat) -> Self {
+    fn of(side: &'a MatchSide, format: MatchFormat) -> Self {
         Self {
             name: &side.name,
             elo_score: side.elo_score,
             tech_loadout: match format {
-                TechLoadoutFormat::Compact => HeaderLoadout::Compact(&side.tech_loadout),
-                TechLoadoutFormat::Expanded => HeaderLoadout::Expanded(&side.tech_loadout),
+                MatchFormat::Compact => HeaderLoadout::Compact(&side.tech_loadout),
+                MatchFormat::Expanded => HeaderLoadout::Expanded(&side.tech_loadout),
             },
         }
     }
@@ -1220,6 +1220,11 @@ impl<'a> HeaderSide<'a> {
 #[derive(Serialize)]
 struct OpeningStateSegment<'a> {
     round: i32,
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        with = "crate::names::card::many_opt"
+    )]
+    reinforce_pool: Option<Vec<i32>>,
     blue: OpeningStateSide<'a>,
     red: OpeningStateSide<'a>,
 }
@@ -1233,12 +1238,38 @@ struct OpeningStateSide<'a> {
     constructions: &'a [StaticPlacement],
 }
 
+enum StatePool<'a> {
+    Compact(&'a PoolDelta),
+    Expanded(Option<Vec<i32>>),
+}
+
+impl StatePool<'_> {
+    fn is_omitted(&self) -> bool {
+        match self {
+            Self::Compact(delta) => delta.is_empty(),
+            Self::Expanded(members) => members.is_none(),
+        }
+    }
+}
+
+impl Serialize for StatePool<'_> {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        match self {
+            Self::Compact(delta) => delta.serialize(serializer),
+            Self::Expanded(Some(members)) => {
+                crate::names::card::many::serialize(members, serializer)
+            }
+            Self::Expanded(None) => serializer.serialize_none(),
+        }
+    }
+}
+
 #[derive(Serialize)]
 struct StateSegment<'a> {
     round: i32,
     random_state: [u64; 4],
-    #[serde(skip_serializing_if = "PoolDelta::is_empty")]
-    reinforce_pool: &'a PoolDelta,
+    #[serde(skip_serializing_if = "StatePool::is_omitted")]
+    reinforce_pool: StatePool<'a>,
     #[serde(skip_serializing_if = "Option::is_none")]
     reinforce_offers: Option<&'a Offers>,
     #[serde(serialize_with = "serialize_opening_side")]
@@ -1273,15 +1304,15 @@ const SEPARATOR: &str = "---\n";
 ///
 /// Returns an error when a segment cannot be serialized.
 pub fn canonical_yaml(r#match: &Match) -> Result<String, String> {
-    canonical_yaml_with(r#match, TechLoadoutFormat::Compact)
+    canonical_yaml_with(r#match, MatchFormat::Compact)
 }
 
-/// Serializes a match with the requested `tech_loadout` representation.
+/// Serializes a match with the requested compact or expanded representation.
 ///
 /// # Errors
 ///
 /// Returns an error when a segment cannot be serialized.
-pub fn canonical_yaml_with(r#match: &Match, format: TechLoadoutFormat) -> Result<String, String> {
+pub fn canonical_yaml_with(r#match: &Match, format: MatchFormat) -> Result<String, String> {
     write_values(&segment_values_with(r#match, format)?)
 }
 
@@ -1290,7 +1321,7 @@ pub fn canonical_yaml_with(r#match: &Match, format: TechLoadoutFormat) -> Result
 /// # Errors
 /// Returns an error for a closed match or an unserializable segment.
 pub fn round_problem_yaml(game: &Match) -> Result<String, String> {
-    let mut segments = segments_of(game, TechLoadoutFormat::Compact)?;
+    let mut segments = segments_of(game, MatchFormat::Compact)?;
     if !matches!(segments.pop(), Some(Segment::Action(_))) {
         return Err("a round problem needs an open action segment".into());
     }
@@ -1313,14 +1344,14 @@ fn write_values(values: &[Value]) -> Result<String, String> {
 /// # Errors
 /// Returns an error when a segment cannot be serialized.
 pub fn segment_values(game: &Match) -> Result<Vec<Value>, String> {
-    segment_values_with(game, TechLoadoutFormat::Compact)
+    segment_values_with(game, MatchFormat::Compact)
 }
 
-/// The match's YAML documents as values, with the requested `tech_loadout` representation.
+/// The match's YAML documents as values, with the requested representation.
 ///
 /// # Errors
 /// Returns an error when a segment cannot be serialized.
-pub fn segment_values_with(game: &Match, format: TechLoadoutFormat) -> Result<Vec<Value>, String> {
+pub fn segment_values_with(game: &Match, format: MatchFormat) -> Result<Vec<Value>, String> {
     values_of(&segments_of(game, format)?)
 }
 
@@ -1339,7 +1370,7 @@ fn values_of(segments: &[Segment<'_>]) -> Result<Vec<Value>, String> {
 /// # Errors
 /// Returns an error when the header cannot be serialized.
 pub fn header_value(game: &Match) -> Result<Value, String> {
-    serde_yaml::to_value(Segment::Match(header_of(game, TechLoadoutFormat::Compact)))
+    serde_yaml::to_value(Segment::Match(header_of(game, MatchFormat::Compact)))
         .map_err(|error| format!("cannot serialize match header: {error}"))
 }
 
@@ -1350,6 +1381,7 @@ pub fn header_value(game: &Match) -> Result<Value, String> {
 pub fn opening_state_value(game: &Match) -> Result<Value, String> {
     serde_yaml::to_value(Segment::State(StateKindSegment::Opening(opening_state_of(
         game,
+        MatchFormat::Compact,
     )?)))
     .map_err(|error| format!("cannot serialize opening state: {error}"))
 }
@@ -1422,7 +1454,7 @@ pub fn read(bytes: &[u8]) -> Result<Option<Match>, String> {
 }
 
 /// The header shared by the document and decision-view writers.
-fn header_of(r#match: &Match, format: TechLoadoutFormat) -> Header<'_> {
+fn header_of(r#match: &Match, format: MatchFormat) -> Header<'_> {
     Header {
         build: &r#match.game_build,
         source: r#match.source,
@@ -1448,20 +1480,30 @@ fn opening_side_of<'a>(side: &'a MatchSide, name: &str) -> Result<OpeningStateSi
     })
 }
 
-fn opening_state_of(r#match: &Match) -> Result<OpeningStateSegment<'_>, String> {
+fn opening_state_of(
+    r#match: &Match,
+    format: MatchFormat,
+) -> Result<OpeningStateSegment<'_>, String> {
+    let reinforce_pool = match format {
+        MatchFormat::Expanded if r#match.reinforce => {
+            Some(crate::reinforcement::initial_members(r#match.seed)?)
+        }
+        _ => None,
+    };
     Ok(OpeningStateSegment {
         round: 0,
+        reinforce_pool,
         blue: opening_side_of(&r#match.blue, "blue")?,
         red: opening_side_of(&r#match.red, "red")?,
     })
 }
 
 /// A match's segments, in stream order.
-fn segments_of(r#match: &Match, format: TechLoadoutFormat) -> Result<Vec<Segment<'_>>, String> {
+fn segments_of(r#match: &Match, format: MatchFormat) -> Result<Vec<Segment<'_>>, String> {
     let mut segments = vec![Segment::Match(header_of(r#match, format))];
     if r#match.has_opening {
         segments.push(Segment::State(StateKindSegment::Opening(opening_state_of(
-            r#match,
+            r#match, format,
         )?)));
         segments.push(Segment::Action(ActionSegment {
             round: 0,
@@ -1470,10 +1512,17 @@ fn segments_of(r#match: &Match, format: TechLoadoutFormat) -> Result<Vec<Segment
         }));
     }
     for turn in &r#match.turns {
+        let reinforce_pool = match format {
+            MatchFormat::Compact => StatePool::Compact(&turn.state.reinforce_pool),
+            MatchFormat::Expanded if r#match.reinforce => StatePool::Expanded(Some(
+                crate::reinforcement::expand_pool(r#match.seed, &turn.state.reinforce_pool)?,
+            )),
+            MatchFormat::Expanded => StatePool::Expanded(None),
+        };
         segments.push(Segment::State(StateKindSegment::Round(StateSegment {
             round: turn.round,
             random_state: turn.state.random_state,
-            reinforce_pool: &turn.state.reinforce_pool,
+            reinforce_pool,
             reinforce_offers: turn.state.reinforce_offers.as_ref(),
             blue: &turn.state.blue,
             red: &turn.state.red,
@@ -1493,6 +1542,38 @@ fn segments_of(r#match: &Match, format: TechLoadoutFormat) -> Result<Vec<Segment
         segments.push(Segment::Result(result));
     }
     Ok(segments)
+}
+
+/// Deserializes a round `state` segment, accepting both compact delta mappings
+/// and expanded card-list `reinforce_pool` encodings.
+pub(crate) fn read_round_state(
+    mut value: Value,
+    seed: i32,
+    reinforce: bool,
+) -> Result<State, String> {
+    let expanded = value.as_mapping_mut().and_then(|fields| {
+        let key = Value::String("reinforce_pool".into());
+        fields
+            .get(&key)?
+            .is_sequence()
+            .then(|| fields.remove(&key))?
+    });
+    let delta = match expanded {
+        Some(seq) => {
+            if !reinforce {
+                return Err("states reinforce_pool while reinforcements are disabled".into());
+            }
+            let members = crate::names::card::many::deserialize(seq)
+                .map_err(|error| format!("reinforce_pool: {error}"))?;
+            Some(crate::reinforcement::compact_pool(seed, &members)?)
+        }
+        None => None,
+    };
+    let mut state: State = payload(value).map_err(|error| error.to_string())?;
+    if let Some(delta) = delta {
+        state.reinforce_pool = delta;
+    }
+    Ok(state)
 }
 
 /// A match stream read as the segments it is made of, each checked for its
@@ -2699,9 +2780,164 @@ mod tests {
         assert!(compact.contains("---\nkind: state\nround: 0\nblue:\n  reactor_core: 4700\n"));
         assert_eq!(super::read(compact.as_bytes()).unwrap().unwrap(), game);
 
-        let expanded =
-            super::canonical_yaml_with(&game, super::TechLoadoutFormat::Expanded).unwrap();
+        let expanded = super::canonical_yaml_with(&game, super::MatchFormat::Expanded).unwrap();
         assert!(expanded.contains("  tech_loadout:\n    fortress: ["));
+        assert!(expanded.contains("round: 0\nreinforce_pool: ["));
         assert_eq!(super::read(expanded.as_bytes()).unwrap().unwrap(), game);
+    }
+
+    fn pool_fixture_match(reinforce: bool) -> super::Match {
+        let economy = crate::economy::Economy::embedded().unwrap();
+        let initial = crate::reinforcement::initial_members(7).unwrap();
+        let group1 = [30101, 30102, 30104, 30105];
+        let removed = *group1
+            .iter()
+            .find(|id| initial.contains(id))
+            .expect("group-1 card in seed 7 initial pool");
+        let added = *group1
+            .iter()
+            .find(|id| !initial.contains(id))
+            .expect("group-1 card outside seed 7 initial pool");
+        let side = || super::MatchSide {
+            name: "side".into(),
+            elo_score: None,
+            opening: super::Opening {
+                choose: None,
+                offers: Vec::new(),
+            },
+            constructions: Vec::new(),
+            tech_loadout: economy.unit_technologies(),
+            reactor_core: Some(4500),
+            seed: None,
+        };
+        let side_state = || super::SideState {
+            random_state: [1, 2, 3, 4],
+            reactor_core: 4500,
+            supply: 200,
+            shop: super::Allowances {
+                buys_remaining: 2,
+                unlocks_remaining: 1,
+                contraptions_remaining: 8,
+            },
+            next_index: super::NextIndex {
+                unit: 0,
+                contraption: 0,
+            },
+            tower_strengthen_levels: vec![0, 0],
+            ..Default::default()
+        };
+        let delta = if reinforce {
+            super::PoolDelta {
+                removed: vec![removed],
+                added: vec![added],
+            }
+        } else {
+            super::PoolDelta::default()
+        };
+        super::Match {
+            has_opening: true,
+            game_build: crate::game_build().to_owned(),
+            source: super::Source::Simulator,
+            reinforce,
+            max_round: 40,
+            map_id: 1001,
+            seed: 7,
+            blue: side(),
+            red: side(),
+            turns: vec![
+                super::Turn {
+                    round: 1,
+                    state: super::State {
+                        random_state: [1, 2, 3, 4],
+                        reinforce_pool: super::PoolDelta::default(),
+                        reinforce_offers: None,
+                        blue: side_state(),
+                        red: side_state(),
+                    },
+                    actions: super::TurnActions::default(),
+                },
+                super::Turn {
+                    round: 2,
+                    state: super::State {
+                        random_state: [5, 6, 7, 8],
+                        reinforce_pool: delta,
+                        reinforce_offers: None,
+                        blue: side_state(),
+                        red: side_state(),
+                    },
+                    actions: super::TurnActions::default(),
+                },
+            ],
+            result: None,
+        }
+    }
+
+    #[test]
+    fn expanded_reinforce_pool_round_trips() {
+        let game = pool_fixture_match(true);
+        let expanded = super::canonical_yaml_with(&game, super::MatchFormat::Expanded).unwrap();
+        assert_eq!(expanded.matches("reinforce_pool: [").count(), 3);
+        assert_eq!(super::read(expanded.as_bytes()).unwrap().unwrap(), game);
+
+        let no_reinforce = pool_fixture_match(false);
+        let no_reinforce_expanded =
+            super::canonical_yaml_with(&no_reinforce, super::MatchFormat::Expanded).unwrap();
+        assert!(!no_reinforce_expanded.contains("reinforce_pool"));
+        assert_eq!(
+            super::read(no_reinforce_expanded.as_bytes())
+                .unwrap()
+                .unwrap(),
+            no_reinforce
+        );
+    }
+
+    #[test]
+    fn expanded_reinforce_pool_refuses_invalid_lists() {
+        let game = pool_fixture_match(true);
+        let expanded = super::canonical_yaml_with(&game, super::MatchFormat::Expanded).unwrap();
+        let no_reinforce = pool_fixture_match(false);
+        let no_reinforce_expanded =
+            super::canonical_yaml_with(&no_reinforce, super::MatchFormat::Expanded).unwrap();
+
+        let initial = crate::reinforcement::initial_members(7).unwrap();
+        let first_card = crate::names::card::name::<serde_yaml::Error>(initial[0]).unwrap();
+        let second_card = crate::names::card::name::<serde_yaml::Error>(initial[1]).unwrap();
+        let group1 = [30101, 30102, 30104, 30105];
+        let mut with_group_dup = initial;
+        let extra = *group1
+            .iter()
+            .find(|id| !with_group_dup.contains(id))
+            .expect("spare group-1 card");
+        with_group_dup.push(extra);
+        with_group_dup.sort_unstable();
+        let dup_names: Vec<_> = with_group_dup
+            .iter()
+            .map(|id| crate::names::card::name::<serde_yaml::Error>(*id).unwrap())
+            .collect();
+        let dup_line = format!("reinforce_pool: [{}]", dup_names.join(", "));
+        let initial_line = expanded
+            .lines()
+            .find(|line| line.starts_with("reinforce_pool: ["))
+            .unwrap();
+
+        for invalid in [
+            no_reinforce_expanded.replace(
+                "round: 0\n",
+                &format!("round: 0\nreinforce_pool: [{first_card}]\n"),
+            ),
+            expanded.replace(
+                &format!("[{first_card}, {second_card}"),
+                &format!("[{second_card}, {first_card}"),
+            ),
+            expanded.replace(&format!("[{first_card}, "), "[no_such_card, "),
+            expanded.replacen(initial_line, &dup_line, 1),
+            expanded.replacen(&format!("[{first_card}, "), "[", 1),
+            super::canonical_yaml(&game).unwrap().replace(
+                "round: 0\n",
+                &format!("round: 0\nreinforce_pool:\n  removed: [{first_card}]\n"),
+            ),
+        ] {
+            assert!(super::read(invalid.as_bytes()).is_err(), "{invalid}");
+        }
     }
 }
