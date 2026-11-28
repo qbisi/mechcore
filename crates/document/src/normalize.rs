@@ -64,6 +64,46 @@ pub fn match_yaml(bytes: &[u8]) -> Result<String, String> {
     match_yaml_with(bytes, crate::r#match::MatchFormat::Compact)
 }
 
+/// Normalizes one completed turn-side action sequence in `round`, retaining
+/// order-sensitive histories when required to preserve initialization behavior.
+pub(crate) fn normalize_turn_side(
+    economy: &Economy,
+    round: i32,
+    opened: &SideState,
+    actions: &[Action],
+    offers: Option<&Offers>,
+    red: bool,
+) -> Result<Vec<Action>, String> {
+    if actions.is_empty() || actions == [Action::Concede] {
+        return Ok(actions.to_vec());
+    }
+    let mut open_side = opened.clone();
+    if offers.is_some() && open_side.reinforce_choice.is_none() {
+        open_side.reinforce_choice = Some(Offers::UNANSWERED);
+    }
+    crate::transition::open_allowances(&mut open_side);
+
+    let mut closed = open_side.clone();
+    let mut placement = crate::landing::placement(red);
+    let mut history = DeploymentHistory::default();
+    let side_name = if red { "red" } else { "blue" };
+    for action in actions {
+        let next =
+            crate::transition::step_placing(economy, &closed, action, offers, &mut placement)
+                .map_err(|error| format!("round {round} {side_name}: {action:?}: {error}"))?;
+        history.record(&closed, &next, action);
+        closed = next;
+    }
+    let conceded = actions.last() == Some(&Action::Concede);
+    let mut normalized =
+        deployment_with_history(economy, &open_side, &closed, offers, red, &history)
+            .map_err(|error| format!("round {round} {side_name}: {error}"))?;
+    if conceded {
+        normalized.push(Action::Concede);
+    }
+    Ok(normalized)
+}
+
 /// Formats a match with the requested compact or expanded representation.
 ///
 /// # Errors
@@ -81,54 +121,12 @@ pub fn match_yaml_with(
         if at == last && !stated.ends_on_actions {
             continue;
         }
+        let offers = turn.state.reinforce_offers.as_ref();
         for (red, opened, actions) in [
             (false, &turn.state.blue, &mut turn.actions.blue),
             (true, &turn.state.red, &mut turn.actions.red),
         ] {
-            if actions.is_empty() || actions.as_slice() == [Action::Concede] {
-                continue;
-            }
-            let offers = turn.state.reinforce_offers.as_ref();
-            let mut closed = opened.clone();
-            let mut placement = crate::landing::placement(red);
-            let mut history = DeploymentHistory::default();
-            for action in actions.iter() {
-                let next = crate::transition::step_placing(
-                    economy,
-                    &closed,
-                    action,
-                    offers,
-                    &mut placement,
-                )
-                .map_err(|error| {
-                    format!(
-                        "round {} {}: {action:?}: {error}",
-                        turn.round,
-                        if red { "red" } else { "blue" }
-                    )
-                })?;
-                history.record(&closed, &next, action);
-                closed = next;
-            }
-            let conceded = actions.last() == Some(&Action::Concede);
-            *actions = deployment_with_history(
-                economy,
-                opened,
-                &closed,
-                turn.state.reinforce_offers.as_ref(),
-                red,
-                &history,
-            )
-            .map_err(|error| {
-                format!(
-                    "round {} {}: {error}",
-                    turn.round,
-                    if red { "red" } else { "blue" }
-                )
-            })?;
-            if conceded {
-                actions.push(Action::Concede);
-            }
+            *actions = normalize_turn_side(economy, turn.round, opened, actions, offers, red)?;
         }
     }
     let mut values = crate::r#match::segment_values_with(&game, format)?;

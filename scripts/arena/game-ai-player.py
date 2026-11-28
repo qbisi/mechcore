@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""A player modelled on the game's own computer opponent, for `mechcore arena`.
+"""A player modelled on the game's own computer opponent, for `mechcore arena` and `mechcore solve`.
 
-    mechcore arena new --blue 'uv run --with pyyaml scripts/arena/game-ai-player.py --seed 1' \
-        --red 'uv run --with pyyaml scripts/arena/random-player.py' > m.yaml
+    mechcore arena new --blue 'python3 scripts/arena/game-ai-player.py --seed 1' \
+        --red 'python3 scripts/arena/random-player.py' > m.yaml
 
-`--name` prints `game-ai` and exits without reading a match.
+Communicates over bidirectional JSON-RPC 2.0 JSON Lines using only the Python 3
+standard library.
 
 Its random seed comes from `--seed`, independently of the match's player
 seed; when omitted, Python initializes it from system randomness.
@@ -35,7 +36,7 @@ A side with nothing that hits air facing flyers buys only what does.
 """
 
 import argparse
-from bot_round import problems
+from bot_round import serve
 import pathlib
 import random
 import re
@@ -263,23 +264,9 @@ class Player:
                 return self.take(decision) is not None
         return False
 
-    def decode_loadout(self, raw):
-        if raw == "full":
-            return self.full_loadout
-        if isinstance(raw, dict):
-            return raw
-        import base64
-        padded = raw + "=" * (-len(raw) % 4)
-        data = base64.urlsafe_b64decode(padded.encode("ascii"))
-        loadout = {}
-        for bit, (unit, tech) in enumerate(self.tech_table):
-            if (data[bit >> 3] >> (bit & 7)) & 1:
-                loadout.setdefault(unit, []).append(tech)
-        return loadout
-
     def research(self):
         position = self.view()
-        loadout = self.decode_loadout(self.seen["header"][self.side]["tech_loadout"])
+        loadout = position.get("tech_loadout") or {}
         held = {unit: set(techs) for unit, techs in (position.get("techs") or {}).items()}
         types = {}
         for unit in position.get("units", []):
@@ -410,38 +397,24 @@ class Player:
 
     # The match.
 
-    def play(self):
-        import yaml
+    def solve_round(self, problem):
+        self.problem = problem
+        self.side = problem.side
+        view = {"state": dict(problem.state), "round": problem.number}
+        if problem.number:
+            self.deploy(view)
+        else:
+            self.opening(view)
 
-        names = yaml.safe_load((CONFIG / "names.yaml").read_text())["technologies"]
-        unit_techs = yaml.safe_load((CONFIG / "unit_techs.yaml").read_text())["units"]
-        self.full_loadout = {unit: list(items.values()) for unit, items in names.items()}
-        self.tech_table = sorted(
-            (tech["id"], row["type"], names[row["type"]][tech["id"]])
-            for row in unit_techs
-            for tech in row["technologies"]
-        )
-        self.tech_table = [(unit, tech) for _, unit, tech in self.tech_table]
-        for problem in problems():
-            self.problem = problem
-            self.side = problem.side
-            view = {"header": problem.header, "state": dict(problem.state), "round": problem.number}
-            if problem.number:
-                self.deploy(view)
-            else:
-                self.opening(view)
-            problem.commit()
+    def play(self):
+        serve("game-ai", self.solve_round)
         return 0
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("--name", action="store_true", help="print the bot name and exit")
     parser.add_argument("--seed", type=int, help="the bot's random seed; independent of the player seed, random when omitted")
     args = parser.parse_args()
-    if args.name:
-        print("game-ai")
-        return 0
     return Player(args.seed).play()
 
 

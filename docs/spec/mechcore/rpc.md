@@ -190,7 +190,7 @@ mechcore rpc [--parallel <N>]
 - **Params**：
   - `context`（必填）：`{"state": <JSON object>}` 或 `{"ref": "<string>"}`；
   - `actions`（可选，默认 `{}`）：`{"blue"?: [Action, ...], "red"?: [Action, ...]}`；省略的阵营视作空序列 `[]`，服务端按 [action.md](../document/action.md) 同时校验双方序列合法性；
-  - `seed`（可选 `i32`）：显式指定战斗随机种子（禁止传入 `0`，`0` 返回 `-32602` `usage`）。覆盖优先级为 `params.seed` → 上下文 `state.seed`，若最终仍缺失可用种子则按 `refused` 拒绝；
+  - `seed`（可选 `i32`）：显式指定战斗随机种子（禁止传入 `0`，`0` 返回 `-32602` `usage`）。覆盖优先级为 `params.seed` → 上下文 `state.seed`（独立状态构造时若省略 `seed` 则已默认取 `1`）；
   - `until`（可选，默认 `"fight_end"`）：停止条件谓词（见[有限战斗模拟](#有限战斗模拟until-与-collect)）；
   - `collect`（可选，默认 `{"settlement": "settlement"}`）：命名采集投影映射（见[有限战斗模拟](#有限战斗模拟until-与-collect)）。
 - **执行与投影语义**：

@@ -589,6 +589,9 @@ impl ObservationPlan {
         cancel: &AtomicBool,
     ) -> Result<Observation> {
         static CONFIG: LazyLock<Result<SimulationConfig>> = LazyLock::new(SimulationConfig::load);
+        if cancel.load(AtomicOrdering::Relaxed) {
+            return Err(Error::cancelled("simulation cancelled"));
+        }
         let config = CONFIG.as_ref().map_err(|e| Error::new(e.to_string()))?;
         let zero = matches!(self.until, Until::Tick(0));
         let (_, compiled) =
@@ -629,7 +632,7 @@ impl ObservationPlan {
         } else {
             let (tick, end) = advance_fight(&mut sim, |sim, tick, events, _| {
                 if cancel.load(AtomicOrdering::Relaxed) {
-                    return Err(Error::new("arena trial cancelled"));
+                    return Err(Error::cancelled("simulation cancelled"));
                 }
                 let events = &events.events;
                 let terminal = sim.ready_to_finish() || u64::from(tick) == fight_ticks();
@@ -862,5 +865,26 @@ impl BattleObserver {
         } else {
             None
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pre_cancelled_plan_marks_error_as_cancelled() {
+        let layout: mechcore_document::Layout = serde_json::from_value(json!({
+            "kind": "layout",
+            "round": 1,
+            "seed": 7,
+            "blue": {"units": [{"name": "marksman", "index": 0, "position": {"x": 0, "y": -50}}]},
+            "red": {"units": [{"name": "arclight", "index": 0, "position": {"x": 0, "y": -100}}]}
+        }))
+        .unwrap();
+        let plan = ObservationPlan::parse(None, None).unwrap();
+        let cancel = AtomicBool::new(true);
+        let err = plan.run(&layout, &cancel).err().expect("must cancel");
+        assert!(err.is_cancelled());
     }
 }

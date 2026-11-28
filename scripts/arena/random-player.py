@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
-"""Random player for mechcore arena. Run with uv run --with pyyaml random-player.py."""
+"""Random player for `mechcore arena` and `mechcore solve` (pure stdlib Python 3).
+
+    mechcore arena new --blue 'python3 scripts/arena/game-ai-player.py --seed 1' \
+        --red 'python3 scripts/arena/random-player.py' > m.yaml
+"""
 
 import argparse
-from bot_round import problems
 import random
+from bot_round import serve
 
 # The side's own half, in its own coordinates: its territory is toward
 # negative y. A place the board does not take is refused and drawn again; a
@@ -17,41 +21,54 @@ PATIENCE = 8
 
 
 def deploy(problem, draw):
-    offers = problem.state.get("reinforce_offers", [])
+    offers = problem.state.get("reinforce_offers") or []
     if offers:
         order = list(range(len(offers) - 1))
         draw.shuffle(order)
         for index in order + [len(offers) - 1]:
-            if problem.try_action({"type": "choose_reinforce_item", "index": index,
-                                   "name": offers[index]["name"]}, keep=True) is not None:
+            if (
+                problem.try_action(
+                    {"type": "choose_reinforce_item", "index": index, "name": offers[index]["name"]},
+                    keep=True,
+                )
+                is not None
+            ):
                 break
     refused = 0
     while refused < PATIENCE:
         unlocked = problem.state[problem.side].get("unlocked_units") or []
         if not unlocked:
             return
-        state = problem.try_action({"type": "buy_unit", "name": draw.choice(unlocked),
-                                    "position": {"x": draw.choice(X), "y": draw.choice(Y)}}, keep=True)
+        state = problem.try_action(
+            {
+                "type": "buy_unit",
+                "name": draw.choice(unlocked),
+                "position": {"x": draw.choice(X), "y": draw.choice(Y)},
+            },
+            keep=True,
+        )
         refused = refused + 1 if state is None else 0
+
+
+def solve_round(problem, draw):
+    if problem.number:
+        deploy(problem, draw)
+    else:
+        offers = problem.state[problem.side]["offers"]
+        problem.actions.append(problem.choose_team(problem.side, draw.randrange(len(offers))))
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("--name", action="store_true", help="print the bot name and exit")
-    parser.add_argument("--seed", type=int, help="the bot's random seed; independent of the player seed, random when omitted")
+    parser.add_argument(
+        "--seed",
+        type=int,
+        help="the bot's random seed; independent of the player seed, random when omitted",
+    )
     args = parser.parse_args()
-    if args.name:
-        print("random")
-        return 0
     draw = random.Random(args.seed)
-
-    for problem in problems():
-        if problem.number:
-            deploy(problem, draw)
-        else:
-            offers = problem.state[problem.side]["offers"]
-            problem.actions.append(problem.choose_team(problem.side, draw.randrange(len(offers))))
-        problem.commit()
+    serve("random", lambda problem: solve_round(problem, draw))
+    return 0
 
 
 if __name__ == "__main__":

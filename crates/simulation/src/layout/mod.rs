@@ -298,6 +298,7 @@ impl Refusals {
         Err(refusals.fold(first, |joined, error| Error {
             message: format!("{}; {}", joined.message, error.message),
             sites: [joined.sites, error.sites].concat(),
+            cancelled: joined.cancelled || error.cancelled,
         }))
     }
 }

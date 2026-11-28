@@ -1,55 +1,93 @@
-"""Python client shared by the reference players; install PyYAML or use uv run --with pyyaml."""
+"""Pure standard-library JSON-RPC 2.0 client shared by the reference players."""
 
 import json
 import sys
 
 
-def problems():
-    import yaml
-
-    for line in sys.stdin:
-        problem = json.loads(line)
-        documents = list(yaml.safe_load_all(problem["match_yaml"]))
-        yield Round(problem["side"], problem["round"], documents[0], documents[-1])
+def serve(name, solve_round):
+    """Run the JSON-RPC 2.0 stdio loop for `mechcore solve` / `mechcore arena`."""
+    for raw in sys.stdin:
+        line = raw.strip()
+        if not line:
+            continue
+        msg = json.loads(line)
+        method = msg.get("method")
+        msg_id = msg.get("id")
+        if method == "initialize":
+            reply = {"jsonrpc": "2.0", "id": msg_id, "result": {"name": name}}
+        elif method == "solve":
+            params = msg["params"]
+            round_session = Round(
+                params["side"], params["problem"], params.get("limits") or {}
+            )
+            solve_round(round_session)
+            reply = {
+                "jsonrpc": "2.0",
+                "id": msg_id,
+                "result": {"actions": round_session.actions},
+            }
+        else:
+            reply = {
+                "jsonrpc": "2.0",
+                "id": msg_id,
+                "error": {"code": -32601, "message": f"unknown method {method!r}"},
+            }
+        print(json.dumps(reply), flush=True)
 
 
 class Round:
-    def __init__(self, side, number, header, opening):
+    """Single-round problem context with reverse stateless `act` and `simulate`."""
+
+    def __init__(self, side, problem, limits):
         self.side = side
         self.other = "blue" if side == "red" else "red"
-        self.number = number
-        self.header = header
-        self.state = opening
+        self.problem = problem
+        self.opening_state = problem["state"]
+        self.state = problem["state"]
+        self.history = problem.get("history") or []
+        self.ref = problem.get("ref")
+        self.limits = limits
+        self.number = int(self.state["round"])
         self.actions = []
         self.request_id = 0
-        # A trial needs one legal answer from each seat. Model the opponent
-        # as standing still and declining its reinforcement offer.
-        self.opponent = []
-        if not number:
-            self.opponent = [self.choose_team(self.other, 0)]
-        elif offers := self.state.get("reinforce_offers"):
-            self.opponent = [{"type": "choose_reinforce_item", "index": len(offers) - 1,
-                              "name": offers[-1]["name"]}]
 
     def choose_team(self, seat, index):
         offer = self.state[seat]["offers"][index]
-        return {"type": "choose_advance_team", "index": index,
-                "name": offer["team"], "specialist": offer["specialist"]}
+        return {
+            "type": "choose_advance_team",
+            "index": index,
+            "name": offer["team"],
+            "specialist": offer["specialist"],
+        }
 
-    def ask(self, op, actions):
+    def ask(self, method, params):
         self.request_id += 1
-        print(json.dumps({"op": op, "id": self.request_id, "actions": actions}), flush=True)
-        line = sys.stdin.readline()
-        if not line:
-            raise SystemExit(0)
-        reply = json.loads(line)
-        if (reply["round"], reply["id"]) != (self.number, self.request_id):
-            raise ValueError("unexpected arena reply")
-        return reply
+        req_id = self.request_id
+        print(
+            json.dumps(
+                {"jsonrpc": "2.0", "id": req_id, "method": method, "params": params}
+            ),
+            flush=True,
+        )
+        while True:
+            line = sys.stdin.readline()
+            if not line:
+                raise SystemExit(0)
+            if not line.strip():
+                continue
+            reply = json.loads(line)
+            if reply.get("id") != req_id:
+                raise ValueError(
+                    f"unexpected RPC reply id {reply.get('id')!r}, expected {req_id!r}"
+                )
+            return reply
+
+    def _context(self):
+        return {"ref": self.ref} if self.ref is not None else {"state": self.opening_state}
 
     def try_action(self, action, *, keep=False):
         own = self.actions + [action]
-        reply = self.ask("act", {self.side: own, self.other: self.opponent})
+        reply = self.ask("act", {"context": self._context(), "actions": {self.side: own}})
         if "error" in reply:
             return None
         state = reply["result"]["state"]
@@ -57,8 +95,3 @@ class Round:
             self.actions = own
             self.state = state
         return state
-
-    def commit(self):
-        reply = self.ask("commit", self.actions)
-        if "error" in reply:
-            raise ValueError(reply["error"]["reason"])

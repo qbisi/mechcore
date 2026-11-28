@@ -986,6 +986,11 @@ impl Game {
     }
 
     fn advance(&mut self) -> Result<(), String> {
+        self.advance_outcome()
+            .map_err(|failure| failure.reason().to_owned())
+    }
+
+    fn advance_outcome(&mut self) -> Result<(), Failure> {
         self.publish_committed();
         if self.over() {
             self.record_concession();
@@ -993,7 +998,7 @@ impl Game {
         }
         let round = self.round();
         let fight = if round > 0 {
-            let fought = self.fought(round)?;
+            let fought = self.fought_outcome(round)?;
             self.r#match.source = mechcore_document::r#match::Source::Simulator;
             Some(fought)
         } else {
@@ -1001,15 +1006,16 @@ impl Game {
         };
         let mut states = Vec::new();
         for side in Side::BOTH {
-            let unsettled =
-                |unsettled| format!("round {round} {} is not settled: {unsettled}", side.name());
+            let unsettled = |unsettled| {
+                Failure::failed(format!(
+                    "round {round} {} is not settled: {unsettled}",
+                    side.name()
+                ))
+            };
             let next = match &fight {
                 None => {
                     let opened = self.opened(side);
                     let actions = self.committed_actions(side);
-                    // Nothing is declined in round zero, which deals no
-                    // reinforcement, and nothing has drawn from the side's own
-                    // stream before it.
                     let stream = self.match_side(side).seed.map(Stream::seeded);
                     transition::predict(
                         self.economy,
@@ -1023,9 +1029,7 @@ impl Game {
                     .map_err(unsettled)?
                 }
                 Some(fight) => {
-                    let position = self
-                        .position(side)
-                        .map_err(|failure| failure.reason().to_owned())?;
+                    let position = self.position(side)?;
                     let fought = match side {
                         Side::Blue => &fight.blue,
                         Side::Red => &fight.red,
@@ -1047,7 +1051,7 @@ impl Game {
         if self.settle_round_result(round, &blue, &red) {
             return Ok(());
         }
-        let dealt = self.deal()?;
+        let dealt = self.deal().map_err(Failure::failed)?;
         if let Some(opened) = self.r#match.turns.last_mut() {
             opened.state.set_reinforce_offers(dealt.offers);
             dealt.checkpoint.write_to(&mut opened.state);
@@ -1075,13 +1079,29 @@ impl Game {
     }
 
     /// Reads the fight's opening, terminal and settlement observations in memory.
-    fn fought(&self, round: i32) -> Result<mechcore_document::Fight, String> {
+    fn fought_outcome(&self, round: i32) -> Result<mechcore_document::Fight, Failure> {
         let actions = TurnActions {
             blue: self.decisions(Side::Blue),
             red: self.decisions(Side::Red),
         };
-        crate::arena_simulation::fight(self.fight_layout(&actions)?)
-            .map_err(|reason| format!("round {round} is not settled: {reason}"))
+        let layout = self.fight_layout(&actions).map_err(Failure::failed)?;
+        crate::arena_simulation::fight(layout).map_err(|failure| {
+            let reason = format!("round {round} is not settled: {}", failure.reason());
+            let mut out = Failure::failed(reason);
+            if let Some(sites) = failure
+                .object("fight")
+                .get("sites")
+                .and_then(Value::as_array)
+            {
+                out = out.with_sites(
+                    sites
+                        .iter()
+                        .filter_map(|s| s.as_str().map(str::to_owned))
+                        .collect(),
+                );
+            }
+            out
+        })
     }
 
     pub(crate) fn fight_layout(

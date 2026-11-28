@@ -61,6 +61,7 @@ pub enum Record<'a> {
 pub struct Error {
     message: String,
     sites: Vec<&'static std::panic::Location<'static>>,
+    cancelled: bool,
 }
 
 impl Error {
@@ -69,7 +70,22 @@ impl Error {
         Self {
             message: message.into(),
             sites: vec![std::panic::Location::caller()],
+            cancelled: false,
         }
+    }
+
+    pub(crate) fn cancelled(message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+            sites: Vec::new(),
+            cancelled: true,
+        }
+    }
+
+    /// Whether this simulation was aborted early by a cancellation token.
+    #[must_use]
+    pub const fn is_cancelled(&self) -> bool {
+        self.cancelled
     }
 
     /// The same reasons under a prefix that says where they arose, raised
@@ -78,6 +94,7 @@ impl Error {
         Self {
             message: format!("{prefix}: {}", self.message),
             sites: self.sites,
+            cancelled: self.cancelled,
         }
     }
 
