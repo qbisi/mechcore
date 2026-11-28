@@ -10,10 +10,12 @@ so a caller that learns one way can use the others.
 
 What an operation means is not here. A decision's effect on a position is the
 [action](../document/action.md) and [state](../document/state.md) specs, a
-layout's shape is [layout.md](../document/layout.md), the wire protocol behind
-the `game` namespace is [adapter.md](../adapter/adapter.md), how a process
-acquires the game is [session.md](session.md). What the game itself decides is
-[`docs/rules/`](../../rules), beside the tables in
+layout's shape is [layout.md](../document/layout.md), the stateless JSON-RPC
+engine protocol is [rpc.md](rpc.md), single-problem bot solving is
+[solve.md](solve.md), continuous arena hosting is [arena.md](arena.md), the
+wire protocol behind the `game` namespace is [adapter.md](../adapter/adapter.md),
+how a process acquires the game is [session.md](session.md). What the game
+itself decides is [`docs/rules/`](../../rules), beside the tables in
 [`config/`](../../../config) that the binary carries and computes with. This
 document says how each operation is invoked and what comes back.
 
@@ -68,8 +70,10 @@ standard output, and a simulator computation to MCFR answers its result
 without keeping a recording. Conversion to GRBR or match, and every game
 computation, requires `<out>`.
 
-`shell` stands outside both, because its object is a prompt rather than a
-file or namespace.
+`shell` and `rpc` stand outside both, because their object is an interactive
+prompt or a stateless JSON-RPC service rather than a file or namespace. `solve`
+is a top-level verb over a `match` or standalone `state` document that invokes
+a bot over the shared bidirectional RPC protocol ([solve.md](solve.md)).
 
 ## Kinds and verbs
 
@@ -128,7 +132,8 @@ one-key mapping from the operation's name to its argument object.
 A caller that holds a session fills in the fields that session already knows,
 so the object reaching an operation is the same whoever wrote it. A
 [`shell`](#shell) with a match open supplies its document and its side.
-[`arena`](#arena) runs a separate protocol for answering a round problem.
+[`rpc`](#rpc), [`solve`](#solve) and [`arena`](#arena) share the bidirectional
+JSON-RPC 2.0 protocol defined by [rpc.md](rpc.md) and [solve.md](solve.md).
 
 ## Results
 
@@ -672,9 +677,12 @@ exports a deterministic vector snapshot at any frame.
 `--write`. Layouts, fights and matches are the kinds it takes. The leading comment
 block and its blank lines are preserved verbatim; comments within the document
 are not retained. Leading blank lines without a comment are removed. For a
-match document, `--expanded` writes each side's `tech_loadout` as an expanded
-unit-to-technology mapping instead of `"full"` or the compact Base64url bitset;
-passing `--expanded` to a non-match document is refused.
+match document, `--expanded` writes both each side's `tech_loadout` as an
+expanded unit-to-technology mapping (instead of `"full"` or the compact
+Base64url bitset) and each deployment round's `reinforce_pool` (when
+reinforcements are enabled) as the full active ordinary reinforcement pool card
+list (instead of the `{removed, added}` delta); passing `--expanded` to a
+non-match document is refused.
 
 Fight assertion SQL is formatted with `syntaqlite`'s built-in SQLite dialect
 and default style: 80-column lines, two-space indentation, uppercase keywords
@@ -1276,6 +1284,34 @@ cannot resolve. No recording is kept: a round's fight
 is run again from the match itself, which `convert --to layout` writes the
 layout for.
 
+## `rpc`
+
+```sh
+mechcore rpc [--parallel <N>]
+```
+
+Starts a persistent stateless JSON-RPC 2.0 server over standard input and
+output (`stdin`/`stdout` JSON Lines; diagnostics on `stderr`), exposing
+`convert` (pure in-memory YAML/JSON document conversion to expanded standalone
+JSON `state`), `act`, `simulate` (including tick-0 `preview` and limited battle
+observations) and `$/cancel` over explicit immutable contexts (`state` JSON
+object or `ref`). The full wire protocol, context resolution, `until`/`collect`
+specification and error taxonomy are defined in [rpc.md](rpc.md).
+
+## `solve`
+
+```sh
+mechcore solve <match.yaml|state.yaml> --side blue|red --bot '<command>' \
+  [--round <n>] [--timeout <seconds>] [--parallel <n>] [--log <file.jsonl>]
+```
+
+Reads a `match` or standalone round-opening `state` document read-only, starts
+one persistent bot process, performs the `initialize` handshake and dispatches
+one expanded pure-JSON `solve` request while serving reverse stateless RPC calls
+([rpc.md](rpc.md)) over the same pipes, validates the returned actions, and
+writes the result to stdout. The full contract, expanded `problem` schema,
+process lifecycle and `--log` format are defined in [solve.md](solve.md).
+
 ## `arena`
 
 ```sh
@@ -1285,152 +1321,12 @@ mechcore arena load match.yaml --round 3 --blue 'python3 blue.py' --red 'python3
   --timeout 0 --log continuation.jsonl >continuation.yaml
 ```
 
-The command plays one match in memory and writes the final canonical match
-document to stdout. Players write diagnostics to stderr. Each player command
-runs under `sh -c`. Arena first runs the command with `--name` appended and
-expects a successful exit and one nonempty UTF-8 name line. It then starts one
-persistent process per seat. The reference Python players use PyYAML to read
-match documents.
-
-`arena new` draws a fresh match. A fixed positive `--seed` reproduces the
-deal, map and player seeds. `--map <id>` selects the map. `--max-round <N>` and
-`--base-core <N>` override the map defaults. Reinforcements are enabled by
-default. `--full-tech` gives both seats `"full"` technology loadouts. The
-default is the standard loadout used by the CLI.
-
-`arena load` opens a match document read-only. By default it reopens round
-zero with the recorded deal and lets both bots choose their opening. With
-`--round N` it retains all earlier decisions and the opening state of round N.
-The bots replace both sides' actions from that round onward. A captured suffix
-can start at a playable checkpoint it contains. An absent round or a checkpoint
-whose cores have already ended the match is refused. The source supplies the
-map, seeds, `reinforce`, `max_round`, round-0 `reactor_core`, and loadouts;
-`--max-round` and `--base-core` may override the match header's `max_round` and
-round 0's `reactor_core` when starting a continuation.
-The new header uses the two bots' reported names and omits the original players'
-ratings. Both verbs require `--blue` and `--red` and write the completed match
-to stdout.
-
-Both verbs accept `--log <file.jsonl>`. Arena creates a new file and writes
-one row for each message it sends or receives, in that order across both seats.
-An existing destination is refused. Each row identifies the seat (`side`),
-direction, phase and complete message. For example, a bot's commit and the
-arena's acknowledgement occupy two lines.
-
-```jsonl
-{"side":"blue","direction":"bot_to_arena","phase":"play","message":{"op":"commit","id":9,"actions":[]}}
-{"side":"blue","direction":"arena_to_bot","phase":"play","message":{"round":1,"id":9,"result":{"committed":true}}}
-```
-
-In the `name` phase the messages are the shell command including `--name` and
-its stdout as text. In the `play` phase a JSON Lines batch remains one array,
-and each reply appears when sent. Malformed JSON is recorded as its input
-text. Non-UTF-8 output is represented as an object with a `bytes` array.
-Completed rows remain available if the match fails. Bot diagnostics stay on
-stderr.
-
-Arena writes one JSON object per line to each player's stdin and reads the
-player's stdout as JSON Lines. Flush each request. Each round it asks blue,
-then red, using the same immutable match prefix for both. Completed rounds
-include both seats' decisions. Each problem, including round zero, ends at
-that round's state segment. Each problem includes the seat, round, time budget
-in seconds (`timeout`) and concurrent trial limit (`parallel`).
-
-```json
-{"op":"problem","side":"red","round":1,"timeout":30,"parallel":8,"match_yaml":"kind: match\n..."}
-```
-
-Each request carries an unsigned integer `id`, unique within that problem.
-Each response repeats the `round` and `id` and carries either `result` or
-the standard `error` object. A malformed line has a null ID. The player
-may pipeline trials on separate lines or write a nonempty JSON array of
-trial requests. Each item gets its own response line as it finishes. Use IDs
-to correlate replies. An invalid trial leaves siblings independent.
-
-| Request | Actions and result |
-| --- | --- |
-| `act` | `actions: {"blue":[...],"red":[...]}` applies each sequence to its seat's opening and returns `result.state` with both resulting positions, remaining shop allowances and each seat's `reinforce_chosen` flag. |
-| `simulate` | Takes the same bilateral actions and optional `until` and `collect`. Checks them, projects the deployment and runs one battle. |
-| `commit` | `actions: [...]` contains only the requesting seat's sequence. A legal submission returns `{"committed":true}` and ends that seat's turn. Send it as a standalone request. Outstanding trials for the seat are discarded. |
-
-An omitted seat in bilateral actions means an empty sequence. Each request
-starts again from the opening. The bot owns its drafts and generates its own
-candidate actions. To extend a plan, resend its entire prefix. All three
-operations apply the same per-action and end-of-sequence checks on the seats
-they validate. Round zero requires exactly one matching `choose_advance_team`
-per validated seat. When a reinforcement is offered, the first action must
-choose a card or its offered refund, unless the seat concedes. A bot can
-therefore inspect the state immediately after a choice. On a refusal it can
-correct its sequence and retry with a fresh ID. A committed concession ends
-the match immediately. A hypothetical opening or concession returns
-`{"tick":0,"stop":"no_fight","settled":false,"collect":{}}` from `simulate`.
-A simulator refusal returns an error, and the trial leaves the match untouched.
-
-`--timeout` is wall-clock seconds per seat per problem, including trial time,
-and also bounds each name query. The default is 30 seconds and 0 disables
-the limit. A deployment timeout concedes for that seat. A failed name query,
-an opening timeout, a broken bot connection or an unresolved official battle
-ends the command with an error on stderr. At match end the bot receives EOF.
-
-`--parallel N` lets up to N `act` and `simulate` trials run at once,
-counted together across batches and individual requests. Additional trials
-queue until a slot opens. Both arena verbs accept a positive integer and
-default to the logical CPU count available to the arena process, or 1 if
-the count is unavailable.
-
-### Limited battle simulation
-
-`simulate` returns `tick`, `stop`, `settled` and the named values in
-`collect`. Tick 0 is the prepared deployment. Later ticks count closed logic
-ticks from 1. Arena processes all events of a tick before checking its stop
-condition. A natural or forced battle end takes precedence on the same tick.
-Stopping at a condition returns that condition in `stop`. For `any` it
-returns the first matching branch in request order. An early stop leaves
-terminal-only fields absent.
-
-| `until` | Stops when |
-| --- | --- |
-| `"fight_end"` (default) | The fight settles. |
-| `{"tick":120}` | Tick 120 has closed. |
-| `{"event":"unit_died"}` | The tick contains that MCFR event kind. |
-| `{"count":{"where":{"type":"unit_died"},"at_least":5}}` | The cumulative number of matching events reaches the threshold. |
-| `{"metric":{"field":"kills","side":"red","at_least":3}}` | The sum of the named metric reaches the threshold. Optional filters are `side` and canonical `formation`. |
-| `{"any":[...]}`, `{"all":[...]}` | Any or all child predicates hold at the same tick. |
-
-`collect` maps names chosen by the bot to projections. An empty object
-collects nothing. Omitting it requests `{"settlement":"settlement"}`. The
-`settlement` preset returns the two fight sides as written by `convert --to
-fight`. `core_damage` returns the two reactor damage amounts at settlement.
-`preview` returns the deployment preview. `opening_deaths` returns each
-initial unit's object and its first death tick through the stop, or null for
-a unit with no observed death.
-
-```json
-{"op":"simulate","id":10,"actions":{},"until":{"tick":0},"collect":{"board":"preview"}}
-{"op":"simulate","id":11,"actions":{},"until":"fight_end","collect":{"deaths":{"from":"events","where":{"type":{"in":["unit_died","building_destroyed","shield_destroyed"]}},"select":["tick","ordinal","type","object","side","formation","position","last_hit"]},"first_by_entity":{"first":{"type":"unit_died"},"group_by":"object"}}}
-```
-
-Event rows follow MCFR order. The zero-based `ordinal` includes events omitted
-by the filter. Object IDs are scoped by kind, formation IDs use MCFR
-numbering, and positions use the event's raw fixed-point coordinates.
-The event subject supplies `object`, its side at the event and its formation
-when known. Fields with no value are null. `source` and `target` are also
-selectable. `last_hit` is the most recent preceding damage event targeting
-the subject on the same tick. Its fields are `source` and `amount`.
-The built-in offline query `mechcore query round.mcfr --query death-timeline`
-gives a reference for unit deaths. A row projection includes repeated deaths
-and entities created during the battle.
-
-Filters combine `type` (one kind or `{"in":[...]}`), `side`, `formation`
-and `object` by conjunction. `{"count":filter}` returns the number of matches.
-`{"first":filter}`, `{"last":filter}` and `{"nth":2,"where":filter}` return the
-matching tick, or null if absent. Each accepts optional `group_by` equal
-to `side`, `formation` or `object`, and then returns one `{"key":...,"value":...}`
-per observed group. `{"at_stop":"alive_members","group_by":"side"}` reads the
-stopped simulation. Supported metrics are `alive_members`, `damage_real`,
-`damage_taken` and `kills`. Metric grouping accepts side or formation.
-Event counts keep a counter per group. Row projections retain the selected
-rows until the response is written. Arena creates no trial recording.
+Plays one match in memory by continuously dispatching round-opening `solve`
+problems ([solve.md](solve.md)) to two persistent bot processes over the shared
+bidirectional JSON-RPC 2.0 protocol ([rpc.md](rpc.md)), and writes the final
+canonical match document to stdout. Full command options, scheduling order,
+deployment-round timeout and illegal-action `concede` adjudication, and logging
+rules are defined in [arena.md](arena.md).
 
 ## `game`
 
