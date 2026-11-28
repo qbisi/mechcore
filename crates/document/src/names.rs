@@ -484,7 +484,7 @@ shapes!(contraption, Contraption);
 pub(crate) mod card {
     use serde::{Deserialize, Deserializer, Serializer};
 
-    fn name<E: serde::ser::Error>(id: i32) -> Result<&'static str, E> {
+    pub(crate) fn name<E: serde::ser::Error>(id: i32) -> Result<&'static str, E> {
         crate::names::name_of::<super::Card, E>(id)
     }
 
@@ -512,6 +512,33 @@ pub(crate) mod card {
                 .iter()
                 .map(|name| super::id::<D::Error>(name))
                 .collect()
+        }
+    }
+
+    /// Optional ordinary pool card list (used by expanded round-0 `reinforce_pool`).
+    pub(crate) mod many_opt {
+        use super::{Deserialize, Deserializer, Serializer};
+        #[allow(clippy::ref_option)] // serde's `with` signature.
+        pub(crate) fn serialize<S: Serializer>(
+            ids: &Option<Vec<i32>>,
+            serializer: S,
+        ) -> Result<S::Ok, S::Error> {
+            match ids {
+                Some(ids) => super::many::serialize(ids, serializer),
+                None => serializer.serialize_none(),
+            }
+        }
+        pub(crate) fn deserialize<'de, D: Deserializer<'de>>(
+            deserializer: D,
+        ) -> Result<Option<Vec<i32>>, D::Error> {
+            Option::<Vec<String>>::deserialize(deserializer)?
+                .map(|names| {
+                    names
+                        .iter()
+                        .map(|name| super::id::<D::Error>(name))
+                        .collect()
+                })
+                .transpose()
         }
     }
 

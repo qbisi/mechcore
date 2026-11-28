@@ -144,7 +144,7 @@ red: {reactor_core: -240}
 - **规范紧凑编码**：当本构建支持的标准 1v1 全科技均开启时写为字面量 `"full"`；任意真子集（含空集）编码为无 `=` 填充的 RFC 4648 §5 **Base64url 字符串**（共 `42` 个字符，对应按 `tech_id` 升序排列的 `241` 条标准 `(tech_id, unit_id)` 目录项，采用字节内低位优先 `i / 8`、`1 << (i % 8)` 的小端位序；末尾多余填充位必须为 `0`，全 `1` 位图必须写作 `"full"` 而禁止写字符串位图）。
 - **展开形态（`mechcore format --expanded`）**：将对局文档中两项为可读性而简化的字段同时完整展开，且与紧凑形态可无损往返互转：
   1. 双方 `tech_loadout` 全部按单位 ID 升序、每单位内部按科技 ID 升序写为嵌套 YAML 映射 `{unit: [tech, ...]}`（全科技配置同样完整展开而非写为 `"full"`）；
-  2. 当 `reinforce: true` 时，每个常规回合（`round >= 1`）`state` 中的 `reinforce_pool` 展开为当回合开局发牌后活跃普通增援池的完整有序卡牌名列表 `[card_name, ...]`（详见 [state.md](state.md#2-共享随机流与普通增援池)）。
+  2. 当 `reinforce: true` 时，各回合（含 `round: 0` 开局与 `round >= 1` 常规回合）`state` 中的 `reinforce_pool` 展开为当前活跃普通增援池的完整有序卡牌名列表 `[card_name, ...]`（`round: 0` 为由 `seed` 初始化的初始普通增援池，详见 [state.md](state.md#2-共享随机流与普通增援池)）。
   读取器无歧义兼容紧凑与展开两种形态；[`solve.md`](../mechcore/solve.md#问题表达problem) 传递问题时统一采用完整展开形态。原生记录中不属于标准 1v1 赛制的单位（如 Death Knell `2001`、Experimental Death Knell `4001`）在导入时过滤丢弃。
 
 ### 4. 标准 1v1 赛制前提
@@ -355,7 +355,7 @@ mechcore convert <match.yaml> --to grbr <replay.grbr> [--force]
 | `offers` | 保持发牌原始顺序（`choose_advance_team.index` 直接对其 0-based 寻址） |
 | `constructions` | 按 `index` 升序 |
 | `tech_loadout` | 紧凑形态 `"full"` 或 42 字符 Base64url 字符串；`--expanded` 按单位 ID 升序、每单位内部按科技 ID 升序展开（含全科技） |
-| `reinforce_pool`（各常规回合 `state`） | 紧凑形态为 `{removed, added}` 净差值映射；`--expanded` 在 `reinforce: true` 时展开为当回合活跃普通增援池的完整卡牌 ID 升序列表 |
+| `reinforce_pool`（各回合 `state`） | 紧凑形态为 `round >= 1` 的 `{removed, added}` 净差值映射（`round: 0` 省略）；`--expanded` 在 `reinforce: true` 时于 `round: 0` 与常规回合均展开为完整卡牌 ID 升序列表 |
 
 ### 2. 统一 YAML 拼写规则（三条）
 

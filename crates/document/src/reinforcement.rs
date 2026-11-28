@@ -150,9 +150,15 @@ fn delivered_before(economy: &Economy, side: &SideState, round: i32) -> Result<i
 }
 
 impl Config {
-    fn embedded() -> Result<Self, String> {
-        serde_yaml::from_str(include_str!("../../../config/reinforcements.yaml"))
-            .map_err(|error| format!("cannot read reinforcement configuration: {error}"))
+    fn embedded() -> Result<&'static Self, String> {
+        static CACHE: std::sync::OnceLock<Result<Config, String>> = std::sync::OnceLock::new();
+        CACHE
+            .get_or_init(|| {
+                serde_yaml::from_str(include_str!("../../../config/reinforcements.yaml"))
+                    .map_err(|error| format!("cannot read reinforcement configuration: {error}"))
+            })
+            .as_ref()
+            .map_err(Clone::clone)
     }
 
     fn decline_supply(&self, economy: &Economy, pool: i32, round: i32) -> Result<i32, String> {
@@ -267,11 +273,115 @@ pub fn repeatable(card: i32) -> Result<bool, String> {
 /// # Errors
 /// Refuses a reinforcement configuration that does not parse.
 pub fn level_four_skills() -> Result<Vec<i32>, String> {
-    Config::embedded().map(|config| config.level_four_skills)
+    Config::embedded().map(|config| config.level_four_skills.clone())
+}
+
+/// The initial ordinary reinforcement pool initialized by `seed`, in card ID order.
+///
+/// # Errors
+/// Refuses an unreadable reinforcement or opening configuration.
+pub fn initial_members(seed: i32) -> Result<Vec<i32>, String> {
+    let config = Config::embedded()?;
+    Ok(config.initial_members(seed)?.into_iter().collect())
+}
+
+/// Expands a compact `PoolDelta` into the full sorted active ordinary reinforcement pool.
+///
+/// # Errors
+/// Refuses an unreadable configuration or a delta that violates pool membership invariants.
+pub fn expand_pool(seed: i32, delta: &PoolDelta) -> Result<Vec<i32>, String> {
+    let config = Config::embedded()?;
+    let initial = config.initial_members(seed)?;
+    Ok(config.apply_delta(&initial, delta)?.into_iter().collect())
+}
+
+/// Compacts a full expanded ordinary reinforcement pool list into a `PoolDelta` relative to `seed`.
+///
+/// # Errors
+/// Refuses duplicate, unsorted, unknown, or mutually exclusive group cards.
+pub fn compact_pool(seed: i32, members: &[i32]) -> Result<PoolDelta, String> {
+    let config = Config::embedded()?;
+    let active = config.validate_members(members)?;
+    let initial = config.initial_members(seed)?;
+    Ok(PoolDelta {
+        removed: initial.difference(&active).copied().collect(),
+        added: active.difference(&initial).copied().collect(),
+    })
+}
+
+/// Validates an expanded ordinary reinforcement pool list without requiring a match seed.
+///
+/// # Errors
+/// Refuses duplicate, unsorted, unknown, or mutually exclusive group cards.
+pub fn validate_members(members: &[i32]) -> Result<(), String> {
+    Config::embedded()?.validate_members(members).map(|_| ())
+}
+
+impl Config {
+    fn initial_members(&self, seed: i32) -> Result<BTreeSet<i32>, String> {
+        let init = crate::opening::initialize(seed)?;
+        Ok(self
+            .cards
+            .iter()
+            .filter(|&(&id, card)| card.group == 0 || init.officers.get(&card.group) == Some(&id))
+            .map(|(&id, _)| id)
+            .collect())
+    }
+
+    fn validate_members(&self, members: &[i32]) -> Result<BTreeSet<i32>, String> {
+        if members.windows(2).any(|pair| pair[0] >= pair[1]) {
+            return Err("reinforce_pool lists must be unique and in card ID order".into());
+        }
+        let mut active = BTreeSet::new();
+        let mut seen_groups = BTreeSet::new();
+        for &id in members {
+            let Some(card) = self.cards.get(&id) else {
+                return Err(format!("reinforce_pool holds invalid ordinary card {id}"));
+            };
+            if card.group > 0 && !seen_groups.insert(card.group) {
+                return Err("reinforce_pool holds multiple cards from one group".into());
+            }
+            active.insert(id);
+        }
+        Ok(active)
+    }
+
+    fn apply_delta(
+        &self,
+        initial: &BTreeSet<i32>,
+        delta: &PoolDelta,
+    ) -> Result<BTreeSet<i32>, String> {
+        for ids in [&delta.removed, &delta.added] {
+            if ids.windows(2).any(|pair| pair[0] >= pair[1]) {
+                return Err("reinforce_pool lists must be unique and in card ID order".into());
+            }
+        }
+        let mut members = initial.clone();
+        for id in &delta.removed {
+            if !members.remove(id) {
+                return Err(format!(
+                    "reinforce_pool removes card {id} outside the initial pool"
+                ));
+            }
+        }
+        for id in &delta.added {
+            if !self.cards.contains_key(id) || !members.insert(*id) || delta.removed.contains(id) {
+                return Err(format!("reinforce_pool adds invalid or initial card {id}"));
+            }
+        }
+        let mut seen_groups = BTreeSet::new();
+        for &id in &members {
+            let group = self.cards[&id].group;
+            if group > 0 && !seen_groups.insert(group) {
+                return Err("reinforce_pool holds multiple cards from one group".into());
+            }
+        }
+        Ok(members)
+    }
 }
 
 struct Dealer {
-    config: Config,
+    config: &'static Config,
     stream: Stream,
     offset: u32,
     pool_id: i32,
@@ -337,33 +447,11 @@ impl Dealer {
 
     fn restore(&mut self, state: &State) -> Result<(), String> {
         self.stream = Stream::from_state(state.random_state)?;
-        let mut members = self.members();
-        for ids in [&state.reinforce_pool.removed, &state.reinforce_pool.added] {
-            if ids.windows(2).any(|pair| pair[0] >= pair[1]) {
-                return Err("reinforce_pool lists must be unique and in card ID order".into());
-            }
-        }
-        for id in &state.reinforce_pool.removed {
-            if !members.remove(id) {
-                return Err(format!(
-                    "reinforce_pool removes card {id} outside the initial pool"
-                ));
-            }
-        }
-        for id in &state.reinforce_pool.added {
-            if !self.config.cards.contains_key(id)
-                || !members.insert(*id)
-                || state.reinforce_pool.removed.contains(id)
-            {
-                return Err(format!("reinforce_pool adds invalid or initial card {id}"));
-            }
-        }
+        let members = self
+            .config
+            .apply_delta(&self.members(), &state.reinforce_pool)?;
         for variants in self.groups.values_mut() {
-            let held = variants.iter().filter(|id| members.contains(id)).count();
-            if held > 1 {
-                return Err("reinforce_pool holds multiple cards from one group".into());
-            }
-            if held == 0 {
+            if !variants.iter().any(|id| members.contains(id)) {
                 variants.clear();
             }
         }

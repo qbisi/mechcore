@@ -110,10 +110,10 @@ mechcore rpc [--parallel <N>]
   - `to`（必填，常量 `"state"`）：目标导出形态；
   - `round`（可选 `i32`）：仅当 `input` 为 `kind: match` 时合法（对 `kind: state` 传入按 `-32602` `usage` 拒绝）。指定提取第 `round` 回合（完整对局支持 `0`，截断对局支持流内存在的任意回合）；省略时选取流中最后一个 `state` 段（无论流止于 `state`、`action` 还是 `result`）；
   - `apply_actions`（可选布尔值，默认 `false`）：仅当 `input` 为 `kind: match` 时合法（对 `kind: state` 传入按 `-32602` `usage` 拒绝）。`false` 导出所选回合的**开局态**；`true` 将所选回合已记录的 `action` 序列应用于该回合开局态，导出**部署终态**（若所选回合尚无 `action` 段或决策不合法按 `refused` 拒绝）；
-  - `expanded`（可选布尔值，默认 `true`）：`true` 时完整展开 `tech_loadout`（`{unit: [tech, ...]}`，含全科技展开）与常规回合 `reinforce_pool`（活跃普通增援池完整卡牌 ID 升序数组 `[card_name, ...]`）；`false` 时输出规范紧凑形态。
+  - `expanded`（可选布尔值，默认 `true`）：`true` 时完整展开 `tech_loadout`（`{unit: [tech, ...]}`，含全科技展开）与各回合 `reinforce_pool`（活跃普通增援池完整卡牌 ID 升序数组 `[card_name, ...]`）；`false` 时输出规范紧凑形态。
 - **转换与展开规则**：
-  - **`match` → `state`**：将对局头文件中的规则不变量（`build`、`reinforce`、`max_round`、`map_id`、`seed`、双边 `tech_loadout`）并入所选回合的 `state`，丢弃展示溯源字段（`source`、`name`、`elo_score`）。当 `round == 0` 且 `apply_actions == false` 时产出第 0 回合独立开局态；当 `round >= 1`、`reinforce == true` 且 `expanded == true` 时，依据头文件 `seed` 初始池与当回合 `reinforce_pool` 差值展开完整活跃列表 `initial \ removed ∪ added`；当 `round == 0` 或 `reinforce == false` 时省略 `reinforce_pool`。允许导出流内任意合法存在的回合（包括末回合核心已归零的终局状态）。
-  - **`state` → `state`**：解析并校验独立 `kind: state`。`expanded == true` 时若存在 `tech_loadout` 则完整展开（原文档省略时保持省略）；对于 `round >= 1` 且 `reinforce == true` 的 `reinforce_pool`，若源文档已写为展开数组则校验排序后输出，若为紧凑差值映射或省略则依据 `state.seed` 展开全量列表（缺失 `seed` 时无法推算初始池，按 `-32001` `refused` 拒绝）。
+  - **`match` → `state`**：将对局头文件中的规则不变量（`build`、`reinforce`、`max_round`、`map_id`、`seed`、双边 `tech_loadout`）并入所选回合的 `state`，丢弃展示溯源字段（`source`、`name`、`elo_score`）。当 `round == 0` 且 `apply_actions == false` 时产出第 0 回合独立开局态；当 `reinforce == true` 且 `expanded == true` 时，`round == 0` 导出由 `seed` 初始化的初始普通增援池，`round >= 1` 依据初始池与当回合 `reinforce_pool` 差值展开完整活跃列表 `initial \ removed ∪ added`；当 `reinforce == false` 时省略 `reinforce_pool`。允许导出流内任意合法存在的回合（包括末回合核心已归零的终局状态）。
+  - **`state` → `state`**：解析并校验独立 `kind: state`。`expanded == true` 时若存在 `tech_loadout` 则完整展开（原文档省略时保持省略）；当 `reinforce == true` 时，若源文档已有展开数组 `reinforce_pool` 则校验排序后输出，若为紧凑差值映射或省略则依据 `state.seed` 展开全量列表（缺失 `seed` 时无法推算初始池，按 `-32001` `refused` 拒绝）。
   - **版本告警**：输入声明的 `build` 与当前程序不一致时，向 `stderr` 输出版本告警并按当前目录继续转换（同 [match.md](../document/match.md#2-source-溯源与-build-版本兼容)）。
 - **Result**：
   ```json

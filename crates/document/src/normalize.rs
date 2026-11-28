@@ -61,17 +61,17 @@ pub(crate) fn deployment_with_history(
 /// Returns a malformed match or a deployment neither normalization nor its
 /// effective action history can represent.
 pub fn match_yaml(bytes: &[u8]) -> Result<String, String> {
-    match_yaml_with(bytes, crate::r#match::TechLoadoutFormat::Compact)
+    match_yaml_with(bytes, crate::r#match::MatchFormat::Compact)
 }
 
-/// Formats a match with the requested `tech_loadout` representation.
+/// Formats a match with the requested compact or expanded representation.
 ///
 /// # Errors
 /// Returns a malformed match or a deployment neither normalization nor its
 /// effective action history can represent.
 pub fn match_yaml_with(
     bytes: &[u8],
-    format: crate::r#match::TechLoadoutFormat,
+    format: crate::r#match::MatchFormat,
 ) -> Result<String, String> {
     let stated = crate::opening::stated(bytes)?.ok_or("not a match document")?;
     let mut game = crate::r#match::read(bytes)?.ok_or("not a match document")?;

@@ -189,7 +189,7 @@ mechcore solve <match.yaml|state.yaml> --side blue|red --bot '<command>' \
 **完整展开格式约束**：
 
 - **`tech_loadout` 恒展开**：`problem.state.blue.tech_loadout` 与 `problem.state.red.tech_loadout` 一律写为 `{unit: [tech, ...]}` 映射（外层按单位 ID 升序、内层按科技 ID 升序），即使属于全科技配置也完整展开，不使用 `"full"` 或 Base64url 位图；
-- **`reinforce_pool` 恒展开**：当 `reinforce: true` 且 `round >= 1` 时，`problem.state.reinforce_pool` 以及 `problem.history` 中每个常规回合 `state.reinforce_pool` 一律写为当回合开局发牌后活跃普通增援池的完整卡牌名数组 `[card_name, ...]`（按卡牌 ID 升序，对应 [state.md](../document/state.md#2-共享随机流与普通增援池) 定义的展开形态），不使用 `{removed, added}` 差值；当 `round == 0` 或 `reinforce: false` 时省略；
+- **`reinforce_pool` 恒展开**：当 `reinforce: true` 时，`problem.state.reinforce_pool`（含 `round: 0` 开局态的初始普通增援池与 `round >= 1` 常规回合的当前活跃池）以及 `problem.history` 中各回合 `state.reinforce_pool` 一律写为完整卡牌名数组 `[card_name, ...]`（按卡牌 ID 升序，对应 [state.md](../document/state.md#2-共享随机流与普通增援池) 定义的展开形态），不使用 `{removed, added}` 差值；当 `reinforce: false` 时省略；
 - **信息隔离不变量**：`problem` 仅包含当前回合开局态与已完成的历史回合，绝不暴露对手在本回合的任何未结算或已提交决策。
 
 ---

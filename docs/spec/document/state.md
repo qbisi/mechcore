@@ -37,7 +37,7 @@
 | --- | --- | --- | --- |
 | 根级共享 | `kind`, `round` | 必填 | 必填 |
 | 根级公共头 | `build`, `reinforce`, `max_round`, `map_id`, `seed` | **省略**（由前置 `match` 头文件声明；段内出现即拒绝） | **允许/推荐**（不带 `match` 头文件时用于补全规则与目录上下文） |
-| 根级演化态 | `random_state`, `reinforce_pool`, `reinforce_offers` | `round >= 1` 出现（`offers` 仅发牌回合存在） | 同段内（`round >= 1`） |
+| 根级演化态 | `random_state`, `reinforce_pool`, `reinforce_offers` | `random_state` 与 `reinforce_offers` 在 `round >= 1` 出现（`offers` 仅发牌回合存在）；`reinforce_pool` 在 `round >= 1` 出现，展开态且 `reinforce: true` 时亦在 `round: 0` 出现 | 同段内 |
 | 阵营公共配置 | `blue/red.tech_loadout` | **省略**（由前置 `match` 头文件声明） | **允许/推荐**（用于校验 `upgrade_technology` 合法动作集） |
 | 阵营第 0 回合 | `reactor_core`, `seed`, `offers`, `constructions` | `round: 0` 出现（`seed` 可选） | 同段内（`round: 0`） |
 | 阵营资源与战斗态 | `random_state`, `reactor_core`, `supply`, `unlocked_units`, `next_index`, `units`, ... | `round >= 1` 出现 | 同段内（`round >= 1`） |
@@ -183,7 +183,7 @@ red: {...}
 
 ## 根级共享字段
 
-`round: 0` 的状态段仅包含 `kind`、`round`（为 `0`）、`blue`、`red`（独立状态还可在根级携带下方公共头）。`round >= 1` 时根级还承载双方共享的增援随机流与牌面。
+`round: 0` 的状态段仅包含 `kind`、`round`（为 `0`）、`blue`、`red`（展开态且 `reinforce: true` 时在根级额外包含初始 `reinforce_pool`，独立状态还可在根级携带下方公共头）。`round >= 1` 时根级还承载双方共享的增援随机流与牌面。
 
 ### 1. 文档头与独立状态公共头
 
@@ -220,9 +220,9 @@ reinforce_pool:
 reinforce_pool: [supply_specialist, laser_sights, extended_range_fortress]
 ```
 
-- **紧凑形态（默认）**：`removed` 仅列初始池中已被移除的卡牌，`added` 仅列非初始池中新增的卡牌；两者严格互斥、去重且按卡牌 ID 升序排列。为空的列表省略；若 `removed` 与 `added` 均空，整个 `reinforce_pool` 键省略。
-- **展开形态**：写作按卡牌 ID 升序排列的完整活跃普通增援池卡牌名称列表 `[card_name, ...]`（等价于 `initial \ removed ∪ added`），适用于 `mechcore format --expanded` 审阅及 [`solve.md`](../mechcore/solve.md#问题表达problem) 的纯 JSON 问题传递。
-- 两种形态均表达集合状态而非操作历史日志；当 `round == 0` 或头文件/公共头 `reinforce: false` 时，`reinforce_pool` 必须保持空且省略，根级 `random_state` 也停留在开局初始位置。
+- **紧凑形态（默认）**：`removed` 仅列初始池中已被移除的卡牌，`added` 仅列非初始池中新增的卡牌；两者严格互斥、去重且按卡牌 ID 升序排列。为空的列表省略；若 `removed` 与 `added` 均空或 `round == 0`，整个 `reinforce_pool` 键省略。
+- **展开形态**：写作按卡牌 ID 升序排列的完整活跃普通增援池卡牌名称列表 `[card_name, ...]`（`round: 0` 为由根级 `seed` 初始化的初始普通增援池，`round >= 1` 等价于 `initial \ removed ∪ added`），适用于 `mechcore format --expanded` 审阅及 [`solve.md`](../mechcore/solve.md#问题表达problem) 的纯 JSON 问题传递。
+- 两种形态均表达集合状态而非操作历史日志；当头文件/公共头 `reinforce: false` 时，所有回合（含 `round == 0`）的 `reinforce_pool` 均省略，根级 `random_state` 也停留在开局初始位置。
 - 回合开局状态已包含本回合的条件池刷新；本回合选用不可重复卡牌后的移池发生在下一轮发牌前；4 级战场技能在相邻下一回合的临时互斥直接由本回合 `reinforce_offers` 推导，不单独记入 `reinforce_pool`。
 
 > **安装器约束**：向真机游戏写入缺少随机流的局部局面时，应跳过 `randomStateData` 写入以保持游戏默认初始化，绝不可写入 `[0, 0, 0, 0]`，否则会导致解析长度/全零异常及后续所有随机抽取锁死在零值。
@@ -252,7 +252,7 @@ reinforce_pool: [supply_specialist, laser_sights, extended_range_fortress]
 
 ### 1. 第 0 回合开局状态（`round: 0`）
 
-`state(0)` 尚无棋盘编队、商店或技能面板，每个阵营包含以下字段：
+`state(0)` 尚无棋盘编队、商店或技能面板（展开形态且 `reinforce: true` 时在根级携带初始 `reinforce_pool`），每个阵营包含以下字段：
 
 | 字段 | 要求 | 说明 |
 | --- | --- | --- |

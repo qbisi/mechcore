@@ -58,9 +58,10 @@ pub fn read_state(bytes: &[u8]) -> Result<Layout, String> {
     {
         return Err("state build must not be empty".into());
     }
-    let _reinforce = remove_opt(fields, "reinforce")
+    let reinforce = remove_opt(fields, "reinforce")
         .map(|v| serde_yaml::from_value::<Option<bool>>(v).map_err(|e| format!("reinforce: {e}")))
-        .transpose()?;
+        .transpose()?
+        .flatten();
     if let Some(max_round) = optional_i32(fields, "max_round")?
         && max_round < 1
     {
@@ -68,6 +69,23 @@ pub fn read_state(bytes: &[u8]) -> Result<Layout, String> {
     }
     let map_id = optional_i32(fields, "map_id")?;
     let seed = optional_i32(fields, "seed")?;
+    let pool_key = serde_yaml::Value::String("reinforce_pool".into());
+    if fields
+        .get(&pool_key)
+        .is_some_and(serde_yaml::Value::is_sequence)
+        && let Some(seq) = fields.remove(&pool_key)
+    {
+        if reinforce == Some(false) {
+            return Err("state states reinforce_pool while reinforcements are disabled".into());
+        }
+        let members = crate::names::card::many::deserialize(seq)
+            .map_err(|e| format!("reinforce_pool: {e}"))?;
+        if let Some(seed) = seed {
+            crate::reinforcement::compact_pool(seed, &members)?;
+        } else {
+            crate::reinforcement::validate_members(&members)?;
+        }
+    }
     for side_name in ["blue", "red"] {
         if let Some(side_map) = fields
             .get_mut(serde_yaml::Value::String(side_name.into()))
@@ -901,10 +919,38 @@ mod tests {
         assert_eq!(layout.seed, Some(42));
         assert_eq!(layout.round, 3);
 
+        let first_card = crate::names::card::name::<serde_yaml::Error>(
+            crate::reinforcement::initial_members(42).unwrap()[0],
+        )
+        .unwrap();
+        let expanded_state = yaml.replace("reinforce: false", "reinforce: true").replace(
+            "round: 3\n",
+            &format!("round: 3\nreinforce_pool: [{first_card}]\n"),
+        );
+        assert_eq!(
+            super::read_state(expanded_state.as_bytes()).unwrap().round,
+            3
+        );
+        let seedless_expanded = expanded_state.replace("seed: 42\n", "");
+        assert_eq!(
+            super::read_state(seedless_expanded.as_bytes())
+                .unwrap()
+                .round,
+            3
+        );
+
         for invalid in [
             yaml.replace("max_round: 13", "max_round: 0"),
             yaml.replace("tech_loadout: full", "tech_loadout: bad"),
             yaml.replace("buys_remaining: 2", "buys_remaining: -1"),
+            yaml.replace(
+                "round: 3\n",
+                &format!("round: 3\nreinforce_pool: [{first_card}]\n"),
+            ),
+            expanded_state.replace(
+                &format!("[{first_card}]"),
+                &format!("[{first_card}, {first_card}]"),
+            ),
         ] {
             assert!(super::read_state(invalid.as_bytes()).is_err(), "{invalid}");
         }

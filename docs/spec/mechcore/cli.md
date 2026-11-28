@@ -679,7 +679,7 @@ block and its blank lines are preserved verbatim; comments within the document
 are not retained. Leading blank lines without a comment are removed. For a
 match document, `--expanded` writes both each side's `tech_loadout` as an
 expanded unit-to-technology mapping (instead of `"full"` or the compact
-Base64url bitset) and each deployment round's `reinforce_pool` (when
+Base64url bitset) and each round's `reinforce_pool` (including round 0, when
 reinforcements are enabled) as the full active ordinary reinforcement pool card
 list (instead of the `{removed, added}` delta); passing `--expanded` to a
 non-match document is refused.

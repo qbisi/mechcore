@@ -28,9 +28,9 @@ pub(crate) fn run(mut arguments: Args) -> Outcome {
         Kind::Match => mechcore_document::normalize::match_yaml_with(
             &bytes,
             if expanded {
-                mechcore_document::r#match::TechLoadoutFormat::Expanded
+                mechcore_document::r#match::MatchFormat::Expanded
             } else {
-                mechcore_document::r#match::TechLoadoutFormat::Compact
+                mechcore_document::r#match::MatchFormat::Compact
             },
         ),
         Kind::Fight => mechcore_document::fight::parse_yaml(&bytes).and_then(|mut fight| {
