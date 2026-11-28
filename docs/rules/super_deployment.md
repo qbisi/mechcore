@@ -74,7 +74,7 @@ rate through `FightTeam.SetSuperDeploymentTimeChangeRate` and halves the
 travel. Quick Teleport is the one officer that sets it, and the pool deals it
 once, so a side has at most one rate to set; the setter does not add, and a
 layout cannot hold Quick Teleport twice
-([layout.md](../spec/document/layout.md#officers)).
+([layout.md](../spec/document/layout.md#军官officers)).
 
 A unit that dies while travelling leaves the list through
 `SuperDeploymentController.OnMechDead`, after the travel update of that tick.

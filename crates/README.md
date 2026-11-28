@@ -22,7 +22,7 @@ re-recording rather than for the code it tests, and check again what that
 verify already checks. A test that needs a fight writes one, from a layout
 in its own crate's `tests/fixtures/` or one it states itself, and a test
 that needs a fixture's fact states it as the fixture's assert
-([fight.md](../docs/spec/document/fight.md#asserts)).
+([fight.md](../docs/spec/document/fight.md#录制断言asserts)).
 
 A comment may cite a fixture as the evidence for what the code does; that
 cites it and reads nothing. A crate's own test data under `crates/<crate>/tests/`

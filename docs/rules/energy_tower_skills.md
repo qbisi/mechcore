@@ -14,7 +14,7 @@ skill's `IsCommonEffect` holds. That check reads two fields and no others:
 `EnergyTowerSkillData.speedChangeValue` and
 `EnergyTowerSkillData.attackRangeChangeValue`. Of a standard match's five
 skills only Enhanced Range (`5`) and High Mobility (`6`) set one, which is why
-a [layout](../spec/document/layout.md#energy_tower_skills) carries those two
+a [layout](../spec/document/layout.md#能量塔技能energy_tower_skills) carries those two
 alone. The other three buy supply or change a round's shopping, and
 [`economy.yaml`](../../config/economy.yaml) holds what they do to a ledger.
 

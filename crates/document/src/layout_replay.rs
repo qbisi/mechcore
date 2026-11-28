@@ -15,7 +15,7 @@
 //!
 //! The file around the record is a .NET `BinaryFormatter` stream of one
 //! `GameRiver.Replay`, which holds the record as an XML string.
-//! `docs/spec/document/layout-replay.md` states both.
+//! `docs/spec/document/layout.md` states both.
 
 use crate::catalog::NativeFormation;
 use crate::compile::{Placement, Plan, SidePlan};

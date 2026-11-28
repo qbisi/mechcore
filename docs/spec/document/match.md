@@ -122,7 +122,7 @@ red: {reactor_core: -240}
 - **`source`（必填）**：只能为 `game` 或 `simulator`，记录产生该对局战斗结果的执行后端——它只是**来源事实标记**，绝不用于反向决定后续命令的执行后端：
   - 原生游戏录像转换写 `source: game`；由当前执行产生的新战斗（如 `arena` 或本地推进）写入实际承担战斗计算的后端；格式化、截断与 `to GRBR` 往返在未重新执行战斗时保留原 `source`（合成 GRBR 在 `<MechcoreMatch><Source>` 中保存）；
   - 未标注来源的原生录像默认视为 `game`；缺少 `source`、未知取值或畸形 `<MechcoreMatch>` 元数据一律拒绝。若基于异后端前缀继续模拟后续新回合，产出文档的 `source` 改写为本次执行战斗的后端，不单独逐回合认证来源。
-- **`build`（规范输出必填）**：与 [layout.md](layout.md#document-shape) 的 `game_build` 同义，新生成与原生转换对局均从仓库唯一版本钉 `GAME_VERSION` 读取，不在代码或文档中多处硬编码。若输入头文件省略 `build` 则视作当前程序版本；若输入 `build` 与当前程序不同（例如历史版本对局），所有 CLI 操作**告警后继续读入并按当前二进制的目录与规则运行**（格式化保留其声明的版本号，但投影与模拟可能与原历史版本产生差异）。
+- **`build`（规范输出必填）**：与 [layout.md](layout.md#文档结构与根级字段) 的 `game_build` 同义，新生成与原生转换对局均从仓库唯一版本钉 `GAME_VERSION` 读取，不在代码或文档中多处硬编码。若输入头文件省略 `build` 则视作当前程序版本；若输入 `build` 与当前程序不同（例如历史版本对局），所有 CLI 操作**告警后继续读入并按当前二进制的目录与规则运行**（格式化保留其声明的版本号，但投影与模拟可能与原历史版本产生差异）。
 
 ### 3. `tech_loadout` 编码规范
 
@@ -282,7 +282,7 @@ mechcore convert <match.yaml> --to grbr <replay.grbr> [--force]
 
 #### 文件封装、`BattleRecord` 与 `<MechcoreMatch>` 元数据
 
-- **封装格式**：沿用 [layout-replay.md](layout-replay.md#the-file) 的 `.NET BinaryFormatter` 流（根节点 `GameRiver.Replay` + UTF-8 BOM `BattleRecord` XML），其中 `battleID` 固定为 `battle`、`mapID` 为对局 `map_id`、`Seat` 固定为 `0`（本地录制回放）、`Version` 为 `GAME_VERSION` 末段构建号、`playerDatas` 为 `{id: 1, name: blue}` 与 `{id: 2, name: red}`。
+- **封装格式**：沿用 [layout.md](layout.md#1-文件封装binaryformatter-与-gameriverreplay) 的 `.NET BinaryFormatter` 流（根节点 `GameRiver.Replay` + UTF-8 BOM `BattleRecord` XML），其中 `battleID` 固定为 `battle`、`mapID` 为对局 `map_id`、`Seat` 固定为 `0`（本地录制回放）、`Version` 为 `GAME_VERSION` 末段构建号、`playerDatas` 为 `{id: 1, name: blue}` 与 `{id: 2, name: red}`。
 - **`<MechcoreMatch>` 帧内元数据**：合成 `.grbr` 在 `<BattleRecord>` 下紧跟写入唯一一个元数据节点：
 
 ```xml
