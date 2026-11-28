@@ -13,7 +13,7 @@
 
 - [match.md](match.md) 定义整场对局流、头文件规则开关及回合端到端覆盖率校验；
 - [state.md](state.md) 定义各回合状态段的完整字段结构（包括第 0 回合开局状态段 `state(0)`）；
-- [layout.md](layout.md) 定义战斗开始前的阵型投影与[坐标系约定](layout.md#coordinate-system)（不含决策）。
+- [layout.md](layout.md) 定义战斗开始前的阵型投影与[坐标系约定](layout.md#坐标系与部署空间规则)（不含决策）。
 
 所有坐标与朝向均采用阵营局部坐标系；单条决策本身不携带 `blue`/`red` 字段，其所属阵营由所在的列表键决定。
 

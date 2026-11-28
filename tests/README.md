@@ -101,7 +101,7 @@ trajectory: the outcome alone is what a document states once a change to the
 rules has moved the hash and the fight is not yet recorded again. What the
 comment claims the fight shows, a fixture can state as an assert, a query of
 its recording and the rows the game answered
-([fight.md](../docs/spec/document/fight.md#asserts)), so the claim is checked
+([fight.md](../docs/spec/document/fight.md#录制断言asserts)), so the claim is checked
 and outlives the hash; its rows are recorded from the game, never written by
 hand. A
 comment at the top of the file says what the fight measures. `verify` alone
@@ -255,7 +255,7 @@ unit without technology is reproduced by one of them or refused by name. And
 the units its layouts face are supported first. Every recording the
 simulator reproduces is pinned in the unit's own directory as
 `<layout>-<seed>.yaml`, with the layout's own comment at its top. Each is fought without a scene, as a
-[layout replay](../docs/spec/document/layout-replay.md), and hashes the same
+[layout replay](../docs/spec/document/layout.md#合成原生回放grbr), and hashes the same
 recorded that way as in the Training Ground.
 
 | Layout | What it measures |

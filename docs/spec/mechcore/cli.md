@@ -225,7 +225,7 @@ batch still runs.
 - A **fight** is fought again as [`convert --to fight`](#convert) fights a
   layout: its projection, with its seed, through the simulator and the one
   reader. It verifies when the simulator's document states what it states, as
-  [fight.md](../document/fight.md#root-fields) says a fight is checked: its
+  [fight.md](../document/fight.md#根级字段) says a fight is checked: its
   outcome, its asserts' rows when it makes any, the simulator's recording
   asked each assert's query, and `ticks` and `hash` when the document states
   them. `compared` names which were, and `differences` lists each path
@@ -287,7 +287,7 @@ that position, not the original decisions, timeline or settlement. Only a
 layout accepts `--seed`, which overrides the layout's seed,
 and one of the two has to name it. The layout is compiled first, so a layout
 `game apply_layout` would refuse is refused here too, and so is one a replay
-cannot open or play: [layout-replay.md](../document/layout-replay.md) says what
+cannot open or play: [layout.md](../document/layout.md#合成原生回放grbr) says what
 it states and what it refuses. It answers the replay's path, map, seed and
 round.
 
@@ -387,7 +387,7 @@ fight whose result the document is.
 match snapshot and both players. `--round <n>` selects it explicitly; omitted,
 the greatest available round number is selected, not a count of entries. A
 standard replay follows the GRBR-to-match and match-to-layout paths. A
-synthetic [layout replay](../document/layout-replay.md) restores its snapshot
+synthetic [layout replay](../document/layout.md#合成原生回放grbr) restores its snapshot
 and commands directly; earlier empty placeholders are not available rounds.
 An unavailable or unrepresentable selected round is refused, without falling
 back to another round.
