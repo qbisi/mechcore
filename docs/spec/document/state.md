@@ -208,17 +208,21 @@ red: {...}
 
 每个 `round >= 1` 状态的根级与双边阵营下各带一个长度固定为 4 的无符号 64 位整数数组 `random_state`（对应 Lua 5.4 xoshiro256 状态字），**且不允许全为 `0`**（全零是该生成器的吸收不动点）。在回合开局态下，`random_state` 记录本回合完成增援发牌与军官交付**之后**、双方开始决策**之前**的断点；只有触发抽牌或发物的规则才会推进相应流状态。
 
-`reinforce_pool` 记录当前普通增援池相对于“由根级 `seed` 初始化的原始池”之间的**集合净差值**：
+`reinforce_pool` 记录当前回合开局发牌后活跃的普通增援池，支持**规范紧凑形态（差值映射）**与**完整展开形态（全量列表）**两种等价写法（读取器依节点类型无歧义识别，给定根级 `seed` 后两者一一双射无损互转）：
 
 ```yaml
+# 规范紧凑形态（默认写入，相对于 seed 初始池的集合净差值）：
 reinforce_pool:
   removed: [mass_produced_fortress]
   added: [extended_range_fortress]
+
+# 完整展开形态（`mechcore format --expanded` 与 `solve` 问题传递，见 solve.md）：
+reinforce_pool: [supply_specialist, laser_sights, extended_range_fortress]
 ```
 
-- `removed`：仅列初始池中已被移除的卡牌；`added`：仅列非初始池中新增的卡牌。两者严格互斥、去重且按卡牌 ID 升序排列。
-- 为空的列表省略；若 `removed` 与 `added` 均空，整个 `reinforce_pool` 键省略。
-- 这是集合差值而非操作历史日志；当头文件或公共头 `reinforce: false` 时，`reinforce_pool` 必须保持空且省略，根级 `random_state` 也停留在开局初始位置。
+- **紧凑形态（默认）**：`removed` 仅列初始池中已被移除的卡牌，`added` 仅列非初始池中新增的卡牌；两者严格互斥、去重且按卡牌 ID 升序排列。为空的列表省略；若 `removed` 与 `added` 均空，整个 `reinforce_pool` 键省略。
+- **展开形态**：写作按卡牌 ID 升序排列的完整活跃普通增援池卡牌名称列表 `[card_name, ...]`（等价于 `initial \ removed ∪ added`），适用于 `mechcore format --expanded` 审阅及 [`solve.md`](../mechcore/solve.md#问题表达problem) 的纯 JSON 问题传递。
+- 两种形态均表达集合状态而非操作历史日志；当 `round == 0` 或头文件/公共头 `reinforce: false` 时，`reinforce_pool` 必须保持空且省略，根级 `random_state` 也停留在开局初始位置。
 - 回合开局状态已包含本回合的条件池刷新；本回合选用不可重复卡牌后的移池发生在下一轮发牌前；4 级战场技能在相邻下一回合的临时互斥直接由本回合 `reinforce_offers` 推导，不单独记入 `reinforce_pool`。
 
 > **安装器约束**：向真机游戏写入缺少随机流的局部局面时，应跳过 `randomStateData` 写入以保持游戏默认初始化，绝不可写入 `[0, 0, 0, 0]`，否则会导致解析长度/全零异常及后续所有随机抽取锁死在零值。
@@ -414,7 +418,7 @@ layout = project(state)
 | `units[].equipments` | **按穿戴先后槽位序**（槽位 0 在前） |
 | `officers`、`unlocked_units`、`blueprints`、`energy_tower_skills` | 按各自目录 ID 升序（`officers` 为多重集） |
 | `techs` | 按单位 ID 升序排列键，各单位名下按科技 ID 升序 |
-| `reinforce_pool.removed` / `.added` | 按卡牌 ID 升序集合 |
+| `reinforce_pool` | 紧凑态：`removed` / `added` 按卡牌 ID 升序集合；展开态：全量活跃卡牌名列表按卡牌 ID 升序 |
 | `battle_skills[].standing` | 护盾按 `(x, y)` 升序；油田按控制点序 |
 | `reinforce_offers` | 保持发牌原序，末尾接 `supply` 退款项 |
 | `tower_strengthen_levels` | `[energy_tower, research_center]`（下标 0 为能量塔，下标 1 为研发中心） |
